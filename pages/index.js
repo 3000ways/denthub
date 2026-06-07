@@ -93,14 +93,27 @@ export default function Home() {
     }).finally(() => setLoading(false));
   }, []);
 
+  const THEME_TYPES = {
+    'Learning & Education':  ['Podcast', 'Book', 'CE Website', 'YouTube', 'Journal', 'Newsletter', 'Course', 'Conference'],
+    'Technology & Software': ['Software'],
+    'Coaching & Mentorship': ['Coaching', 'Mastermind', 'Mentorship'],
+    'Community & Network':   ['Community', 'Forum', 'Association'],
+    'Specialty Resources':   ['Podcast', 'Book', 'CE Website', 'Software', 'Journal', 'Course'],
+    'Training & Career':     ['Residency', 'Job Board', 'Course'],
+    'Practice & Business':   ['Consulting', 'Agency', 'Advisor', 'Platform'],
+    'Wellbeing & Lifestyle': ['Podcast', 'Book', 'Course'],
+    'News & Media':          ['Newsletter', 'News', 'Instagram', 'YouTube'],
+  };
+
   const filtered = resources.filter(r => {
     const f = r.fields;
-    const matchTheme = !activeTheme; // theme filter handled via category display for now
+    const themeTypes = activeTheme ? THEME_TYPES[activeTheme] : null;
+    const matchTheme = !themeTypes || themeTypes.some(t => (f.Type || '').includes(t));
     const matchSearch = !search ||
       (f.Name || '').toLowerCase().includes(search.toLowerCase()) ||
       (f.Description || '').toLowerCase().includes(search.toLowerCase()) ||
       (f.Type || '').toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
+    return matchTheme && matchSearch;
   });
 
   const themeCats = activeTheme
