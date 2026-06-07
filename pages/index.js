@@ -190,10 +190,9 @@ export default function Home() {
           {top2.length > 0 && (
             <>
               <div style={s.sectionLbl}>{activeTheme ? `Top ${THEME_SHORT[activeTheme]||''} picks` : 'Top picks this week'}</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1px 1fr', gap:24, marginBottom:36 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:32, marginBottom:36 }}>
                 {top2.map((r, i) => (
-                  <div key={r.id}>
-                    {i === 1 && <div style={s.vline} />}
+                  <div key={r.id} style={{ borderLeft: i===1 ? '1px solid #e8e8e8' : 'none', paddingLeft: i===1 ? 32 : 0 }}>
                     <div onClick={()=>r.fields.URL&&window.open(r.fields.URL,'_blank')} style={{ cursor:'pointer' }}>
                       <Logo url={r.fields.URL} name={r.fields.Name} size={40} />
                       <div style={{ fontSize:11, color:'#aaa', marginTop:12, marginBottom:4 }}>#{i+1} overall</div>
