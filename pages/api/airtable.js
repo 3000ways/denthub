@@ -3,12 +3,12 @@ export default async function handler(req, res) {
   const PAT  = process.env.AIRTABLE_PAT;
   const BASE = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
 
-  // Logo proxy — fetches from Clearbit server-side, avoids CSP issues
   if (logo) {
     try {
-      const r = await fetch(`https://logo.clearbit.com/${logo}`, {
-        headers: { 'User-Agent': 'DentHub/1.0' }
-      });
+      const r = await fetch(
+        `https://www.google.com/s2/favicons?domain=${logo}&sz=64`,
+        { headers: { 'User-Agent': 'DentHub/1.0' } }
+      );
       if (!r.ok) return res.status(404).end();
       const buf  = await r.arrayBuffer();
       const type = r.headers.get('content-type') || 'image/png';
