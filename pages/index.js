@@ -83,7 +83,7 @@ export default function Home() {
   });
 
   const displayCats = categories.length > 0
-    ? categories.map(c => c.fields.Name).filter(Boolean)
+    ? categories.map(c => c.fields['Category Name']).filter(Boolean)
     : Object.keys(CAT_CONFIG);
 
   const s = {
