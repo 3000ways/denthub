@@ -111,7 +111,7 @@ export default function Home() {
   THEMES.forEach(t => { themeCounts[t] = categories.filter(c => c.fields['Theme'] === t).length; });
 
   const top2   = filtered.slice(0, 2);
-  const ranked = filtered.slice(0, 10);
+  const ranked = filtered.slice(0, 50);
 
   return (
     <div style={s.page}>
@@ -212,7 +212,7 @@ export default function Home() {
           {/* Ranked list */}
           {ranked.length > 0 && (
             <>
-              <div style={s.sectionLbl}>Top 10 ranked</div>
+              <div style={s.sectionLbl}>Top 50 ranked</div>
               <div style={{ borderTop:'0.5px solid #e8e8e8', marginBottom:36 }}>
                 {ranked.map((r, i) => (
                   <div key={r.id} onClick={()=>r.fields.URL&&window.open(r.fields.URL,'_blank')}
