@@ -65,7 +65,7 @@ export default function Home() {
 
   const filteredResources = resources.filter(r => {
     const f = r.fields;
-    const matchTab    = activeTab === 'All' || f.Category === activeTab;
+    const matchTab    = activeTab === 'All' || f.Type === activeTab;
     const matchSearch = !search ||
       (f.Name || '').toLowerCase().includes(search.toLowerCase()) ||
       (f.Description || '').toLowerCase().includes(search.toLowerCase());
@@ -78,7 +78,7 @@ export default function Home() {
 
   const catCounts = {};
   resources.forEach(r => {
-    const c = r.fields.Category;
+    const c = r.fields.Type;
     if (c) catCounts[c] = (catCounts[c] || 0) + 1;
   });
 
@@ -215,16 +215,16 @@ export default function Home() {
                 >
                   <div style={{
                     height:160, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:6,
-                    background:`linear-gradient(135deg,${(HERO_COLORS[featured.fields.Category]||['#0F6E56','#1D9E75'])[0]},${(HERO_COLORS[featured.fields.Category]||['#0F6E56','#1D9E75'])[1]})`
+                    background:`linear-gradient(135deg,${(HERO_COLORS[featured.fields.Type]||['#0F6E56','#1D9E75'])[0]},${(HERO_COLORS[featured.fields.Type]||['#0F6E56','#1D9E75'])[1]})`
                   }}>
-                    <div style={{ fontSize:48 }}>{(CAT_CONFIG[featured.fields.Category]||{}).emoji||'📌'}</div>
+                    <div style={{ fontSize:48 }}>{(CAT_CONFIG[featured.fields.Type]||{}).emoji||'📌'}</div>
                     <div style={{ fontSize:11, fontWeight:500, letterSpacing:'0.07em', textTransform:'uppercase', color:'rgba(255,255,255,0.8)' }}>
-                      {featured.fields.Category} · #1 ranked
+                      {featured.fields.Type} · #1 ranked
                     </div>
                   </div>
                   <div style={{ padding:'12px 14px' }}>
                     <span style={{ display:'inline-block', fontSize:10, fontWeight:500, textTransform:'uppercase', letterSpacing:'0.07em', padding:'3px 8px', borderRadius:20, background:'#E1F5EE', color:'#0F6E56', marginBottom:7 }}>
-                      {featured.fields.Category}
+                      {featured.fields.Type}
                     </span>
                     <div style={{ fontSize:15, fontWeight:500, color:'#111', lineHeight:1.35, marginBottom:6 }}>{featured.fields.Name}</div>
                     <div style={{ fontSize:12, color:'#888', display:'flex', alignItems:'center', gap:8 }}>
@@ -237,7 +237,7 @@ export default function Home() {
                 {/* Side picks */}
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                   {sideItems.map(r => {
-                    const cfg = CAT_CONFIG[r.fields.Category]||{emoji:'📌',bg:'#f0f0f0'};
+                    const cfg = CAT_CONFIG[r.fields.Type]||{emoji:'📌',bg:'#f0f0f0'};
                     return (
                       <div key={r.id}
                         onClick={() => r.fields.URL && window.open(r.fields.URL,'_blank')}
@@ -249,7 +249,7 @@ export default function Home() {
                           {cfg.emoji}
                         </div>
                         <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', justifyContent:'center', gap:3, borderLeft:'1px solid #f0f0f0' }}>
-                          <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'#1D9E75', fontWeight:500 }}>{r.fields.Category}</div>
+                          <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'#1D9E75', fontWeight:500 }}>{r.fields.Type}</div>
                           <div style={{ fontSize:13, fontWeight:500, color:'#111', lineHeight:1.3 }}>{r.fields.Name}</div>
                           <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} />
                         </div>
@@ -274,7 +274,7 @@ export default function Home() {
           )}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
             {rankItems.map((r, i) => {
-              const cfg = CAT_CONFIG[r.fields.Category]||{emoji:'📌',bg:'#f0f0f0'};
+              const cfg = CAT_CONFIG[r.fields.Type]||{emoji:'📌',bg:'#f0f0f0'};
               const rankColor = i===0 ? '#BA7517' : i===1 ? '#888780' : i===2 ? '#854F0B' : '#ccc';
               return (
                 <div key={r.id}
@@ -289,7 +289,7 @@ export default function Home() {
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:12, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.fields.Name}</div>
-                    <div style={{ fontSize:11, color:'#999' }}>{r.fields.Category}</div>
+                    <div style={{ fontSize:11, color:'#999' }}>{r.fields.Type}</div>
                   </div>
                   <div style={{ fontSize:13, fontWeight:500, color:'#0F6E56', flexShrink:0 }}>{(r.fields['Final Score']||0).toFixed(1)}</div>
                 </div>
