@@ -1,109 +1,80 @@
 import { useState, useEffect } from 'react';
 
 const THEMES = [
-  { name: 'Learning & Education',  emoji: '📚', color: '#185FA5', bg: '#E6F1FB' },
-  { name: 'Technology & Software', emoji: '💻', color: '#3B6D11', bg: '#EAF3DE' },
-  { name: 'Coaching & Mentorship', emoji: '🎯', color: '#6B3FA0', bg: '#EEE8FB' },
-  { name: 'Community & Network',   emoji: '👥', color: '#993556', bg: '#FBEAF0' },
-  { name: 'Specialty Resources',   emoji: '🏥', color: '#0F6E56', bg: '#E1F5EE' },
-  { name: 'Training & Career',     emoji: '🎓', color: '#854F0B', bg: '#FAEEDA' },
-  { name: 'Practice & Business',   emoji: '💼', color: '#185FA5', bg: '#E3EEF9' },
-  { name: 'Wellbeing & Lifestyle', emoji: '❤️', color: '#A32D2D', bg: '#FCEBEB' },
-  { name: 'News & Media',          emoji: '📰', color: '#5F5E5A', bg: '#F1EFE8' },
+  'Learning & Education',
+  'Technology & Software',
+  'Coaching & Mentorship',
+  'Community & Network',
+  'Specialty Resources',
+  'Training & Career',
+  'Practice & Business',
+  'Wellbeing & Lifestyle',
+  'News & Media',
 ];
 
-const TYPE_EMOJI = {
-  'Podcast':    '🎙️',
-  'Book':       '📚',
-  'YouTube':    '▶️',
-  'CE Website': '🎓',
-  'Software':   '💻',
-  'Community':  '👥',
-  'Journal':    '📰',
-  'Conference': '🏛️',
-  'Course':     '🖥️',
-  'Newsletter': '📬',
+const THEME_SHORT = {
+  'Learning & Education':  'Learning',
+  'Technology & Software': 'Technology',
+  'Coaching & Mentorship': 'Coaching',
+  'Community & Network':   'Community',
+  'Specialty Resources':   'Specialty',
+  'Training & Career':     'Career',
+  'Practice & Business':   'Business',
+  'Wellbeing & Lifestyle': 'Wellbeing',
+  'News & Media':          'News',
 };
 
-function getEmoji(type) { return TYPE_EMOJI[type] || '📌'; }
+function getDomain(url) {
+  try { return new URL(url).hostname.replace('www.', ''); }
+  catch { return null; }
+}
+
+function Logo({ url, name, size = 32 }) {
+  const [err, setErr] = useState(false);
+  const domain = url ? getDomain(url) : null;
+  const initial = (name || '?')[0].toUpperCase();
+  const radius = size <= 32 ? 6 : 8;
+
+  if (!domain || err) {
+    return (
+      <div style={{ width:size, height:size, borderRadius:radius, background:'#E1F5EE', display:'flex', alignItems:'center', justifyContent:'center', fontSize:size*0.4, fontWeight:500, color:'#085041', flexShrink:0 }}>
+        {initial}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={`https://logo.clearbit.com/${domain}`}
+      alt={name}
+      onError={() => setErr(true)}
+      style={{ width:size, height:size, borderRadius:radius, border:'0.5px solid #e8e8e8', objectFit:'contain', background:'#fafafa', flexShrink:0 }}
+    />
+  );
+}
 
 function ScoreBadge({ score }) {
   return (
-    <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:11, fontWeight:500, padding:'2px 8px', borderRadius:20, background:'#0F6E56', color:'#fff' }}>
+    <span style={{ display:'inline-block', fontSize:11, fontWeight:500, color:'#085041', background:'#E1F5EE', padding:'2px 7px', borderRadius:3 }}>
       ★ {score}
     </span>
   );
 }
 
-function ResourceCard({ r, rank }) {
-  const score = (r.fields['Final Score'] || 0).toFixed(1);
-  const rankColor = rank === 1 ? '#BA7517' : rank === 2 ? '#888780' : rank === 3 ? '#854F0B' : '#ccc';
-  return (
-    <div
-      onClick={() => r.fields.URL && window.open(r.fields.URL, '_blank')}
-      style={{ background:'#fff', border:'0.5px solid #e8e8e8', borderRadius:12, padding:'14px 16px', cursor:'pointer', display:'flex', gap:14, alignItems:'flex-start' }}
-      onMouseEnter={e => e.currentTarget.style.borderColor='#1D9E75'}
-      onMouseLeave={e => e.currentTarget.style.borderColor='#e8e8e8'}
-    >
-      {rank && <div style={{ fontSize:20, fontWeight:500, minWidth:28, color:rankColor, lineHeight:'1.4', flexShrink:0 }}>{rank}</div>}
-      <div style={{ width:44, height:44, borderRadius:10, background:'#E1F5EE', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
-        {getEmoji(r.fields.Type)}
-      </div>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4, flexWrap:'wrap' }}>
-          <span style={{ fontSize:14, fontWeight:500, color:'#111' }}>{r.fields.Name}</span>
-          <ScoreBadge score={score} />
-        </div>
-        {r.fields['Host or Author'] && (
-          <div style={{ fontSize:12, color:'#999', marginBottom:4 }}>{r.fields['Host or Author']}</div>
-        )}
-        {r.fields.Description && (
-          <div style={{ fontSize:13, color:'#555', lineHeight:1.5 }}>
-            {r.fields.Description.slice(0, 120)}{r.fields.Description.length > 120 ? '…' : ''}
-          </div>
-        )}
-        <div style={{ marginTop:6 }}>
-          <span style={{ fontSize:11, padding:'2px 8px', borderRadius:20, background:'#f0f0f0', color:'#666' }}>{r.fields.Type}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HeroCard({ r }) {
-  const score = (r.fields['Final Score'] || 0).toFixed(1);
-  return (
-    <div
-      onClick={() => r.fields.URL && window.open(r.fields.URL, '_blank')}
-      style={{ background:'#fff', border:'0.5px solid #e8e8e8', borderRadius:14, overflow:'hidden', cursor:'pointer', marginBottom:24 }}
-      onMouseEnter={e => e.currentTarget.style.borderColor='#1D9E75'}
-      onMouseLeave={e => e.currentTarget.style.borderColor='#e8e8e8'}
-    >
-      <div style={{ height:200, background:'linear-gradient(135deg, #0F6E56, #1D9E75)', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
-        <div style={{ fontSize:56 }}>{getEmoji(r.fields.Type)}</div>
-        <div style={{ fontSize:11, fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.8)' }}>#1 ranked this week</div>
-      </div>
-      <div style={{ padding:'16px 20px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-          <span style={{ fontSize:11, padding:'3px 8px', borderRadius:20, background:'#E1F5EE', color:'#0F6E56', fontWeight:500 }}>{r.fields.Type}</span>
-          <ScoreBadge score={score} />
-        </div>
-        <div style={{ fontSize:18, fontWeight:500, color:'#111', marginBottom:6 }}>{r.fields.Name}</div>
-        {r.fields['Host or Author'] && <div style={{ fontSize:13, color:'#888', marginBottom:8 }}>{r.fields['Host or Author']}</div>}
-        {r.fields.Description && <div style={{ fontSize:14, color:'#555', lineHeight:1.6 }}>{r.fields.Description.slice(0, 200)}{r.fields.Description.length > 200 ? '…' : ''}</div>}
-      </div>
-    </div>
-  );
-}
-
-function Divider({ label }) {
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, margin:'32px 0 16px' }}>
-      <span style={{ fontSize:11, fontWeight:500, textTransform:'uppercase', letterSpacing:'0.1em', color:'#999', whiteSpace:'nowrap' }}>{label}</span>
-      <div style={{ flex:1, height:'0.5px', background:'#e8e8e8' }} />
-    </div>
-  );
-}
+const s = {
+  page:       { background:'#fff', minHeight:'100vh' },
+  inner:      { maxWidth:680, margin:'0 auto', padding:'0 24px 80px', fontFamily:'system-ui,-apple-system,sans-serif' },
+  topbar:     { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 0 16px', borderBottom:'1px solid #e8e8e8', marginBottom:32 },
+  logo:       { fontSize:15, fontWeight:500, color:'#111', letterSpacing:-0.3 },
+  nav:        { display:'flex', gap:20 },
+  navBtn:     { fontSize:12, padding:'5px 14px', borderRadius:4, background:'#0F6E56', color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit' },
+  eyebrow:    { fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#888', marginBottom:10 },
+  h1:         { fontSize:30, fontWeight:500, color:'#111', lineHeight:1.15, margin:'0 0 10px', letterSpacing:-0.5 },
+  sub:        { fontSize:14, color:'#666', lineHeight:1.6, maxWidth:480, margin:'0 0 22px' },
+  searchWrap: { display:'flex', alignItems:'center', gap:10, border:'0.5px solid #e0e0e0', borderRadius:4, padding:'9px 14px', marginBottom:32, background:'#fafafa' },
+  themeNav:   { display:'flex', gap:0, borderBottom:'1px solid #e8e8e8', marginBottom:28, overflowX:'auto', scrollbarWidth:'none' },
+  sectionLbl: { fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#888', marginBottom:16, paddingBottom:10, borderBottom:'0.5px solid #e8e8e8' },
+  vline:      { background:'#e8e8e8', width:1 },
+};
 
 export default function Home() {
   const [categories, setCategories] = useState([]);
@@ -111,169 +82,173 @@ export default function Home() {
   const [activeTheme, setActiveTheme] = useState(null);
   const [search, setSearch]           = useState('');
   const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState('');
 
   useEffect(() => {
     Promise.all([
       fetch('/api/airtable?table=Categories').then(r => r.json()),
       fetch('/api/airtable?table=Resources').then(r => r.json()),
-    ]).then(([catData, resData]) => {
-      if (catData.error) throw new Error(catData.error);
-      if (resData.error) throw new Error(resData.error);
-      setCategories(catData.records || []);
-      setResources(resData.records || []);
-    }).catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+    ]).then(([cat, res]) => {
+      setCategories(cat.records || []);
+      setResources(res.records || []);
+    }).finally(() => setLoading(false));
   }, []);
 
   const filtered = resources.filter(r => {
+    const f = r.fields;
+    const matchTheme = !activeTheme; // theme filter handled via category display for now
     const matchSearch = !search ||
-      (r.fields.Name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (r.fields.Description || '').toLowerCase().includes(search.toLowerCase()) ||
-      (r.fields.Type || '').toLowerCase().includes(search.toLowerCase());
+      (f.Name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (f.Description || '').toLowerCase().includes(search.toLowerCase()) ||
+      (f.Type || '').toLowerCase().includes(search.toLowerCase());
     return matchSearch;
   });
 
-  const activeThemeData = THEMES.find(t => t.name === activeTheme);
-
-  const themeCategories = activeTheme
-    ? categories.filter(c => c.fields['Theme'] === activeTheme).sort((a,b) => (a.fields['Display Order']||0) - (b.fields['Display Order']||0))
+  const themeCats = activeTheme
+    ? categories.filter(c => c.fields['Theme'] === activeTheme).sort((a,b)=>(a.fields['Display Order']||0)-(b.fields['Display Order']||0))
     : [];
 
-  const hero     = filtered[0];
-  const topTen   = filtered.slice(0, 10);
-  const newItems = filtered.slice(0, 4);
+  const themeCounts = {};
+  THEMES.forEach(t => { themeCounts[t] = categories.filter(c => c.fields['Theme'] === t).length; });
+
+  const top2   = filtered.slice(0, 2);
+  const ranked = filtered.slice(0, 10);
 
   return (
-    <div style={{ background:'#f8f9fa', minHeight:'100vh' }}>
-    <div style={{ maxWidth:680, margin:'0 auto', padding:'0 20px 80px', fontFamily:'system-ui,-apple-system,sans-serif' }}>
+    <div style={s.page}>
+    <div style={s.inner}>
 
       {/* Topbar */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 0 0' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:28, height:28, background:'#0F6E56', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>🦷</div>
-          <span style={{ fontSize:16, fontWeight:500, letterSpacing:-0.3 }}>Dent<span style={{ color:'#1D9E75' }}>Hub</span></span>
+      <div style={s.topbar}>
+        <div style={s.logo}>Dent<span style={{ color:'#0F6E56' }}>Hub</span></div>
+        <div style={s.nav}>
+          {['Learning','Technology','Coaching','Specialty'].map(t => (
+            <a key={t} href="#" onClick={e=>{e.preventDefault(); setActiveTheme(THEMES.find(th=>th.startsWith(t))||null);}}
+              style={{ fontSize:13, color: activeTheme && activeTheme.startsWith(t) ? '#111' : '#888', textDecoration:'none', fontWeight: activeTheme && activeTheme.startsWith(t) ? 500 : 400 }}>{t}</a>
+          ))}
         </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <button style={{ fontSize:11, fontWeight:500, padding:'5px 12px', borderRadius:20, border:'none', background:'#0F6E56', color:'#fff', cursor:'pointer' }}>Submit</button>
-          <button style={{ fontSize:11, fontWeight:500, padding:'5px 12px', borderRadius:20, border:'0.5px solid #ddd', background:'#fff', color:'#333', cursor:'pointer' }}>Sign in</button>
-        </div>
+        <button style={s.navBtn}>Submit</button>
       </div>
 
-      {/* Hero text */}
-      <div style={{ padding:'28px 0 20px' }}>
-        <div style={{ fontSize:11, fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', color:'#1D9E75', marginBottom:8 }}>The dentistry resource index</div>
-        <h1 style={{ fontSize:26, fontWeight:500, color:'#111', lineHeight:1.2, margin:'0 0 10px' }}>
-          {activeTheme ? activeThemeData.emoji + ' ' + activeTheme : 'Everything dentistry,\nranked and curated'}
-        </h1>
-        <p style={{ fontSize:14, color:'#666', lineHeight:1.6, margin:0 }}>
-          {activeTheme
-            ? `Browsing ${themeCategories.length} categories · ${filtered.length} resources`
-            : 'Podcasts, books, CE, coaching, software, communities — scored by the profession.'}
-        </p>
-      </div>
+      {/* Hero */}
+      {!activeTheme && (
+        <>
+          <div style={s.eyebrow}>The dentistry resource index</div>
+          <h1 style={s.h1}>Everything dentistry,<br/>ranked and curated</h1>
+          <p style={s.sub}>The profession's best podcasts, books, CE, coaching, software, and communities — scored by dentists, for dentists.</p>
+        </>
+      )}
+      {activeTheme && (
+        <div style={{ paddingTop:8, marginBottom:24 }}>
+          <div style={s.eyebrow}>{activeTheme}</div>
+          <h1 style={{ ...s.h1, fontSize:24 }}>{themeCats.length} categories · {filtered.length} resources</h1>
+        </div>
+      )}
 
       {/* Search */}
-      <div style={{ position:'relative', marginBottom:20 }}>
-        <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'#aaa', fontSize:16 }}>🔍</span>
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search resources…"
-          style={{ width:'100%', padding:'10px 14px 10px 38px', borderRadius:10, border:'0.5px solid #e0e0e0', background:'#fff', fontSize:14, outline:'none', boxSizing:'border-box' }} />
+      <div style={s.searchWrap}>
+        <i className="ti ti-search" aria-hidden="true" style={{ color:'#aaa', fontSize:15 }}></i>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search resources…"
+          style={{ border:'none', background:'transparent', fontSize:13, color:'#111', outline:'none', flex:1 }} />
       </div>
 
       {/* Theme tab bar */}
-      <div style={{ display:'flex', gap:0, overflowX:'auto', marginBottom:0, borderBottom:'0.5px solid #e8e8e8', paddingBottom:0, scrollbarWidth:'none' }}>
-        <button
-          onClick={() => setActiveTheme(null)}
-          style={{ fontSize:12, fontWeight:500, padding:'8px 14px', background:'none', border:'none', borderBottom: !activeTheme ? '2px solid #0F6E56' : '2px solid transparent', color: !activeTheme ? '#0F6E56' : '#888', cursor:'pointer', whiteSpace:'nowrap', fontFamily:'system-ui,-apple-system,sans-serif' }}
-        >All</button>
+      <div style={s.themeNav}>
+        <button onClick={()=>setActiveTheme(null)} style={{ fontSize:13, padding:'0 0 11px', marginRight:24, background:'none', border:'none', borderBottom: !activeTheme?'2px solid #0F6E56':'2px solid transparent', color:!activeTheme?'#111':'#888', fontWeight:!activeTheme?500:400, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' }}>
+          All resources
+        </button>
         {THEMES.map(t => (
-          <button key={t.name}
-            onClick={() => setActiveTheme(activeTheme === t.name ? null : t.name)}
-            style={{ fontSize:12, fontWeight:500, padding:'8px 14px', background:'none', border:'none', borderBottom: activeTheme === t.name ? `2px solid ${t.color}` : '2px solid transparent', color: activeTheme === t.name ? t.color : '#888', cursor:'pointer', whiteSpace:'nowrap', fontFamily:'system-ui,-apple-system,sans-serif', display:'flex', alignItems:'center', gap:4 }}
-          >
-            <span style={{ fontSize:14 }}>{t.emoji}</span>
-            {t.name.split(' ')[0]}
+          <button key={t} onClick={()=>setActiveTheme(activeTheme===t?null:t)}
+            style={{ fontSize:13, padding:'0 0 11px', marginRight:24, background:'none', border:'none', borderBottom: activeTheme===t?'2px solid #0F6E56':'2px solid transparent', color:activeTheme===t?'#111':'#888', fontWeight:activeTheme===t?500:400, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' }}>
+            {THEME_SHORT[t]}
           </button>
         ))}
       </div>
 
-      {/* AI banner */}
-      <div style={{ background:'#fff', border:'0.5px solid #9FE1CB', borderRadius:10, padding:'10px 14px', display:'flex', alignItems:'center', gap:10, margin:'20px 0 0' }}>
-        <div style={{ width:7, height:7, background:'#1D9E75', borderRadius:'50%', flexShrink:0 }} />
-        <span style={{ fontSize:12, color:'#555' }}><strong style={{ color:'#111' }}>AI curator active</strong> — new resources discovered and reviewed weekly</span>
-      </div>
+      {loading && <div style={{ padding:60, textAlign:'center', color:'#aaa', fontSize:14 }}>Loading…</div>}
 
-      {loading && <div style={{ textAlign:'center', padding:60, color:'#999' }}>⏳ Loading…</div>}
-      {error && <div style={{ background:'#FCEBEB', borderRadius:10, padding:'14px', color:'#A32D2D', fontSize:13, marginTop:20 }}>{error}</div>}
-
-      {!loading && !error && (
+      {!loading && (
         <>
-          {/* If a theme is active — show its categories then filtered resources */}
-          {activeTheme && (
+          {/* If theme selected — show its categories first */}
+          {activeTheme && themeCats.length > 0 && (
             <>
-              <Divider label={`${themeCategories.length} categories in ${activeTheme}`} />
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px,1fr))', gap:8, marginBottom:8 }}>
-                {themeCategories.map(cat => (
-                  <div key={cat.id} style={{ background:'#fff', border:'0.5px solid #e8e8e8', borderRadius:10, padding:'10px 12px', cursor:'pointer' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = activeThemeData.color}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#e8e8e8'}
+              <div style={s.sectionLbl}>Categories</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderTop:'0.5px solid #e8e8e8', borderLeft:'0.5px solid #e8e8e8', marginBottom:36 }}>
+                {themeCats.map(cat => (
+                  <div key={cat.id} style={{ padding:'14px 12px', borderRight:'0.5px solid #e8e8e8', borderBottom:'0.5px solid #e8e8e8', cursor:'pointer' }}
+                    onMouseEnter={e=>e.currentTarget.querySelector('.cn').style.color='#0F6E56'}
+                    onMouseLeave={e=>e.currentTarget.querySelector('.cn').style.color='#111'}
                   >
-                    <div style={{ fontSize:20, marginBottom:5 }}>{activeThemeData.emoji}</div>
-                    <div style={{ fontSize:11, fontWeight:500, color:'#111', lineHeight:1.3 }}>{cat.fields['Category Name']}</div>
+                    <div className="cn" style={{ fontSize:13, fontWeight:500, color:'#111', marginBottom:2, lineHeight:1.3 }}>{cat.fields['Category Name']}</div>
+                    {cat.fields['Description'] && <div style={{ fontSize:11, color:'#aaa', lineHeight:1.4 }}>{cat.fields['Description'].slice(0,60)}…</div>}
                   </div>
                 ))}
               </div>
             </>
           )}
 
-          {/* Hero card — #1 resource */}
-          {hero && (
+          {/* Top 2 featured picks */}
+          {top2.length > 0 && (
             <>
-              <Divider label={activeTheme ? `Top ${activeTheme.split(' ')[0]} resources` : 'Top pick this week'} />
-              <HeroCard r={hero} />
-            </>
-          )}
-
-          {/* Top 10 */}
-          {topTen.length > 1 && (
-            <>
-              <Divider label="Top 10 ranked" />
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {topTen.map((r, i) => <ResourceCard key={r.id} r={r} rank={i + 1} />)}
+              <div style={s.sectionLbl}>{activeTheme ? `Top ${THEME_SHORT[activeTheme]||''} picks` : 'Top picks this week'}</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1px 1fr', gap:24, marginBottom:36 }}>
+                {top2.map((r, i) => (
+                  <div key={r.id}>
+                    {i === 1 && <div style={s.vline} />}
+                    <div onClick={()=>r.fields.URL&&window.open(r.fields.URL,'_blank')} style={{ cursor:'pointer' }}>
+                      <Logo url={r.fields.URL} name={r.fields.Name} size={40} />
+                      <div style={{ fontSize:11, color:'#aaa', marginTop:12, marginBottom:4 }}>#{i+1} overall</div>
+                      <div style={{ fontSize:10, letterSpacing:'0.07em', textTransform:'uppercase', color:'#0F6E56', fontWeight:500, marginBottom:4 }}>{r.fields.Type}</div>
+                      <div style={{ fontSize:17, fontWeight:500, color:'#111', lineHeight:1.25, marginBottom:4 }}>{r.fields.Name}</div>
+                      <div style={{ fontSize:12, color:'#888', marginBottom:8 }}>{r.fields['Host or Author']}</div>
+                      <div style={{ fontSize:13, color:'#666', lineHeight:1.55 }}>{(r.fields.Description||'').slice(0,140)}{(r.fields.Description||'').length>140?'…':''}</div>
+                      <div style={{ marginTop:8 }}><ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} /></div>
+                    </div>
+                  </div>
+                ))}
+                {top2.length === 1 && <div />}
               </div>
             </>
           )}
 
-          {/* New this week */}
-          {!activeTheme && newItems.length > 0 && (
+          {/* Ranked list */}
+          {ranked.length > 0 && (
             <>
-              <Divider label="New this week" />
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {newItems.map(r => <ResourceCard key={r.id + '_new'} r={r} rank={null} />)}
+              <div style={s.sectionLbl}>Top 10 ranked</div>
+              <div style={{ borderTop:'0.5px solid #e8e8e8', marginBottom:36 }}>
+                {ranked.map((r, i) => (
+                  <div key={r.id} onClick={()=>r.fields.URL&&window.open(r.fields.URL,'_blank')}
+                    style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:'0.5px solid #e8e8e8', cursor:'pointer' }}
+                    onMouseEnter={e=>{e.currentTarget.querySelector('.rn').style.color='#0F6E56';}}
+                    onMouseLeave={e=>{e.currentTarget.querySelector('.rn').style.color='#111';}}
+                  >
+                    <div style={{ fontSize:12, color:'#aaa', minWidth:18, textAlign:'right', flexShrink:0 }}>{i+1}</div>
+                    <Logo url={r.fields.URL} name={r.fields.Name} size={32} />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div className="rn" style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:1 }}>{r.fields.Name}</div>
+                      <div style={{ fontSize:11, color:'#aaa' }}>{r.fields.Type}{r.fields['Host or Author'] ? ' · ' + r.fields['Host or Author'] : ''}</div>
+                    </div>
+                    <div style={{ fontSize:13, fontWeight:500, color:'#0F6E56', flexShrink:0 }}>{(r.fields['Final Score']||0).toFixed(1)}</div>
+                  </div>
+                ))}
               </div>
             </>
           )}
 
-          {/* Browse all themes (only on All view) */}
+          {/* Browse by theme (only on All view) */}
           {!activeTheme && (
             <>
-              <Divider label="Browse by theme" />
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px,1fr))', gap:8 }}>
-                {THEMES.map(t => {
-                  const count = categories.filter(c => c.fields['Theme'] === t.name).length;
-                  return (
-                    <div key={t.name} onClick={() => setActiveTheme(t.name)}
-                      style={{ background:'#fff', border:'0.5px solid #e8e8e8', borderRadius:12, padding:'14px 12px', cursor:'pointer' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = t.color; e.currentTarget.style.transform='translateY(-2px)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8e8e8'; e.currentTarget.style.transform='none'; }}
-                    >
-                      <div style={{ fontSize:24, marginBottom:6 }}>{t.emoji}</div>
-                      <div style={{ fontSize:12, fontWeight:500, color:'#111', marginBottom:2, lineHeight:1.3 }}>{t.name}</div>
-                      <div style={{ fontSize:11, color:'#aaa' }}>{count} categories</div>
-                    </div>
-                  );
-                })}
+              <div style={s.sectionLbl}>Browse by theme</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderTop:'0.5px solid #e8e8e8', borderLeft:'0.5px solid #e8e8e8' }}>
+                {THEMES.map(t => (
+                  <div key={t} onClick={()=>setActiveTheme(t)}
+                    style={{ padding:'16px 14px', borderRight:'0.5px solid #e8e8e8', borderBottom:'0.5px solid #e8e8e8', cursor:'pointer' }}
+                    onMouseEnter={e=>e.currentTarget.querySelector('.tn').style.color='#0F6E56'}
+                    onMouseLeave={e=>e.currentTarget.querySelector('.tn').style.color='#111'}
+                  >
+                    <div className="tn" style={{ fontSize:13, fontWeight:500, color:'#111', marginBottom:3, lineHeight:1.3 }}>{t}</div>
+                    <div style={{ fontSize:11, color:'#aaa' }}>{themeCounts[t]} categories</div>
+                  </div>
+                ))}
               </div>
             </>
           )}
