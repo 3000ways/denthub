@@ -44,7 +44,7 @@ function Logo({ url, name, size = 32 }) {
   }
   return (
     <img
-      src={`https://logo.clearbit.com/${domain}`}
+      src={`/api/airtable?logo=${domain}`}
       alt={name}
       onError={() => setErr(true)}
       style={{ width:size, height:size, borderRadius:radius, border:'0.5px solid #e8e8e8', objectFit:'contain', background:'#fafafa', flexShrink:0 }}
