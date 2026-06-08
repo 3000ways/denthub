@@ -11,6 +11,15 @@ const GREEN = '#0F6E56';
 const GREEN_LIGHT = '#E8F5F0';
 const BORDER = '#e8e8e8';
 
+const DEMO_RESOURCES = [
+  { id:'d1', fields:{ Name:'Dental Intel Podcast', Type:'Podcast', URL:'https://dentalintel.com', Description:'Practice analytics and growth strategies for modern dental practices. Hosted by industry leaders covering everything from patient experience to profitability.', 'Host or Author':'Brandon Shird', 'Final Score':9.4, 'Expert Score':9.2, 'Community Score':9.5, 'Popularity Score':9.3, 'Recency Score':9.0, 'Clinical Depth Score':9.6, createdAt:'2025-06-01' }},
+  { id:'d2', fields:{ Name:'The Dental Economist', Type:'Book', URL:'https://amazon.com', Description:'A landmark text on practice valuation, associate agreements, and the financial architecture of a thriving dental career.', 'Host or Author':'William Van Dyk', 'Final Score':9.1, 'Expert Score':9.0, 'Community Score':9.2, 'Popularity Score':8.8, 'Recency Score':8.5, 'Clinical Depth Score':9.4, createdAt:'2025-06-03' }},
+  { id:'d3', fields:{ Name:'Spear Education', Type:'CE Website', URL:'https://speareducation.com', Description:'World-class continuing education from leading clinicians. Covers occlusion, aesthetics, full-arch restoration, and practice management.', 'Host or Author':'Frank Spear', 'Final Score':9.3, 'Expert Score':9.5, 'Community Score':9.1, 'Popularity Score':9.4, 'Recency Score':8.9, 'Clinical Depth Score':9.7, createdAt:'2025-05-28' }},
+  { id:'d4', fields:{ Name:'Dental Nachos', Type:'Podcast', URL:'https://dentalnachos.com', Description:'Real talk for real dentists. Candid conversations about the business of dentistry, burnout, and building a career on your terms.', 'Host or Author':'Ryan Vet', 'Final Score':8.8, 'Expert Score':8.7, 'Community Score':9.0, 'Popularity Score':8.9, 'Recency Score':9.2, 'Clinical Depth Score':8.3, createdAt:'2025-06-05' }},
+  { id:'d5', fields:{ Name:'The Endo Files', Type:'Podcast', URL:'https://theendofiles.com', Description:'Dedicated to endodontics — clinical techniques, case discussions, and the latest research in root canal therapy.', 'Host or Author':'Jeremy Erickson', 'Final Score':8.9, 'Expert Score':9.1, 'Community Score':8.8, 'Popularity Score':8.5, 'Recency Score':8.7, 'Clinical Depth Score':9.5, createdAt:'2025-06-06' }},
+  { id:'d6', fields:{ Name:'Dentrix Ascend', Type:'Software', URL:'https://dentrixascend.com', Description:'Cloud-based practice management software built for modern multi-location dental groups. Real-time dashboards and integrated billing.', 'Host or Author':'Henry Schein', 'Final Score':8.6, 'Expert Score':8.4, 'Community Score':8.5, 'Popularity Score':9.0, 'Recency Score':8.8, 'Clinical Depth Score':8.2, createdAt:'2025-05-30' }},
+];
+
 function getDomain(url) { try { return new URL(url).hostname.replace('www.',''); } catch { return null; } }
 
 function Logo({ url, name, size, imageUrl }) {
@@ -27,20 +36,11 @@ function Logo({ url, name, size, imageUrl }) {
   );
 
   if (err) return fallback;
-
   if (imageUrl) {
-    return (
-      <img src={imageUrl} alt={name} onError={() => setErr(true)}
-        style={{ width:sz*0.72, height:sz, borderRadius:4, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />
-    );
+    return <img src={imageUrl} alt={name} onError={() => setErr(true)} style={{ width:sz*0.72, height:sz, borderRadius:4, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />;
   }
-
   if (!domain) return fallback;
-
-  return (
-    <img src={`/api/airtable?logo=${domain}`} alt={name} onError={() => setErr(true)}
-      style={{ width:sz, height:sz, borderRadius:radius, border:`0.5px solid ${BORDER}`, objectFit:'contain', background:'#fafafa', flexShrink:0 }} />
-  );
+  return <img src={`/api/airtable?logo=${domain}`} alt={name} onError={() => setErr(true)} style={{ width:sz, height:sz, borderRadius:radius, border:`0.5px solid ${BORDER}`, objectFit:'contain', background:'#fafafa', flexShrink:0 }} />;
 }
 
 function ScoreBadge({ score, fields }) {
@@ -60,14 +60,14 @@ function ScoreBadge({ score, fields }) {
       </span>
       {show && hasData && (
         <div style={{ position:'absolute', bottom:'calc(100% + 10px)', left:'50%', transform:'translateX(-50%)', background:'#fff', border:`0.5px solid ${BORDER}`, borderRadius:10, padding:'12px 16px', width:220, boxShadow:'0 8px 32px rgba(0,0,0,0.10)', zIndex:999, pointerEvents:'none', fontFamily:FONT_BODY }}>
-          <div style={{ fontSize:11, fontWeight:600, color:'#111', marginBottom:10, paddingBottom:8, borderBottom:`0.5px solid #f0f0f0`, letterSpacing:0.3, textTransform:'uppercase' }}>Score breakdown</div>
+          <div style={{ fontSize:11, fontWeight:600, color:'#111', marginBottom:10, paddingBottom:8, borderBottom:'0.5px solid #f0f0f0', letterSpacing:0.3, textTransform:'uppercase' }}>Score breakdown</div>
           {breakdown.map(b => (
             <div key={b.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
               <div><span style={{ fontSize:11, color:'#555' }}>{b.label}</span><span style={{ fontSize:10, color:'#bbb', marginLeft:4 }}>{b.weight}</span></div>
               <span style={{ fontSize:11, fontWeight:500, color: b.value != null ? GREEN : '#ccc' }}>{b.value ?? '—'}</span>
             </div>
           ))}
-          <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, paddingTop:8, borderTop:`0.5px solid #f0f0f0` }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, paddingTop:8, borderTop:'0.5px solid #f0f0f0' }}>
             <span style={{ fontSize:11, fontWeight:600, color:'#111' }}>Final</span>
             <span style={{ fontSize:11, fontWeight:700, color:GREEN }}>{score}</span>
           </div>
@@ -76,6 +76,30 @@ function ScoreBadge({ score, fields }) {
       )}
     </span>
   );
+}
+
+function TrendingCard({ r, rank }) {
+  const f = r.fields;
+  return (
+    <div onClick={() => f.URL && window.open(f.URL,'_blank')}
+      style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, padding:'18px 18px 16px', cursor:'pointer', minWidth:200, flex:'0 0 200px', transition:'box-shadow 0.15s, transform 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.08)'; e.currentTarget.style.transform='translateY(-2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}
+    >
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+        <Logo url={f.URL} name={f.Name} size={36} imageUrl={f['Image URL']} />
+        <span style={{ fontSize:10, color:'#ccc', fontWeight:500 }}>#{rank}</span>
+      </div>
+      <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
+      <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.25, marginBottom:8, fontFamily:FONT_DISPLAY }}>{f.Name}</div>
+      <div style={{ fontSize:11, color:'#aaa', marginBottom:10 }}>{f['Host or Author']}</div>
+      <ScoreBadge score={(f['Final Score']||0).toFixed(1)} fields={f} />
+    </div>
+  );
+}
+
+function NewBadge() {
+  return <span style={{ fontSize:9, fontWeight:700, color:'#fff', background:GREEN, padding:'2px 6px', borderRadius:10, letterSpacing:'0.06em', textTransform:'uppercase', marginLeft:8, verticalAlign:'middle' }}>New</span>;
 }
 
 export default function Home() {
@@ -99,7 +123,10 @@ export default function Home() {
   function selectTheme(t) { setActiveTheme(t); setActiveCategory(null); }
   function selectCategory(name) { setActiveCategory(prev => prev === name ? null : name); }
 
-  const filtered = resources.filter(r => {
+  const displayResources = resources.length > 0 ? resources : DEMO_RESOURCES;
+  const isDemo = resources.length === 0 && !loading;
+
+  const filtered = displayResources.filter(r => {
     const f = r.fields;
     const themeTypes = activeTheme ? THEME_TYPES[activeTheme] : null;
     const matchTheme = !themeTypes || themeTypes.some(t => (f.Type||'').includes(t));
@@ -115,13 +142,25 @@ export default function Home() {
   const themeCats = activeTheme ? categories.filter(c => c.fields['Theme'] === activeTheme).sort((a,b) => (a.fields['Display Order']||0)-(b.fields['Display Order']||0)) : [];
   const themeCounts = {};
   THEMES.forEach(t => { themeCounts[t] = categories.filter(c => c.fields['Theme'] === t).length; });
+
+  const sorted = [...displayResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
+  const trending = sorted.slice(0,4);
+
+  const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000);
+  const recentlyAdded = [...displayResources]
+    .filter(r => r.fields.createdAt && new Date(r.fields.createdAt) > sevenDaysAgo)
+    .sort((a,b) => new Date(b.fields.createdAt) - new Date(a.fields.createdAt))
+    .slice(0,4);
+
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0,50);
+
+  const totalResources = displayResources.length;
+  const totalCategories = categories.length || 49;
 
   return (
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
-      {/* Green accent bar at top */}
       <div style={{ height:3, background:GREEN }} />
 
       <div style={{ maxWidth:720, margin:'0 auto', padding:'0 28px 100px' }}>
@@ -131,34 +170,39 @@ export default function Home() {
           <div style={{ fontSize:17, fontWeight:700, color:'#111', letterSpacing:-0.5, fontFamily:FONT_BODY }}>
             Dent<span style={{ color:GREEN }}>Hub</span>
           </div>
-          <div style={{ display:'flex', gap:24 }}>
-            {['Learning','Technology','Coaching','Specialty'].map(t => {
-              const full = THEMES.find(th => th.startsWith(t));
-              const isActive = activeTheme && activeTheme.startsWith(t);
-              return (
-                <a key={t} href="#" onClick={e => { e.preventDefault(); selectTheme(isActive ? null : full); }}
-                  style={{ fontSize:13, color: isActive ? '#111':'#999', textDecoration:'none', fontWeight: isActive ? 500:400, transition:'color 0.15s', fontFamily:FONT_BODY }}>
-                  {t}
-                </a>
-              );
-            })}
+          <div style={{ display:'flex', alignItems:'center', gap:24 }}>
+            <a href="/about" style={{ fontSize:13, color:'#999', textDecoration:'none', fontFamily:FONT_BODY }}>About</a>
+            <button style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2 }}>
+              Submit a resource
+            </button>
           </div>
-          <button
-            style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2 }}>
-            Submit a resource
-          </button>
         </div>
 
         {/* Hero */}
         {!activeTheme && (
-          <div style={{ marginBottom:40 }}>
+          <div style={{ marginBottom:36 }}>
             <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'#999', marginBottom:14, fontWeight:500 }}>The dentistry resource index</div>
             <h1 style={{ fontSize:42, fontWeight:700, color:'#111', lineHeight:1.1, margin:'0 0 16px', letterSpacing:-1.5, fontFamily:FONT_DISPLAY }}>
               Everything dentistry,<br/>ranked and curated
             </h1>
-            <p style={{ fontSize:15, color:'#777', lineHeight:1.65, maxWidth:500, margin:'0 0 0', fontWeight:400 }}>
+            <p style={{ fontSize:15, color:'#777', lineHeight:1.65, maxWidth:500, margin:'0 0 20px', fontWeight:400 }}>
               The profession's best podcasts, books, CE, coaching, software, and communities — scored by dentists, for dentists.
             </p>
+
+            {/* Stats bar */}
+            <div style={{ display:'flex', gap:28, paddingTop:20, borderTop:`1px solid ${BORDER}` }}>
+              {[
+                { value: totalResources, label:'resources indexed' },
+                { value: totalCategories, label:'categories' },
+                { value: 8, label:'themes' },
+                { value: '9+', label:'specialties covered' },
+              ].map(({ value, label }) => (
+                <div key={label}>
+                  <div style={{ fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>{value}</div>
+                  <div style={{ fontSize:11, color:'#aaa', marginTop:3 }}>{label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -172,35 +216,72 @@ export default function Home() {
         )}
 
         {/* Search */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', marginBottom:36, background:'#fafafa' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', marginBottom:36, background:'#fff' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…"
             style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
-          {search && (
-            <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>
-          )}
+          {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
         </div>
 
-        {/* Theme nav tabs */}
-        <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:36, overflowX:'auto', scrollbarWidth:'none' }}>
+        {/* Theme tabs */}
+        <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:40, overflowX:'auto', scrollbarWidth:'none' }}>
           {[{label:'All resources', key:null}, ...THEMES.map(t => ({label:THEME_SHORT[t], key:t}))].map(({label, key}) => {
             const isActive = activeTheme === key;
             return (
               <button key={label} onClick={() => selectTheme(key)}
-                style={{ fontSize:13, padding:'0 0 13px', marginRight:28, background:'none', border:'none', borderBottom: isActive ? `2px solid ${GREEN}`:'2px solid transparent', color: isActive ? '#111':'#999', fontWeight: isActive ? 600:400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', transition:'color 0.15s' }}>
+                style={{ fontSize:13, padding:'0 0 13px', marginRight:28, background:'none', border:'none', borderBottom: isActive ? `2px solid ${GREEN}`:'2px solid transparent', color: isActive ? '#111':'#999', fontWeight: isActive ? 600:400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap' }}>
                 {label}
               </button>
             );
           })}
         </div>
 
-        {loading && (
-          <div style={{ padding:'80px 0', textAlign:'center', color:'#ccc', fontSize:14, fontFamily:FONT_BODY }}>Loading…</div>
-        )}
+        {loading && <div style={{ padding:'80px 0', textAlign:'center', color:'#ccc', fontSize:14 }}>Loading…</div>}
 
         {!loading && (<>
+
+          {/* HOME PAGE SECTIONS — only show when no filter active */}
+          {!activeTheme && !search && (<>
+
+            {/* New this week */}
+            {recentlyAdded.length > 0 && (
+              <div style={{ marginBottom:48 }}>
+                <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:18 }}>New this week</div>
+                <div style={{ borderTop:`1px solid ${BORDER}` }}>
+                  {recentlyAdded.map(r => (
+                    <div key={r.id}
+                      onClick={() => r.fields.URL && window.open(r.fields.URL,'_blank')}
+                      style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+                      onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                    >
+                      <Logo url={r.fields.URL} name={r.fields.Name} size={36} imageUrl={r.fields['Image URL']} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:14, fontWeight:500, color:'#111', marginBottom:2 }}>
+                          {r.fields.Name}
+                          <NewBadge />
+                        </div>
+                        <div style={{ fontSize:11, color:'#bbb' }}>
+                          <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{r.fields.Type}</span>
+                          {r.fields['Host or Author'] ? <span> · {r.fields['Host or Author']}</span> : ''}
+                        </div>
+                      </div>
+                      <div style={{ fontSize:12, color:'#ccc', whiteSpace:'nowrap' }}>{r.fields.createdAt}</div>
+                      <div onClick={e => e.stopPropagation()}>
+                        <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Divider before full list */}
+            <div style={{ height:1, background:BORDER, marginBottom:36 }} />
+
+          </>)}
 
           {/* Category grid */}
           {activeTheme && themeCats.length > 0 && (
@@ -212,12 +293,12 @@ export default function Home() {
                   const isActive = activeCategory === catName;
                   return (
                     <div key={cat.id} onClick={() => selectCategory(catName)}
-                      style={{ padding:'14px 16px', background: isActive ? GREEN_LIGHT : '#fff', cursor:'pointer', borderLeft: isActive ? `3px solid ${GREEN}` : '3px solid transparent', transition:'background 0.12s' }}
+                      style={{ padding:'14px 16px', background: isActive ? GREEN_LIGHT : '#fff', cursor:'pointer', borderLeft: isActive ? `3px solid ${GREEN}` : '3px solid transparent' }}
                       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background='#f7fdfb'; }}
                       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background='#fff'; }}
                     >
-                      <div style={{ fontSize:13, fontWeight:500, color: isActive ? GREEN :'#111', marginBottom:2, lineHeight:1.3 }}>{catName}</div>
-                      {cat.fields['Description'] && <div style={{ fontSize:11, color:'#bbb', lineHeight:1.4 }}>{cat.fields['Description'].slice(0,60)}…</div>}
+                      <div style={{ fontSize:13, fontWeight:500, color: isActive ? GREEN :'#111', marginBottom:2 }}>{catName}</div>
+                      {cat.fields['Description'] && <div style={{ fontSize:11, color:'#bbb' }}>{cat.fields['Description'].slice(0,60)}…</div>}
                     </div>
                   );
                 })}
@@ -229,21 +310,21 @@ export default function Home() {
           {top2.length > 0 && (
             <div style={{ marginBottom:44 }}>
               <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:18, fontWeight:600 }}>
-                {activeCategory ? `Top ${activeCategory}` : activeTheme ? `Top ${THEME_SHORT[activeTheme]} picks` : 'Editor\'s top picks'}
+                {activeCategory ? `Top ${activeCategory}` : activeTheme ? `Top ${THEME_SHORT[activeTheme]} picks` : "Editor's top picks"}
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
                 {top2.map((r, i) => (
                   <div key={r.id}
-                    style={{ paddingRight: i===0 ? 32:0, paddingLeft: i===1 ? 32:0, borderLeft: i===1 ? `1px solid ${BORDER}`:undefined, cursor:'pointer' }}
+                    style={{ paddingRight:i===0?32:0, paddingLeft:i===1?32:0, borderLeft:i===1?`1px solid ${BORDER}`:undefined, cursor:'pointer' }}
                     onClick={() => r.fields.URL && window.open(r.fields.URL,'_blank')}
                     onMouseEnter={e => e.currentTarget.style.opacity='0.8'}
                     onMouseLeave={e => e.currentTarget.style.opacity='1'}
                   >
                     <Logo url={r.fields.URL} name={r.fields.Name} size={44} imageUrl={r.fields['Image URL']} />
-                    <div style={{ fontSize:10, color:'#bbb', marginTop:14, marginBottom:5, letterSpacing:0.3 }}>#{i+1} overall</div>
+                    <div style={{ fontSize:10, color:'#bbb', marginTop:14, marginBottom:5 }}>#{i+1} overall</div>
                     <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:6 }}>{r.fields.Type}</div>
                     <div style={{ fontSize:19, fontWeight:700, color:'#111', lineHeight:1.2, marginBottom:5, fontFamily:FONT_DISPLAY }}>{r.fields.Name}</div>
-                    <div style={{ fontSize:12, color:'#aaa', marginBottom:10, fontWeight:400 }}>{r.fields['Host or Author']}</div>
+                    <div style={{ fontSize:12, color:'#aaa', marginBottom:10 }}>{r.fields['Host or Author']}</div>
                     <div style={{ fontSize:13, color:'#666', lineHeight:1.6 }}>{(r.fields.Description||'').slice(0,150)}{(r.fields.Description||'').length>150?'…':''}</div>
                     <div style={{ marginTop:12 }}><ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} /></div>
                   </div>
@@ -253,10 +334,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* Divider between featured and ranked */}
-          {top2.length > 0 && ranked.length > 0 && (
-            <div style={{ height:1, background:BORDER, marginBottom:36 }} />
-          )}
+          {top2.length > 0 && ranked.length > 0 && <div style={{ height:1, background:BORDER, marginBottom:36 }} />}
 
           {/* Ranked list */}
           {ranked.length > 0 && (
@@ -268,11 +346,11 @@ export default function Home() {
                 {ranked.map((r, i) => (
                   <div key={r.id}
                     onClick={() => r.fields.URL && window.open(r.fields.URL,'_blank')}
-                    style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer', transition:'background 0.1s' }}
+                    style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
                     onMouseEnter={e => { e.currentTarget.style.background='#f9f9f9'; e.currentTarget.style.paddingLeft='6px'; e.currentTarget.style.paddingRight='6px'; e.currentTarget.style.marginLeft='-6px'; e.currentTarget.style.marginRight='-6px'; }}
                     onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.paddingLeft='0'; e.currentTarget.style.paddingRight='0'; e.currentTarget.style.marginLeft='0'; e.currentTarget.style.marginRight='0'; }}
                   >
-                    <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontVariantNumeric:'tabular-nums', fontWeight:500 }}>{i+1}</div>
+                    <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
                     <Logo url={r.fields.URL} name={r.fields.Name} size={40} imageUrl={r.fields['Image URL']} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:2 }}>{r.fields.Name}</div>
@@ -290,9 +368,7 @@ export default function Home() {
             </div>
           )}
 
-          {ranked.length===0 && (
-            <div style={{ padding:'60px 0', textAlign:'center', color:'#ccc', fontSize:14, fontFamily:FONT_BODY }}>No resources yet in this category.</div>
-          )}
+          {ranked.length===0 && <div style={{ padding:'60px 0', textAlign:'center', color:'#ccc', fontSize:14 }}>No resources yet in this category.</div>}
 
           {/* Browse by theme (home only) */}
           {!activeTheme && (
@@ -301,9 +377,9 @@ export default function Home() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:1, background:BORDER }}>
                 {THEMES.map(t => (
                   <div key={t} onClick={() => selectTheme(t)}
-                    style={{ padding:'20px 18px', background:'#fff', cursor:'pointer', transition:'background 0.12s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background='#f7fdfb'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background='#fff'; }}
+                    style={{ padding:'20px 18px', background:'#fff', cursor:'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.background='#f7fdfb'}
+                    onMouseLeave={e => e.currentTarget.style.background='#fff'}
                   >
                     <div style={{ fontSize:13, fontWeight:600, color:'#111', marginBottom:3, lineHeight:1.3 }}>{t}</div>
                     <div style={{ fontSize:11, color:'#bbb' }}>{themeCounts[t]} categories</div>
