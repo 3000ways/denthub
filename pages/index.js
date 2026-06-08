@@ -445,7 +445,23 @@ export default function Home() {
                                 <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 16px' }}>{f.Description}</p>
                               )}
                               <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-                                {f.URL && (
+                                {f.Type === 'Book' ? (() => {
+                                  const q = encodeURIComponent(`${f.Name} ${f['Host or Author'] || ''}`);
+                                  const bookLinks = [
+                                    { label:'Amazon', url:`https://www.amazon.com/s?k=${q}&i=stripbooks` },
+                                    { label:'Audible', url:`https://www.audible.com/search?keywords=${q}` },
+                                    { label:'Goodreads', url:`https://www.goodreads.com/search?q=${q}` },
+                                    { label:'Kindle', url:`https://www.amazon.com/s?k=${q}&i=digital-text` },
+                                  ];
+                                  return bookLinks.map(link => (
+                                    <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
+                                      style={{ fontSize:12, fontWeight:500, color:'#555', textDecoration:'none', border:`1px solid ${BORDER}`, padding:'5px 12px', borderRadius:4, fontFamily:FONT_BODY, background:'#fff', transition:'all 0.15s' }}
+                                      onMouseEnter={e => { e.currentTarget.style.borderColor=GREEN; e.currentTarget.style.color=GREEN; }}
+                                      onMouseLeave={e => { e.currentTarget.style.borderColor=BORDER; e.currentTarget.style.color='#555'; }}>
+                                      {link.label}
+                                    </a>
+                                  ));
+                                })() : f.URL && (
                                   <a href={f.URL} target="_blank" rel="noopener noreferrer"
                                     style={{ fontSize:12, fontWeight:600, color:GREEN, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:5, border:`1px solid ${GREEN}`, padding:'6px 14px', borderRadius:4, fontFamily:FONT_BODY }}>
                                     Visit resource →
