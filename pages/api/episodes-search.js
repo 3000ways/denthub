@@ -99,9 +99,6 @@ function parseAllEpisodes(xml, podcastName, showImage) {
 async function fetchPodcastFeeds() {
   const params = new URLSearchParams();
   params.set('filterByFormula', `AND({Type} = "Podcast", {RSS Feed URL} != "")`);
-  params.set('fields[]', 'Name');
-  params.set('fields[]', 'RSS Feed URL');
-  params.set('fields[]', 'Image URL');
 
   const res = await fetch(
     `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${params.toString()}`,
