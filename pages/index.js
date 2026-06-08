@@ -38,8 +38,8 @@ const THEME_TYPES = {
 
 const CAT_TYPE_MAP = {
   'Podcasts':                     'Podcast',
-  'Books — Clinical':             'Book',
-  'Books — Business':             'Book',
+  
+  'Books':                         'Book',
   'YouTube Channels':             'YouTube',
   'CE Websites':                  'CE Website',
   'Dental Journals':              'Journal',
