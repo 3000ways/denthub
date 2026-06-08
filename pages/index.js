@@ -209,6 +209,49 @@ function SpotlightCard({ item }) {
   );
 }
 
+function EpisodeCard({ ep }) {
+  const [imgErr, setImgErr] = useState(false);
+  const mins = ep.duration;
+
+  return (
+    <a href={ep.audioUrl || ep.url || '#'} target="_blank" rel="noopener noreferrer"
+      style={{ display:'flex', gap:14, padding:'16px 0', borderBottom:`1px solid ${BORDER}`, textDecoration:'none', color:'inherit', alignItems:'flex-start' }}
+      onMouseEnter={e => { e.currentTarget.style.opacity='0.8'; }}
+      onMouseLeave={e => { e.currentTarget.style.opacity='1'; }}
+    >
+      {/* Thumbnail */}
+      <div style={{ width:64, height:64, borderRadius:6, overflow:'hidden', background:'#f0ede8', flexShrink:0 }}>
+        {ep.image && !imgErr ? (
+          <img src={ep.image} alt={ep.title} onError={() => setImgErr(true)}
+            style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+        ) : (
+          <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:'#ccc' }}>🎙</div>
+        )}
+      </div>
+
+      {/* Text */}
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:10, color:GREEN, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:4 }}>{ep.podcast}</div>
+        <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:5, fontFamily:FONT_DISPLAY,
+          overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+          {ep.title}
+        </div>
+        {ep.description && (
+          <div style={{ fontSize:12, color:'#999', lineHeight:1.5, marginBottom:6,
+            overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+            {ep.description}
+          </div>
+        )}
+        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+          {ep.date && <span style={{ fontSize:11, color:'#bbb' }}>{ep.date}</span>}
+          {mins && <span style={{ fontSize:11, color:'#bbb' }}>· {mins}</span>}
+          <span style={{ fontSize:11, color:GREEN, fontWeight:500 }}>Listen →</span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
 export default function Home() {
   const [categories, setCategories] = useState([]);
   const [resources, setResources]   = useState([]);
@@ -219,6 +262,11 @@ export default function Home() {
   const [expandedId, setExpandedId] = useState(null);
   const [activeType, setActiveType] = useState(null);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
+  const [episodeMode, setEpisodeMode] = useState(false);
+  const [episodeQuery, setEpisodeQuery] = useState('');
+  const [episodes, setEpisodes] = useState([]);
+  const [episodeLoading, setEpisodeLoading] = useState(false);
+  const [episodeSearched, setEpisodeSearched] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -236,6 +284,19 @@ export default function Home() {
   function selectTheme(t) { setActiveTheme(t); setActiveCategory(null); setActiveType(null); }
   function selectCategory(name) { setActiveCategory(prev => prev === name ? null : name); }
   function selectType(t) { setActiveType(t); setExpandedId(null); }
+
+  async function searchEpisodes(q) {
+    if (!q || q.trim().length < 2) return;
+    setEpisodeLoading(true);
+    setEpisodeSearched(true);
+    setEpisodes([]);
+    try {
+      const res = await fetch(`/api/episodes-search?q=${encodeURIComponent(q)}&max=20`);
+      const data = await res.json();
+      setEpisodes(data.episodes || []);
+    } catch { setEpisodes([]); }
+    finally { setEpisodeLoading(false); }
+  }
 
   const displayResources = resources.length > 0 ? resources : DEMO_RESOURCES;
   const isDemo = resources.length === 0 && !loading;
@@ -339,15 +400,81 @@ export default function Home() {
           </div>
         )}
 
-        {/* Search */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', marginBottom:36, background:'#fff' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…"
-            style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
-          {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
+        {/* Search mode toggle */}
+        <div style={{ display:'flex', gap:0, marginBottom:12, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', width:'fit-content' }}>
+          <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
+            style={{ fontSize:12, padding:'7px 16px', border:'none', background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
+            Resources
+          </button>
+          <button onClick={() => { setEpisodeMode(true); setSearch(''); }}
+            style={{ fontSize:12, padding:'7px 16px', border:'none', background: episodeMode ? GREEN : '#fff', color: episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s', display:'flex', alignItems:'center', gap:6 }}>
+            <span>🎙</span> Episode Search
+          </button>
         </div>
+
+        {/* Resource search */}
+        {!episodeMode && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', marginBottom:36, background:'#fff' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…"
+              style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
+            {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
+          </div>
+        )}
+
+        {/* Episode search */}
+        {episodeMode && (
+          <div style={{ marginBottom:36 }}>
+            <div style={{ display:'flex', gap:10, alignItems:'center', border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', background:'#fff', marginBottom:8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                value={episodeQuery}
+                onChange={e => setEpisodeQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchEpisodes(episodeQuery)}
+                placeholder="Search episodes… e.g. implant complications, cracked tooth, burnout"
+                style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }}
+                autoFocus
+              />
+              {episodeQuery && <button onClick={() => { setEpisodeQuery(''); setEpisodes([]); setEpisodeSearched(false); }} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
+              <button onClick={() => searchEpisodes(episodeQuery)}
+                style={{ fontSize:12, padding:'5px 14px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, whiteSpace:'nowrap' }}>
+                Search
+              </button>
+            </div>
+            <div style={{ fontSize:11, color:'#bbb', paddingLeft:2 }}>Searches across millions of podcast episodes — not just the ones in DentHub</div>
+          </div>
+        )}
+
+        {/* Episode search results */}
+        {episodeMode && (episodeLoading || episodeSearched) && (
+          <div style={{ marginBottom:48 }}>
+            {episodeLoading && (
+              <div style={{ padding:'48px 0', textAlign:'center', color:'#bbb', fontSize:14 }}>Searching episodes…</div>
+            )}
+            {!episodeLoading && episodeSearched && episodes.length === 0 && (
+              <div style={{ padding:'48px 0', textAlign:'center', color:'#bbb', fontSize:14 }}>No episodes found for "{episodeQuery}"</div>
+            )}
+            {!episodeLoading && episodes.length > 0 && (
+              <>
+                <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:4 }}>
+                  {episodes.length} episodes found
+                </div>
+                <div style={{ fontSize:11, color:'#bbb', marginBottom:18 }}>
+                  Results for <span style={{ color:'#111', fontWeight:500 }}>"{episodeQuery}"</span> across all podcasts
+                </div>
+                <div>
+                  {episodes.map((ep, i) => (
+                    <EpisodeCard key={ep.id || i} ep={ep} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Theme tabs */}
         <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:40, overflowX:'auto', scrollbarWidth:'none' }}>
