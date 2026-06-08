@@ -22,6 +22,7 @@ function makeHeaders() {
 
 export default async function handler(req, res) {
   if (!PI_KEY || !PI_SECRET) {
+    console.error('[episodes-search] Missing credentials. KEY:', !!PI_KEY, 'SECRET:', !!PI_SECRET);
     return res.status(500).json({ error: 'PodcastIndex credentials not configured' });
   }
 
@@ -41,11 +42,15 @@ export default async function handler(req, res) {
       )
     ]);
 
+    console.log('[episodes-search] PodcastIndex status:', episodeRes.status);
     if (!episodeRes.ok) {
-      throw new Error(`PodcastIndex returned ${episodeRes.status}`);
+      const body = await episodeRes.text();
+      console.error('[episodes-search] PodcastIndex error body:', body.slice(0, 500));
+      throw new Error(`PodcastIndex returned ${episodeRes.status}: ${body.slice(0,200)}`);
     }
 
     const data = await episodeRes.json();
+    console.log('[episodes-search] items returned:', data.items?.length ?? 0);
     const items = (data.items || []).map(ep => ({
       id:          ep.id,
       title:       ep.title,
@@ -65,6 +70,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate');
     return res.status(200).json({ episodes: items, count: items.length, query: q });
   } catch (err) {
+    console.error('[episodes-search] caught error:', err.message);
     return res.status(500).json({ error: err.message });
   }
 }
