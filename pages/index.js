@@ -159,6 +159,56 @@ function NewBadge() {
   return <span style={{ fontSize:9, fontWeight:700, color:'#fff', background:GREEN, padding:'2px 6px', borderRadius:10, letterSpacing:'0.06em', textTransform:'uppercase', marginLeft:8, verticalAlign:'middle' }}>New</span>;
 }
 
+function SpotlightCard({ item }) {
+  const [imgErr, setImgErr] = useState(false);
+  const isVideo = item.type === 'video';
+  const accentColor = isVideo ? '#e52d27' : GREEN;
+
+  return (
+    <a href={item.url} target="_blank" rel="noopener noreferrer"
+      style={{ display:'block', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, overflow:'hidden', textDecoration:'none', color:'inherit', transition:'box-shadow 0.15s, transform 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}
+    >
+      {/* Cover image */}
+      <div style={{ position:'relative', width:'100%', paddingBottom: isVideo ? '56.25%' : '56.25%', background:'#f0ede8', overflow:'hidden' }}>
+        {item.image && !imgErr ? (
+          <img
+            src={item.image}
+            alt={item.title}
+            onError={() => setImgErr(true)}
+            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}
+          />
+        ) : (
+          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}>
+            <span style={{ fontSize:28, color:'#ccc' }}>{isVideo ? '▶' : '🎙'}</span>
+          </div>
+        )}
+        {/* Type badge */}
+        <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:accentColor, padding:'3px 7px', borderRadius:3 }}>
+          {isVideo ? 'Video' : 'Podcast'}
+        </div>
+      </div>
+
+      {/* Text */}
+      <div style={{ padding:'12px 14px 14px' }}>
+        <div style={{ fontSize:10, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
+        <div style={{ fontSize:13, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
+          display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+          {item.title}
+        </div>
+        {item.description && (
+          <div style={{ fontSize:11, color:'#999', lineHeight:1.55,
+            display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>
+            {item.description}
+          </div>
+        )}
+        <div style={{ fontSize:10, color:'#ccc' }}>{item.date}</div>
+      </div>
+    </a>
+  );
+}
+
 export default function Home() {
   const [categories, setCategories] = useState([]);
   const [resources, setResources]   = useState([]);
@@ -168,6 +218,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [activeType, setActiveType] = useState(null);
+  const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
 
   useEffect(() => {
     Promise.all([
@@ -177,6 +228,9 @@ export default function Home() {
       setCategories(cat.records || []);
       setResources(res.records || []);
     }).finally(() => setLoading(false));
+
+    // Fetch live RSS spotlight data independently
+    fetch('/api/spotlight').then(r => r.json()).then(data => setSpotlight(data)).catch(() => {});
   }, []);
 
   function selectTheme(t) { setActiveTheme(t); setActiveCategory(null); setActiveType(null); }
@@ -314,6 +368,40 @@ export default function Home() {
 
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!activeTheme && !search && (<>
+
+            {/* Spotlight: Latest Episodes & Videos */}
+            {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
+              <div style={{ marginBottom:52 }}>
+                <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:20, paddingBottom:12, borderBottom:`2px solid #111` }}>
+                  <div style={{ fontSize:15, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.3 }}>What&rsquo;s New</div>
+                  <div style={{ fontSize:10, letterSpacing:'0.10em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Live from the feeds</div>
+                </div>
+
+                {/* Podcast episodes row */}
+                {spotlight.podcasts.length > 0 && (
+                  <div style={{ marginBottom:28 }}>
+                    <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:12 }}>
+                      {spotlight.podcasts.slice(0,4).map((ep, i) => (
+                        <SpotlightCard key={i} item={ep} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* YouTube row */}
+                {spotlight.videos.length > 0 && (
+                  <div>
+                    <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:12 }}>
+                      {spotlight.videos.slice(0,3).map((vid, i) => (
+                        <SpotlightCard key={i} item={vid} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* New this week */}
             {recentlyAdded.length > 0 && (
