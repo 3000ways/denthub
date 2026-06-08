@@ -19,10 +19,10 @@ export default function About() {
           </Link>
           <div style={{ display:'flex', alignItems:'center', gap:24 }}>
             <Link href="/about" style={{ fontSize:13, color:'#111', textDecoration:'none', fontWeight:500, fontFamily:FONT_BODY }}>About</Link>
+            <button style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2 }}>
+              Submit a resource
+            </button>
           </div>
-          <button style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2 }}>
-            Submit a resource
-          </button>
         </div>
 
         {/* Content */}

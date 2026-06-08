@@ -43,6 +43,63 @@ function Logo({ url, name, size, imageUrl }) {
   return <img src={`/api/airtable?logo=${domain}`} alt={name} onError={() => setErr(true)} style={{ width:sz, height:sz, borderRadius:radius, border:`0.5px solid ${BORDER}`, objectFit:'contain', background:'#fafafa', flexShrink:0 }} />;
 }
 
+function VoteButtons({ resourceId }) {
+  const [vote, setVote] = useState(null);
+  const [counts, setCounts] = useState({ up: 0, down: 0 });
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('denthub_votes') || '{}');
+    const voteCounts = JSON.parse(localStorage.getItem('denthub_vote_counts') || '{}');
+    if (stored[resourceId]) setVote(stored[resourceId]);
+    if (voteCounts[resourceId]) setCounts(voteCounts[resourceId]);
+  }, [resourceId]);
+
+  function handleVote(dir) {
+    const stored = JSON.parse(localStorage.getItem('denthub_votes') || '{}');
+    const voteCounts = JSON.parse(localStorage.getItem('denthub_vote_counts') || '{}');
+    const current = stored[resourceId];
+    const currentCounts = voteCounts[resourceId] || { up: 0, down: 0 };
+    let newVote = null;
+    let newCounts = { ...currentCounts };
+
+    if (current === dir) {
+      // unvote
+      newVote = null;
+      newCounts[dir] = Math.max(0, newCounts[dir] - 1);
+    } else {
+      // switch or new vote
+      if (current) newCounts[current] = Math.max(0, newCounts[current] - 1);
+      newVote = dir;
+      newCounts[dir] = newCounts[dir] + 1;
+    }
+
+    stored[resourceId] = newVote;
+    voteCounts[resourceId] = newCounts;
+    localStorage.setItem('denthub_votes', JSON.stringify(stored));
+    localStorage.setItem('denthub_vote_counts', JSON.stringify(voteCounts));
+    setVote(newVote);
+    setCounts(newCounts);
+  }
+
+  const net = counts.up - counts.down;
+
+  return (
+    <div style={{ display:'inline-flex', alignItems:'center', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', fontFamily:FONT_BODY }}>
+      <button onClick={() => handleVote('up')}
+        style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'none', borderRight:`1px solid ${BORDER}`, background: vote === 'up' ? GREEN_LIGHT : '#fff', color: vote === 'up' ? GREEN : '#888', cursor:'pointer', fontSize:12, fontWeight: vote === 'up' ? 600 : 400, fontFamily:FONT_BODY, transition:'all 0.15s' }}>
+        <span style={{ fontSize:14 }}>↑</span> {counts.up > 0 ? counts.up : ''}
+      </button>
+      <div style={{ padding:'6px 10px', fontSize:12, color:'#bbb', background:'#fafafa', minWidth:28, textAlign:'center' }}>
+        {net > 0 ? `+${net}` : net === 0 ? '0' : net}
+      </div>
+      <button onClick={() => handleVote('down')}
+        style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'none', borderLeft:`1px solid ${BORDER}`, background: vote === 'down' ? '#FFF0F0' : '#fff', color: vote === 'down' ? '#c0392b' : '#888', cursor:'pointer', fontSize:12, fontWeight: vote === 'down' ? 600 : 400, fontFamily:FONT_BODY, transition:'all 0.15s' }}>
+        <span style={{ fontSize:14 }}>↓</span> {counts.down > 0 ? counts.down : ''}
+      </button>
+    </div>
+  );
+}
+
 function ScoreBadge({ score, fields }) {
   const [show, setShow] = useState(false);
   const breakdown = [
@@ -109,6 +166,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -343,27 +401,81 @@ export default function Home() {
                 {activeCategory ? `${activeCategory} — ranked` : 'Full rankings'}
               </div>
               <div>
-                {ranked.map((r, i) => (
-                  <div key={r.id}
-                    onClick={() => r.fields.URL && window.open(r.fields.URL,'_blank')}
-                    style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
-                    onMouseEnter={e => { e.currentTarget.style.background='#f9f9f9'; e.currentTarget.style.paddingLeft='6px'; e.currentTarget.style.paddingRight='6px'; e.currentTarget.style.marginLeft='-6px'; e.currentTarget.style.marginRight='-6px'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.paddingLeft='0'; e.currentTarget.style.paddingRight='0'; e.currentTarget.style.marginLeft='0'; e.currentTarget.style.marginRight='0'; }}
-                  >
-                    <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
-                    <Logo url={r.fields.URL} name={r.fields.Name} size={40} imageUrl={r.fields['Image URL']} />
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:2 }}>{r.fields.Name}</div>
-                      <div style={{ fontSize:11, color:'#bbb' }}>
-                        <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{r.fields.Type}</span>
-                        {r.fields['Host or Author'] ? <span style={{ color:'#ccc' }}> · {r.fields['Host or Author']}</span> : ''}
+                {ranked.map((r, i) => {
+                  const f = r.fields;
+                  const isOpen = expandedId === r.id;
+                  const breakdown = [
+                    { label:'Expert', value:f['Expert Score'], weight:25 },
+                    { label:'Community', value:f['Community Score'], weight:25 },
+                    { label:'Popularity', value:f['Popularity Score'], weight:20 },
+                    { label:'Recency', value:f['Recency Score'], weight:15 },
+                    { label:'Clinical Depth', value:f['Clinical Depth Score'], weight:15 },
+                  ];
+                  return (
+                    <div key={r.id} style={{ borderBottom:`0.5px solid ${BORDER}` }}>
+                      {/* Row */}
+                      <div
+                        onClick={() => setExpandedId(isOpen ? null : r.id)}
+                        style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', cursor:'pointer', background: isOpen ? '#faf9f6' : 'transparent' }}
+                        onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background='#f9f9f9'; }}
+                        onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
+                      >
+                        <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
+                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:2 }}>{f.Name}</div>
+                          <div style={{ fontSize:11, color:'#bbb' }}>
+                            <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
+                            {f['Host or Author'] ? <span style={{ color:'#ccc' }}> · {f['Host or Author']}</span> : ''}
+                          </div>
+                        </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+                          <ScoreBadge score={(f['Final Score']||0).toFixed(1)} fields={f} />
+                          <span style={{ fontSize:16, color:'#ccc', lineHeight:1, transform: isOpen ? 'rotate(180deg)':'rotate(0)', transition:'transform 0.2s' }}>›</span>
+                        </div>
                       </div>
+
+                      {/* Expanded panel */}
+                      {isOpen && (
+                        <div style={{ padding:'0 0 20px 38px', background:'#faf9f6' }}>
+                          <div style={{ display:'flex', gap:32 }}>
+                            {/* Left: description + link */}
+                            <div style={{ flex:1 }}>
+                              {f.Description && (
+                                <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 16px' }}>{f.Description}</p>
+                              )}
+                              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+                                {f.URL && (
+                                  <a href={f.URL} target="_blank" rel="noopener noreferrer"
+                                    style={{ fontSize:12, fontWeight:600, color:GREEN, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:5, border:`1px solid ${GREEN}`, padding:'6px 14px', borderRadius:4, fontFamily:FONT_BODY }}>
+                                    Visit resource →
+                                  </a>
+                                )}
+                                <VoteButtons resourceId={r.id} />
+                              </div>
+                            </div>
+
+                            {/* Right: score bars */}
+                            <div style={{ width:180, flexShrink:0 }}>
+                              <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
+                              {breakdown.map(b => (
+                                <div key={b.label} style={{ marginBottom:8 }}>
+                                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
+                                    <span style={{ fontSize:11, color:'#888' }}>{b.label}</span>
+                                    <span style={{ fontSize:11, fontWeight:600, color: b.value != null ? GREEN : '#ddd' }}>{b.value ?? '—'}</span>
+                                  </div>
+                                  <div style={{ height:3, background:'#eee', borderRadius:2 }}>
+                                    <div style={{ height:3, width: b.value ? `${(b.value/10)*100}%` : '0%', background:GREEN, borderRadius:2, transition:'width 0.4s' }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ flexShrink:0 }} onClick={e => e.stopPropagation()}>
-                      <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
