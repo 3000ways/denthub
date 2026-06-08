@@ -449,9 +449,9 @@ export default function Home() {
                                   const q = encodeURIComponent(`${f.Name} ${f['Host or Author'] || ''}`);
                                   const bookLinks = [
                                     { label:'Amazon', url:`https://www.amazon.com/s?k=${q}&i=stripbooks` },
-                                    { label:'Audible', url:`https://www.audible.com/search?keywords=${q}` },
-                                    { label:'Goodreads', url:`https://www.goodreads.com/search?q=${q}` },
-                                    { label:'Kindle', url:`https://www.amazon.com/s?k=${q}&i=digital-text` },
+                                    { label:'Audible', url:`https://www.audible.com/search?keywords=${q}&node=18541642011` },
+                                    { label:'Goodreads', url:`https://www.goodreads.com/search?utf8=%E2%9C%93&query=${q}` },
+                                    { label:'Kindle', url:`https://www.amazon.com/s?k=${q}&i=digital-text&rh=n%3A154606011` },
                                   ];
                                   return bookLinks.map(link => (
                                     <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
