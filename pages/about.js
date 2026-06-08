@@ -35,6 +35,22 @@ export default function About() {
           <p style={{ fontSize:15, color:'#555', lineHeight:1.75, marginBottom:20 }}>
             DentHub is a curated index of the best learning resources in dentistry — podcasts, books, CE courses, YouTube channels, software, and more — scored and ranked by dental professionals.
           </p>
+
+          {/* Stats bar */}
+          <div style={{ display:'flex', gap:28, padding:'20px 0', borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, marginBottom:32 }}>
+            {[
+              { value:'300+', label:'resources indexed' },
+              { value:'49', label:'categories' },
+              { value:'8', label:'themes' },
+              { value:'9+', label:'specialties covered' },
+            ].map(({ value, label }) => (
+              <div key={label}>
+                <div style={{ fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>{value}</div>
+                <div style={{ fontSize:11, color:'#aaa', marginTop:3 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
           <p style={{ fontSize:15, color:'#555', lineHeight:1.75, marginBottom:40 }}>
             Every resource is scored using a weighted formula that combines expert opinion, community feedback, popularity, recency, and clinical depth. The goal is a trusted, living directory that gets better as more dentists contribute.
           </p>
