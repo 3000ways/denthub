@@ -6,12 +6,6 @@ const AIRTABLE_BASE   = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
 const AIRTABLE_TABLE  = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
 const AIRTABLE_PAT    = process.env.AIRTABLE_PAT;
 
-// Field IDs in the Resources table
-const FLD_NAME        = 'fldtPkYPgBaGj7aGZ';
-const FLD_TYPE        = 'fldFQ6QvASgcz52Wp';
-const FLD_SCORE       = 'fldisbUIs02rjuN3N'; // Final Score
-const FLD_RSS         = 'fldMKXprfOIjWV5Mg'; // RSS Feed URL (new field)
-
 // How many of the top-ranked shows to spotlight
 const TOP_PODCASTS = 5;
 const TOP_VIDEOS   = 3;
@@ -20,27 +14,15 @@ const TOP_VIDEOS   = 3;
 
 async function fetchTopFromAirtable(type, limit) {
   if (!AIRTABLE_PAT) return [];
-  const params = new URLSearchParams({
-    'fields[]':        [FLD_NAME, FLD_TYPE, FLD_SCORE, FLD_RSS].join('&fields[]='),
-    'filterByFormula': `AND({Type} = "${type}", {RSS Feed URL} != "")`,
-    'sort[0][field]':  FLD_SCORE,
-    'sort[0][direction]': 'desc',
-    'maxRecords':      String(limit),
-  });
-  // URLSearchParams doesn't handle repeated keys well — build manually
-  const qs = [
-    `fields[]=${FLD_NAME}`,
-    `fields[]=${FLD_TYPE}`,
-    `fields[]=${FLD_SCORE}`,
-    `fields[]=${FLD_RSS}`,
-    `filterByFormula=${encodeURIComponent(`AND({Type} = "${type}", {RSS Feed URL} != "")`)}`,
-    `sort[0][field]=${FLD_SCORE}`,
-    `sort[0][direction]=desc`,
-    `maxRecords=${limit}`,
-  ].join('&');
+
+  const params = new URLSearchParams();
+  params.set('filterByFormula', `AND({Type} = "${type}", {RSS Feed URL} != "")`);
+  params.set('sort[0][field]', 'Final Score');
+  params.set('sort[0][direction]', 'desc');
+  params.set('maxRecords', String(limit));
 
   const res = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${qs}`,
+    `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${params.toString()}`,
     {
       headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
       signal: AbortSignal.timeout(10000),
@@ -49,11 +31,10 @@ async function fetchTopFromAirtable(type, limit) {
   if (!res.ok) return [];
   const json = await res.json();
   return (json.records || []).map(r => ({
-    id:      r.id,
-    name:    r.fields[FLD_NAME],
-    type:    type,
-    rssUrl:  r.fields[FLD_RSS],
-    score:   r.fields[FLD_SCORE] || 0,
+    name:   r.fields['Name'],
+    type:   type,
+    rssUrl: r.fields['RSS Feed URL'],
+    score:  r.fields['Final Score'] || 0,
   }));
 }
 
