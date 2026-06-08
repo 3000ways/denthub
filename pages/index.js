@@ -170,8 +170,8 @@ function SpotlightCard({ item }) {
       onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}
     >
-      {/* Cover image */}
-      <div style={{ position:'relative', width:'100%', paddingBottom: isVideo ? '56.25%' : '56.25%', background:'#f0ede8', overflow:'hidden' }}>
+      {/* Cover image — square for podcasts, 16:9 for videos */}
+      <div style={{ position:'relative', width:'100%', paddingBottom: isVideo ? '56.25%' : '100%', background:'#f0ede8', overflow:'hidden' }}>
         {item.image && !imgErr ? (
           <img
             src={item.image}
