@@ -465,7 +465,7 @@ export default function Home() {
                                     <span style={{ fontSize:11, fontWeight:600, color: b.value != null ? GREEN : '#ddd' }}>{b.value ?? '—'}</span>
                                   </div>
                                   <div style={{ height:3, background:'#eee', borderRadius:2 }}>
-                                    <div style={{ height:3, width: b.value ? `${(b.value/10)*100}%` : '0%', background:GREEN, borderRadius:2, transition:'width 0.4s' }} />
+                                    <div style={{ height:3, width: b.value ? `${Math.min((b.value > 10 ? b.value : b.value*10), 100)}%` : '0%', background:GREEN, borderRadius:2, transition:'width 0.4s' }} />
                                   </div>
                                 </div>
                               ))}
