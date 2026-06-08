@@ -12,12 +12,12 @@ const GREEN_LIGHT = '#E8F5F0';
 const BORDER = '#e8e8e8';
 
 const DEMO_RESOURCES = [
-  { id:'d1', fields:{ Name:'Dental Intel Podcast', Type:'Podcast', URL:'https://dentalintel.com', Description:'Practice analytics and growth strategies for modern dental practices. Hosted by industry leaders covering everything from patient experience to profitability.', 'Host or Author':'Brandon Shird', 'Final Score':9.4, 'Expert Score':9.2, 'Community Score':9.5, 'Popularity Score':9.3, 'Recency Score':9.0, 'Clinical Depth Score':9.6, createdAt:'2025-06-01' }},
-  { id:'d2', fields:{ Name:'The Dental Economist', Type:'Book', URL:'https://amazon.com', Description:'A landmark text on practice valuation, associate agreements, and the financial architecture of a thriving dental career.', 'Host or Author':'William Van Dyk', 'Final Score':9.1, 'Expert Score':9.0, 'Community Score':9.2, 'Popularity Score':8.8, 'Recency Score':8.5, 'Clinical Depth Score':9.4, createdAt:'2025-06-03' }},
-  { id:'d3', fields:{ Name:'Spear Education', Type:'CE Website', URL:'https://speareducation.com', Description:'World-class continuing education from leading clinicians. Covers occlusion, aesthetics, full-arch restoration, and practice management.', 'Host or Author':'Frank Spear', 'Final Score':9.3, 'Expert Score':9.5, 'Community Score':9.1, 'Popularity Score':9.4, 'Recency Score':8.9, 'Clinical Depth Score':9.7, createdAt:'2025-05-28' }},
-  { id:'d4', fields:{ Name:'Dental Nachos', Type:'Podcast', URL:'https://dentalnachos.com', Description:'Real talk for real dentists. Candid conversations about the business of dentistry, burnout, and building a career on your terms.', 'Host or Author':'Ryan Vet', 'Final Score':8.8, 'Expert Score':8.7, 'Community Score':9.0, 'Popularity Score':8.9, 'Recency Score':9.2, 'Clinical Depth Score':8.3, createdAt:'2025-06-05' }},
-  { id:'d5', fields:{ Name:'The Endo Files', Type:'Podcast', URL:'https://theendofiles.com', Description:'Dedicated to endodontics — clinical techniques, case discussions, and the latest research in root canal therapy.', 'Host or Author':'Jeremy Erickson', 'Final Score':8.9, 'Expert Score':9.1, 'Community Score':8.8, 'Popularity Score':8.5, 'Recency Score':8.7, 'Clinical Depth Score':9.5, createdAt:'2025-06-06' }},
-  { id:'d6', fields:{ Name:'Dentrix Ascend', Type:'Software', URL:'https://dentrixascend.com', Description:'Cloud-based practice management software built for modern multi-location dental groups. Real-time dashboards and integrated billing.', 'Host or Author':'Henry Schein', 'Final Score':8.6, 'Expert Score':8.4, 'Community Score':8.5, 'Popularity Score':9.0, 'Recency Score':8.8, 'Clinical Depth Score':8.2, createdAt:'2025-05-30' }},
+  { id:'d1', fields:{ Name:'Dental Intel Podcast', Type:'Podcast', URL:'https://dentalintel.com', Description:'Practice analytics and growth strategies for modern dental practices. Hosted by industry leaders covering everything from patient experience to profitability.', 'Host or Author':'Brandon Shird', 'Final Score':94, 'Expert Score':92, 'Community Score':95, 'Popularity Score':93, 'Recency Score':90, 'Clinical Depth Score':96, createdAt:'2025-06-01' }},
+  { id:'d2', fields:{ Name:'The Dental Economist', Type:'Book', URL:'https://amazon.com', Description:'A landmark text on practice valuation, associate agreements, and the financial architecture of a thriving dental career.', 'Host or Author':'William Van Dyk', 'Final Score':91, 'Expert Score':90, 'Community Score':92, 'Popularity Score':88, 'Recency Score':85, 'Clinical Depth Score':94, createdAt:'2025-06-03' }},
+  { id:'d3', fields:{ Name:'Spear Education', Type:'CE Website', URL:'https://speareducation.com', Description:'World-class continuing education from leading clinicians. Covers occlusion, aesthetics, full-arch restoration, and practice management.', 'Host or Author':'Frank Spear', 'Final Score':93, 'Expert Score':95, 'Community Score':91, 'Popularity Score':94, 'Recency Score':89, 'Clinical Depth Score':97, createdAt:'2025-05-28' }},
+  { id:'d4', fields:{ Name:'Dental Nachos', Type:'Podcast', URL:'https://dentalnachos.com', Description:'Real talk for real dentists. Candid conversations about the business of dentistry, burnout, and building a career on your terms.', 'Host or Author':'Ryan Vet', 'Final Score':88, 'Expert Score':87, 'Community Score':90, 'Popularity Score':89, 'Recency Score':92, 'Clinical Depth Score':83, createdAt:'2025-06-05' }},
+  { id:'d5', fields:{ Name:'The Endo Files', Type:'Podcast', URL:'https://theendofiles.com', Description:'Dedicated to endodontics — clinical techniques, case discussions, and the latest research in root canal therapy.', 'Host or Author':'Jeremy Erickson', 'Final Score':89, 'Expert Score':91, 'Community Score':88, 'Popularity Score':85, 'Recency Score':87, 'Clinical Depth Score':95, createdAt:'2025-06-06' }},
+  { id:'d6', fields:{ Name:'Dentrix Ascend', Type:'Software', URL:'https://dentrixascend.com', Description:'Cloud-based practice management software built for modern multi-location dental groups. Real-time dashboards and integrated billing.', 'Host or Author':'Henry Schein', 'Final Score':86, 'Expert Score':84, 'Community Score':85, 'Popularity Score':90, 'Recency Score':88, 'Clinical Depth Score':82, createdAt:'2025-05-30' }},
 ];
 
 function getDomain(url) { try { return new URL(url).hostname.replace('www.',''); } catch { return null; } }
@@ -126,7 +126,7 @@ function ScoreBadge({ score, fields }) {
           ))}
           <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, paddingTop:8, borderTop:'0.5px solid #f0f0f0' }}>
             <span style={{ fontSize:11, fontWeight:600, color:'#111' }}>Final</span>
-            <span style={{ fontSize:11, fontWeight:700, color:GREEN }}>{score}</span>
+            <span style={{ fontSize:11, fontWeight:700, color:GREEN }}>{((s) => Number(s) % 1 === 0 ? Number(s).toString() : s)(score)}</span>
           </div>
           <div style={{ position:'absolute', bottom:-5, left:'50%', transform:'translateX(-50%) rotate(45deg)', width:8, height:8, background:'#fff', border:`0.5px solid ${BORDER}`, borderTop:'none', borderLeft:'none' }} />
         </div>
@@ -150,7 +150,7 @@ function TrendingCard({ r, rank }) {
       <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
       <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.25, marginBottom:8, fontFamily:FONT_DISPLAY }}>{f.Name}</div>
       <div style={{ fontSize:11, color:'#aaa', marginBottom:10 }}>{f['Host or Author']}</div>
-      <ScoreBadge score={(f['Final Score']||0).toFixed(1)} fields={f} />
+      <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
     </div>
   );
 }
@@ -415,7 +415,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-                          <ScoreBadge score={(f['Final Score']||0).toFixed(1)} fields={f} />
+                          <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
                           <span style={{ fontSize:16, color:'#ccc', lineHeight:1, transform: isOpen ? 'rotate(90deg)':'rotate(0)', transition:'transform 0.2s' }}>›</span>
                         </div>
                       </div>
@@ -449,7 +449,7 @@ export default function Home() {
                                 <VoteButtons resourceId={r.id} />
                               </div>
                             </div>
-                            <div style={{ width:180, flexShrink:0 }}>
+                            <div style={{ width:180, flexShrink:0, paddingRight:16 }}>
                               <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
                               {breakdown.map(b => (
                                 <div key={b.label} style={{ marginBottom:8 }}>
@@ -517,7 +517,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-                          <ScoreBadge score={(f['Final Score']||0).toFixed(1)} fields={f} />
+                          <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
                           <span style={{ fontSize:16, color:'#ccc', lineHeight:1, transform: isOpen ? 'rotate(180deg)':'rotate(0)', transition:'transform 0.2s' }}>›</span>
                         </div>
                       </div>
@@ -559,7 +559,7 @@ export default function Home() {
                             </div>
 
                             {/* Right: score bars */}
-                            <div style={{ width:180, flexShrink:0 }}>
+                            <div style={{ width:180, flexShrink:0, paddingRight:16 }}>
                               <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
                               {breakdown.map(b => (
                                 <div key={b.label} style={{ marginBottom:8 }}>
