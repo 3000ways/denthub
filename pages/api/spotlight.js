@@ -9,7 +9,7 @@ const AIRTABLE_PAT    = process.env.AIRTABLE_PAT;
 // Field IDs in the Resources table
 const FLD_NAME        = 'fldtPkYPgBaGj7aGZ';
 const FLD_TYPE        = 'fldFQ6QvASgcz52Wp';
-const FLD_SCORE       = 'fldBSJmFYuHBDmLRS'; // Final Score
+const FLD_SCORE       = 'fldisbUIs02rjuN3N'; // Final Score
 const FLD_RSS         = 'fldMKXprfOIjWV5Mg'; // RSS Feed URL (new field)
 
 // How many of the top-ranked shows to spotlight
