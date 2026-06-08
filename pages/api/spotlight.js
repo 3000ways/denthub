@@ -1,23 +1,65 @@
-// Fetches the latest episode from curated podcast RSS feeds and YouTube channels.
-// Results are cached for 6 hours to avoid hammering the feeds on every page load.
+// Dynamic spotlight — fetches the top-ranked podcasts and YouTube channels from Airtable,
+// reads their RSS Feed URL field, then fetches the latest episode/video from each feed.
+// Results are cached for 6 hours to avoid hammering feeds on every page load.
 
-const PODCAST_FEEDS = [
-  { show: 'The Dental Hacks Podcast',       feedUrl: 'https://dentalhacks.libsyn.com/rss',       siteUrl: 'https://dentalhacks.com/' },
-  { show: 'Dentistry Uncensored',            feedUrl: 'https://rss.libsyn.com/shows/58519/destinations/222357.xml', siteUrl: 'https://www.dentaltown.com/channel/54/dentistry-uncensored-with-howard-farran' },
-  { show: 'Everyday Practices',              feedUrl: 'https://everydaypractices.libsyn.com/rss', siteUrl: 'https://productivedentist.com/podcasts/everyday-practices-dental-podcast/' },
-  { show: 'The Dental Marketer',             feedUrl: 'https://thedentalmarketer.site/index.php/feed/podcast', siteUrl: 'https://thedentalmarketer.site/' },
-  { show: 'The Dentalpreneur',               feedUrl: 'https://markcostes.libsyn.com/rss',        siteUrl: 'https://www.truedentalsuccess.com/the-dentalpreneur-podcast/' },
-];
+const AIRTABLE_BASE   = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
+const AIRTABLE_TABLE  = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
+const AIRTABLE_PAT    = process.env.AIRTABLE_PAT;
 
-const YOUTUBE_CHANNELS = [
-  { show: 'ADA',                channelId: 'UC3UBF_16dd2UncCoR0lCgKQ' },
-  { show: 'Spear Education',    channelId: 'UCaVv1J5y4_aI73G0366qC-g' },
-  { show: 'Dentistry Uncensored (YouTube)', channelId: 'UCxpTLZhizevXl-vQ6ODEd0A' },
-];
+// Field IDs in the Resources table
+const FLD_NAME        = 'fldtPkYPgBaGj7aGZ';
+const FLD_TYPE        = 'fldFQ6QvASgcz52Wp';
+const FLD_SCORE       = 'fldBSJmFYuHBDmLRS'; // Final Score
+const FLD_RSS         = 'fldMKXprfOIjWV5Mg'; // RSS Feed URL (new field)
 
-// Simple XML text extraction — no external dependencies needed.
+// How many of the top-ranked shows to spotlight
+const TOP_PODCASTS = 5;
+const TOP_VIDEOS   = 3;
+
+// ─── Airtable fetch ──────────────────────────────────────────────────────────
+
+async function fetchTopFromAirtable(type, limit) {
+  if (!AIRTABLE_PAT) return [];
+  const params = new URLSearchParams({
+    'fields[]':        [FLD_NAME, FLD_TYPE, FLD_SCORE, FLD_RSS].join('&fields[]='),
+    'filterByFormula': `AND({Type} = "${type}", {RSS Feed URL} != "")`,
+    'sort[0][field]':  FLD_SCORE,
+    'sort[0][direction]': 'desc',
+    'maxRecords':      String(limit),
+  });
+  // URLSearchParams doesn't handle repeated keys well — build manually
+  const qs = [
+    `fields[]=${FLD_NAME}`,
+    `fields[]=${FLD_TYPE}`,
+    `fields[]=${FLD_SCORE}`,
+    `fields[]=${FLD_RSS}`,
+    `filterByFormula=${encodeURIComponent(`AND({Type} = "${type}", {RSS Feed URL} != "")`)}`,
+    `sort[0][field]=${FLD_SCORE}`,
+    `sort[0][direction]=desc`,
+    `maxRecords=${limit}`,
+  ].join('&');
+
+  const res = await fetch(
+    `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${qs}`,
+    {
+      headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
+      signal: AbortSignal.timeout(10000),
+    }
+  );
+  if (!res.ok) return [];
+  const json = await res.json();
+  return (json.records || []).map(r => ({
+    id:      r.id,
+    name:    r.fields[FLD_NAME],
+    type:    type,
+    rssUrl:  r.fields[FLD_RSS],
+    score:   r.fields[FLD_SCORE] || 0,
+  }));
+}
+
+// ─── RSS / Atom parsing ───────────────────────────────────────────────────────
+
 function getTag(xml, tag) {
-  // handles <tag>content</tag> and <ns:tag>content</ns:tag>
   const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
   const m = xml.match(re);
   return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : null;
@@ -29,66 +71,60 @@ function getAttr(xml, tag, attr) {
   return m ? m[1] : null;
 }
 
-function parsePodcastFeed(xml, meta) {
-  // Channel-level artwork
-  const showArt = getAttr(xml, 'itunes:image', 'href') || null;
+function stripHtml(str) {
+  return (str || '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ')
+    .replace(/&#\d+;/g,'').replace(/&[a-z]+;/g,'').replace(/\s+/g,' ').trim();
+}
 
-  // Find first <item>
-  const itemMatch = xml.match(/<item[\s>]([\s\S]*?)<\/item>/i);
+function parsePodcastFeed(xml, meta) {
+  const showArt    = getAttr(xml, 'itunes:image', 'href') || null;
+  const itemMatch  = xml.match(/<item[\s>]([\s\S]*?)<\/item>/i);
   if (!itemMatch) return null;
   const item = itemMatch[1];
 
-  const title       = getTag(item, 'title');
-  const link        = getTag(item, 'link') || meta.siteUrl;
-  const pubDate     = getTag(item, 'pubDate');
-  const description = getTag(item, 'description') || getTag(item, 'itunes:summary') || '';
-  const episodeArt  = getAttr(item, 'itunes:image', 'href') || showArt;
+  const title        = stripHtml(getTag(item, 'title'));
+  const link         = getTag(item, 'link') || meta.rssUrl;
+  const pubDate      = getTag(item, 'pubDate');
+  const description  = stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '');
+  const episodeArt   = getAttr(item, 'itunes:image', 'href') || showArt;
   const enclosureUrl = getAttr(item, 'enclosure', 'url');
-
-  // Strip HTML tags from description
-  const cleanDesc = description.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#\d+;/g,'').trim().slice(0, 200);
 
   return {
     type:        'podcast',
-    show:        meta.show,
+    show:        meta.name,
     title:       title || 'New episode',
     url:         enclosureUrl || link,
-    siteUrl:     meta.siteUrl,
     image:       episodeArt,
-    date:        pubDate ? new Date(pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-    description: cleanDesc,
+    date:        pubDate ? new Date(pubDate).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+    description: description.slice(0, 200),
+    score:       meta.score,
   };
 }
 
 function parseYouTubeFeed(xml, meta) {
-  // YouTube Atom feed — entries look like <entry>...</entry>
   const entryMatch = xml.match(/<entry>([\s\S]*?)<\/entry>/i);
   if (!entryMatch) return null;
   const entry = entryMatch[1];
 
   const videoId    = getTag(entry, 'yt:videoId');
-  const title      = getTag(entry, 'title');
+  const title      = stripHtml(getTag(entry, 'title'));
   const published  = getTag(entry, 'published');
-  const description = getTag(entry, 'media:description') || '';
+  const description = stripHtml(getTag(entry, 'media:description') || '');
   const thumbnail  = getAttr(entry, 'media:thumbnail', 'url');
-
-  const cleanDesc = description.replace(/<[^>]+>/g, '').trim().slice(0, 200);
 
   return {
     type:        'video',
-    show:        meta.show,
+    show:        meta.name,
     title:       title || 'New video',
-    url:         videoId ? `https://www.youtube.com/watch?v=${videoId}` : `https://www.youtube.com/channel/${meta.channelId}`,
+    url:         videoId ? `https://www.youtube.com/watch?v=${videoId}` : meta.rssUrl,
     image:       thumbnail || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null),
-    date:        published ? new Date(published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-    description: cleanDesc,
+    date:        published ? new Date(published).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+    description: description.slice(0, 200),
+    score:       meta.score,
   };
 }
-
-// Simple in-memory cache (resets on cold start, good enough for serverless warm instances)
-let cache = null;
-let cacheTime = 0;
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
 async function fetchFeed(url) {
   const res = await fetch(url, {
@@ -99,25 +135,38 @@ async function fetchFeed(url) {
   return res.text();
 }
 
+// ─── Cache ────────────────────────────────────────────────────────────────────
+
+let cache    = null;
+let cacheTime = 0;
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+// ─── Handler ──────────────────────────────────────────────────────────────────
+
 export default async function handler(req, res) {
-  // Serve cache if fresh
   if (cache && Date.now() - cacheTime < CACHE_TTL) {
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(cache);
   }
 
-  // Fetch all feeds in parallel; failed ones return null (don't crash the whole page)
+  // 1. Fetch top-ranked podcasts and YouTube channels from Airtable
+  const [podcastMeta, videoMeta] = await Promise.all([
+    fetchTopFromAirtable('Podcast', TOP_PODCASTS),
+    fetchTopFromAirtable('YouTube', TOP_VIDEOS),
+  ]);
+
+  // 2. Fetch their RSS feeds in parallel
   const [podcastResults, videoResults] = await Promise.all([
     Promise.all(
-      PODCAST_FEEDS.map(meta =>
-        fetchFeed(meta.feedUrl)
+      podcastMeta.map(meta =>
+        fetchFeed(meta.rssUrl)
           .then(xml => parsePodcastFeed(xml, meta))
           .catch(() => null)
       )
     ),
     Promise.all(
-      YOUTUBE_CHANNELS.map(meta =>
-        fetchFeed(`https://www.youtube.com/feeds/videos.xml?channel_id=${meta.channelId}`)
+      videoMeta.map(meta =>
+        fetchFeed(meta.rssUrl)
           .then(xml => parseYouTubeFeed(xml, meta))
           .catch(() => null)
       )
@@ -125,12 +174,12 @@ export default async function handler(req, res) {
   ]);
 
   const data = {
-    podcasts: podcastResults.filter(Boolean),
-    videos:   videoResults.filter(Boolean),
+    podcasts:  podcastResults.filter(Boolean),
+    videos:    videoResults.filter(Boolean),
     fetchedAt: new Date().toISOString(),
   };
 
-  cache = data;
+  cache     = data;
   cacheTime = Date.now();
 
   res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate');
