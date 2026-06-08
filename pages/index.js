@@ -262,6 +262,7 @@ export default function Home() {
   const [expandedId, setExpandedId] = useState(null);
   const [activeType, setActiveType] = useState(null);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
+  const [ytStats, setYtStats] = useState({});
   const [episodeMode, setEpisodeMode] = useState(false);
   const [episodeQuery, setEpisodeQuery] = useState('');
   const [episodes, setEpisodes] = useState([]);
@@ -279,6 +280,8 @@ export default function Home() {
 
     // Fetch live RSS spotlight data independently
     fetch('/api/spotlight').then(r => r.json()).then(data => setSpotlight(data)).catch(() => {});
+    // Fetch YouTube channel stats
+    fetch('/api/youtube-stats').then(r => r.json()).then(data => setYtStats(data)).catch(() => {});
   }, []);
 
   function selectTheme(t) { setActiveTheme(t); setActiveCategory(null); setActiveType(null); }
@@ -614,6 +617,7 @@ export default function Home() {
                     { label:'Recency', value:f['Recency Score'] },
                     { label:'Clinical Depth', value:f['Clinical Depth Score'] },
                   ];
+                  const yt = f.Type === 'YouTube' ? (ytStats[r.id] || null) : null;
                   return (
                     <div key={r.id} style={{ borderBottom:`0.5px solid ${BORDER}` }}>
                       <div onClick={() => setExpandedId(isOpen ? null : r.id)}
@@ -622,12 +626,21 @@ export default function Home() {
                         onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
                       >
                         <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
-                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
+                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={yt?.avatar || f['Image URL']} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:2 }}>{f.Name}</div>
-                          <div style={{ fontSize:11, color:'#bbb' }}>
-                            {f['Host or Author'] ? <span style={{ color:'#ccc' }}>{f['Host or Author']}</span> : ''}
+                          <div style={{ fontSize:11, color:'#bbb', display:'flex', gap:10, alignItems:'center' }}>
+                            {f['Host or Author'] && <span style={{ color:'#ccc' }}>{f['Host or Author']}</span>}
+                            {yt?.subscribers && <span style={{ color:'#bbb' }}>· {yt.subscribers} subscribers</span>}
+                            {yt?.videos && <span style={{ color:'#bbb' }}>· {yt.videos} videos</span>}
                           </div>
+                          {yt?.latest && (
+                            <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                              <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
+                              {yt.latest.title}
+                              {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
                           <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
@@ -636,6 +649,21 @@ export default function Home() {
                       </div>
                       {isOpen && (
                         <div style={{ padding:'0 0 20px 38px', background:'#faf9f6' }}>
+                          {yt?.latest?.thumbnail && (
+                            <a href={yt.latest.url} target="_blank" rel="noopener noreferrer"
+                              style={{ display:'block', marginBottom:16, borderRadius:6, overflow:'hidden', maxWidth:280, position:'relative', textDecoration:'none' }}>
+                              <img src={yt.latest.thumbnail} alt={yt.latest.title}
+                                style={{ width:'100%', display:'block', borderRadius:6 }} />
+                              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                <div style={{ width:40, height:40, background:'rgba(0,0,0,0.7)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                  <span style={{ color:'#fff', fontSize:14, marginLeft:3 }}>▶</span>
+                                </div>
+                              </div>
+                              <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(transparent, rgba(0,0,0,0.7))', padding:'20px 10px 8px', borderRadius:'0 0 6px 6px' }}>
+                                <div style={{ fontSize:11, color:'#fff', fontWeight:500, lineHeight:1.3 }}>{yt.latest.title}</div>
+                              </div>
+                            </a>
+                          )}
                           <div style={{ display:'flex', gap:32 }}>
                             <div style={{ flex:1 }}>
                               {f.Description && <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 16px' }}>{f.Description}</p>}
