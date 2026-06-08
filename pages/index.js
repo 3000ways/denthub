@@ -167,6 +167,7 @@ export default function Home() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [activeType, setActiveType] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -178,8 +179,9 @@ export default function Home() {
     }).finally(() => setLoading(false));
   }, []);
 
-  function selectTheme(t) { setActiveTheme(t); setActiveCategory(null); }
+  function selectTheme(t) { setActiveTheme(t); setActiveCategory(null); setActiveType(null); }
   function selectCategory(name) { setActiveCategory(prev => prev === name ? null : name); }
+  function selectType(t) { setActiveType(t); setExpandedId(null); }
 
   const displayResources = resources.length > 0 ? resources : DEMO_RESOURCES;
   const isDemo = resources.length === 0 && !loading;
@@ -190,12 +192,22 @@ export default function Home() {
     const matchTheme = !themeTypes || themeTypes.some(t => (f.Type||'').includes(t));
     const catType = activeCategory ? CAT_TYPE_MAP[activeCategory] : null;
     const matchCat = !catType || (f.Type||'') === catType;
+    const matchType = !activeType || (f.Type||'') === activeType;
     const matchSearch = !search ||
       (f.Name||'').toLowerCase().includes(search.toLowerCase()) ||
       (f.Description||'').toLowerCase().includes(search.toLowerCase()) ||
       (f.Type||'').toLowerCase().includes(search.toLowerCase());
-    return matchTheme && matchCat && matchSearch;
+    return matchTheme && matchCat && matchType && matchSearch;
   });
+
+  const FEATURED_TYPES = ['Podcast', 'Book', 'CE Website', 'YouTube', 'Software', 'Journal', 'Newsletter'];
+  const typeGroups = FEATURED_TYPES.map(type => ({
+    type,
+    items: [...displayResources]
+      .filter(r => (r.fields.Type||'') === type)
+      .sort((a,b) => (b.fields['Final Score']||0) - (a.fields['Final Score']||0))
+      .slice(0, 4),
+  })).filter(g => g.items.length > 0);
 
   const themeCats = activeTheme ? categories.filter(c => c.fields['Theme'] === activeTheme).sort((a,b) => (a.fields['Display Order']||0)-(b.fields['Display Order']||0)) : [];
   const themeCounts = {};
@@ -364,42 +376,117 @@ export default function Home() {
             </div>
           )}
 
-          {/* Featured top 2 */}
-          {top2.length > 0 && (
-            <div style={{ marginBottom:44 }}>
-              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:18, fontWeight:600 }}>
-                {activeCategory ? `Top ${activeCategory}` : activeTheme ? `Top ${THEME_SHORT[activeTheme]} picks` : "Editor's top picks"}
+          {/* Home page: grouped by type */}
+          {!activeTheme && !search && !activeType && typeGroups.map(({ type, items }) => (
+            <div key={type} style={{ marginBottom:48 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, paddingBottom:12, borderBottom:`2px solid #111` }}>
+                <div style={{ fontSize:15, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.3 }}>
+                  Top {type}s
+                </div>
+                <span onClick={() => selectType(type)}
+                  style={{ fontSize:12, color:GREEN, cursor:'pointer', fontWeight:500 }}>
+                  See all →
+                </span>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
-                {top2.map((r, i) => (
-                  <div key={r.id}
-                    style={{ paddingRight:i===0?32:0, paddingLeft:i===1?32:0, borderLeft:i===1?`1px solid ${BORDER}`:undefined, cursor:'pointer' }}
-                    onClick={() => r.fields.URL && window.open(r.fields.URL,'_blank')}
-                    onMouseEnter={e => e.currentTarget.style.opacity='0.8'}
-                    onMouseLeave={e => e.currentTarget.style.opacity='1'}
-                  >
-                    <Logo url={r.fields.URL} name={r.fields.Name} size={44} imageUrl={r.fields['Image URL']} />
-                    <div style={{ fontSize:10, color:'#bbb', marginTop:14, marginBottom:5 }}>#{i+1} overall</div>
-                    <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:6 }}>{r.fields.Type}</div>
-                    <div style={{ fontSize:19, fontWeight:700, color:'#111', lineHeight:1.2, marginBottom:5, fontFamily:FONT_DISPLAY }}>{r.fields.Name}</div>
-                    <div style={{ fontSize:12, color:'#aaa', marginBottom:10 }}>{r.fields['Host or Author']}</div>
-                    <div style={{ fontSize:13, color:'#666', lineHeight:1.6 }}>{(r.fields.Description||'').slice(0,150)}{(r.fields.Description||'').length>150?'…':''}</div>
-                    <div style={{ marginTop:12 }}><ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} /></div>
-                  </div>
-                ))}
-                {top2.length===1 && <div />}
+              <div>
+                {items.map((r, i) => {
+                  const f = r.fields;
+                  const isOpen = expandedId === r.id;
+                  const breakdown = [
+                    { label:'Expert', value:f['Expert Score'] },
+                    { label:'Community', value:f['Community Score'] },
+                    { label:'Popularity', value:f['Popularity Score'] },
+                    { label:'Recency', value:f['Recency Score'] },
+                    { label:'Clinical Depth', value:f['Clinical Depth Score'] },
+                  ];
+                  return (
+                    <div key={r.id} style={{ borderBottom:`0.5px solid ${BORDER}` }}>
+                      <div onClick={() => setExpandedId(isOpen ? null : r.id)}
+                        style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', cursor:'pointer', background: isOpen ? '#faf9f6' : 'transparent' }}
+                        onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background='#f9f9f9'; }}
+                        onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
+                      >
+                        <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
+                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:2 }}>{f.Name}</div>
+                          <div style={{ fontSize:11, color:'#bbb' }}>
+                            {f['Host or Author'] ? <span style={{ color:'#ccc' }}>{f['Host or Author']}</span> : ''}
+                          </div>
+                        </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+                          <ScoreBadge score={(f['Final Score']||0).toFixed(1)} fields={f} />
+                          <span style={{ fontSize:16, color:'#ccc', lineHeight:1, transform: isOpen ? 'rotate(90deg)':'rotate(0)', transition:'transform 0.2s' }}>›</span>
+                        </div>
+                      </div>
+                      {isOpen && (
+                        <div style={{ padding:'0 0 20px 38px', background:'#faf9f6' }}>
+                          <div style={{ display:'flex', gap:32 }}>
+                            <div style={{ flex:1 }}>
+                              {f.Description && <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 16px' }}>{f.Description}</p>}
+                              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+                                {f.Type === 'Book' ? (() => {
+                                  const q = encodeURIComponent(`${f.Name} ${f['Host or Author'] || ''}`);
+                                  return [
+                                    { label:'Amazon', url:`https://www.amazon.com/s?k=${q}&i=stripbooks` },
+                                    { label:'Audible', url:`https://www.audible.com/search?keywords=${q}&node=18541642011` },
+                                    { label:'Goodreads', url:`https://www.goodreads.com/search?utf8=%E2%9C%93&query=${q}` },
+                                    { label:'Kindle', url:`https://www.amazon.com/s?k=${q}&i=digital-text&rh=n%3A154606011` },
+                                  ].map(link => (
+                                    <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
+                                      style={{ fontSize:12, fontWeight:500, color:'#555', textDecoration:'none', border:`1px solid ${BORDER}`, padding:'5px 12px', borderRadius:4, fontFamily:FONT_BODY, background:'#fff' }}
+                                      onMouseEnter={e => { e.currentTarget.style.borderColor=GREEN; e.currentTarget.style.color=GREEN; }}
+                                      onMouseLeave={e => { e.currentTarget.style.borderColor=BORDER; e.currentTarget.style.color='#555'; }}>
+                                      {link.label}
+                                    </a>
+                                  ));
+                                })() : f.URL && (
+                                  <a href={f.URL} target="_blank" rel="noopener noreferrer"
+                                    style={{ fontSize:12, fontWeight:600, color:GREEN, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:5, border:`1px solid ${GREEN}`, padding:'6px 14px', borderRadius:4, fontFamily:FONT_BODY }}>
+                                    Visit resource →
+                                  </a>
+                                )}
+                                <VoteButtons resourceId={r.id} />
+                              </div>
+                            </div>
+                            <div style={{ width:180, flexShrink:0 }}>
+                              <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
+                              {breakdown.map(b => (
+                                <div key={b.label} style={{ marginBottom:8 }}>
+                                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
+                                    <span style={{ fontSize:11, color:'#888' }}>{b.label}</span>
+                                    <span style={{ fontSize:11, fontWeight:600, color: b.value != null ? GREEN : '#ddd' }}>{b.value ?? '—'}</span>
+                                  </div>
+                                  <div style={{ height:3, background:'#eee', borderRadius:2 }}>
+                                    <div style={{ height:3, width: b.value ? `${Math.min((b.value > 10 ? b.value : b.value*10), 100)}%` : '0%', background:GREEN, borderRadius:2, transition:'width 0.4s' }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          )}
+          ))}
 
-          {top2.length > 0 && ranked.length > 0 && <div style={{ height:1, background:BORDER, marginBottom:36 }} />}
-
-          {/* Ranked list */}
-          {ranked.length > 0 && (
+          {/* Ranked list — shown when filtering by theme, category, type, or search */}
+          {(activeTheme || search || activeType) && ranked.length > 0 && (
             <div style={{ marginBottom:44 }}>
-              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
+              {activeType && (
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
+                  <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>
+                    All {activeType}s — ranked
+                  </div>
+                  <span onClick={() => setActiveType(null)} style={{ fontSize:12, color:'#aaa', cursor:'pointer' }}>← Back</span>
+                </div>
+              )}
+              {!activeType && <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
                 {activeCategory ? `${activeCategory} — ranked` : 'Full rankings'}
-              </div>
+              </div>}
               <div>
                 {ranked.map((r, i) => {
                   const f = r.fields;
@@ -496,7 +583,7 @@ export default function Home() {
             </div>
           )}
 
-          {ranked.length===0 && <div style={{ padding:'60px 0', textAlign:'center', color:'#ccc', fontSize:14 }}>No resources yet in this category.</div>}
+          {(activeTheme || search || activeType) && ranked.length===0 && <div style={{ padding:'60px 0', textAlign:'center', color:'#ccc', fontSize:14 }}>No resources yet in this category.</div>}
 
           {/* Browse by theme (home only) */}
           {!activeTheme && (
