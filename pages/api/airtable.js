@@ -1,8 +1,34 @@
 export default async function handler(req, res) {
-  const { table, logo } = req.query;
+  const { table, logo, cover } = req.query;
   const PAT  = process.env.AIRTABLE_PAT;
   const BASE = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
 
+  // Book cover proxy — fetches from Google Books API
+  if (cover) {
+    try {
+      const query = encodeURIComponent(`intitle:${cover}`);
+      const apiRes = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&fields=items(volumeInfo/imageLinks)`,
+        { headers: { 'User-Agent': 'DentHub/1.0' } }
+      );
+      const data = await apiRes.json();
+      const imageUrl = data?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+      if (!imageUrl) return res.status(404).end();
+      // Upgrade to higher res and fetch
+      const imgUrl = imageUrl.replace('zoom=1', 'zoom=2').replace('http://', 'https://');
+      const imgRes = await fetch(imgUrl);
+      if (!imgRes.ok) return res.status(404).end();
+      const buf  = await imgRes.arrayBuffer();
+      const type = imgRes.headers.get('content-type') || 'image/jpeg';
+      res.setHeader('Content-Type', type);
+      res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
+      return res.status(200).send(Buffer.from(buf));
+    } catch {
+      return res.status(404).end();
+    }
+  }
+
+  // Logo proxy — fetches from Google favicon service
   if (logo) {
     try {
       const r = await fetch(
