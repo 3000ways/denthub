@@ -1,55 +1,7 @@
 export default async function handler(req, res) {
-  const { table, logo, cover } = req.query;
+  const { table, logo } = req.query;
   const PAT  = process.env.AIRTABLE_PAT;
   const BASE = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
-
-  // Book cover proxy — tries Google Books, falls back to Open Library
-  if (cover) {
-    try {
-      // Try Google Books first
-      const q = encodeURIComponent(cover);
-      const gbRes = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&printType=books`,
-        { headers: { 'User-Agent': 'DentHub/1.0' } }
-      );
-      const gbData = await gbRes.json();
-      const thumbnail = gbData?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail
-                     || gbData?.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail;
-
-      if (thumbnail) {
-        const imgUrl = thumbnail.replace('http://', 'https://').replace('zoom=1', 'zoom=2');
-        const imgRes = await fetch(imgUrl);
-        if (imgRes.ok) {
-          const buf = await imgRes.arrayBuffer();
-          res.setHeader('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
-          res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
-          return res.status(200).send(Buffer.from(buf));
-        }
-      }
-
-      // Fallback: Open Library covers API
-      const olRes = await fetch(
-        `https://openlibrary.org/search.json?title=${q}&limit=1&fields=cover_i`,
-        { headers: { 'User-Agent': 'DentHub/1.0' } }
-      );
-      const olData = await olRes.json();
-      const coverId = olData?.docs?.[0]?.cover_i;
-
-      if (coverId) {
-        const olImgRes = await fetch(`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`);
-        if (olImgRes.ok) {
-          const buf = await olImgRes.arrayBuffer();
-          res.setHeader('Content-Type', 'image/jpeg');
-          res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
-          return res.status(200).send(Buffer.from(buf));
-        }
-      }
-
-      return res.status(404).end();
-    } catch (e) {
-      return res.status(404).end();
-    }
-  }
 
   // Logo proxy — Google favicon service
   if (logo) {
