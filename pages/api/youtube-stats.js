@@ -30,12 +30,16 @@ function channelIdFromRss(rssUrl) {
 // Extract @handle or /channel/ID from a YouTube URL
 function parseYouTubeUrl(url) {
   if (!url) return { handle: null, channelId: null };
+  // @handle format — the only format YouTube's forHandle API accepts
   const handleMatch = url.match(/youtube\.com\/@([A-Za-z0-9_.-]+)/);
   if (handleMatch) return { handle: handleMatch[1], channelId: null };
+  // /channel/UCxxx — direct channel ID, best option
   const channelMatch = url.match(/youtube\.com\/channel\/([A-Za-z0-9_-]+)/);
   if (channelMatch) return { handle: null, channelId: channelMatch[1] };
-  const userMatch = url.match(/youtube\.com\/(?:c\/|user\/)([A-Za-z0-9_.-]+)/);
-  if (userMatch) return { handle: userMatch[1], channelId: null };
+  // /c/ and /user/ are legacy slugs — use as forHandle as a best-effort attempt
+  // (works for some channels, not all — should migrate these URLs to @handle format)
+  const legacyMatch = url.match(/youtube\.com\/(?:c\/|user\/)([A-Za-z0-9_.-]+)/);
+  if (legacyMatch) return { handle: legacyMatch[1], channelId: null };
   return { handle: null, channelId: null };
 }
 
