@@ -426,7 +426,7 @@ export default function Home() {
         </div>
 
         {/* Search bar + mode toggle */}
-        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12, flexWrap:'wrap' }}>
           {!episodeMode && (
             <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', background:'#fff', flex:1 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -454,8 +454,8 @@ export default function Home() {
               </button>
             </div>
           )}
-          {/* Mode toggle — right of search bar */}
-          <div style={{ display:'flex', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', flexShrink:0 }}>
+          {/* Mode toggle — right of search bar on desktop, full-width row on mobile */}
+          <div style={{ display:'flex', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', flexShrink:0, width:'100%', maxWidth:'fit-content' }}>
             <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
               style={{ fontSize:12, padding:'10px 16px', border:'none', background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
               Resources
