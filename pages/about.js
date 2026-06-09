@@ -15,7 +15,7 @@ export default function About() {
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:60 }}>
           <Link href="/">
-            <img src="/logo.png" alt="The Dental Commute" style={{ height:180, width:'auto', display:'block' }} />
+            <img src="/logo.png" alt="The Dental Commute" style={{ height:225, width:'auto', display:'block' }} />
           </Link>
           <div style={{ display:'flex', alignItems:'center', gap:24 }}>
             <Link href="/about" style={{ fontSize:13, color:'#111', textDecoration:'none', fontWeight:500, fontFamily:FONT_BODY }}>About</Link>
