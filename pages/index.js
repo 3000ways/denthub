@@ -296,6 +296,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
+  const [isMobile, setIsMobile] = useState(false);
+  React.useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   const [ytStats, setYtStats] = useState({});
   const [podStats, setPodStats] = useState({});
   const [bookStats, setBookStats] = useState({});
@@ -541,7 +548,7 @@ export default function Home() {
                 {spotlight.podcasts.length > 0 && (
                   <div style={{ marginBottom:28 }}>
                     <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap:12 }}>
                       {spotlight.podcasts.slice(0,4).map((ep, i) => (
                         <SpotlightCard key={i} item={ep} />
                       ))}
@@ -553,7 +560,7 @@ export default function Home() {
                 {spotlight.videos.length > 0 && (
                   <div>
                     <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap:12 }}>
                       {spotlight.videos.slice(0,4).map((vid, i) => (
                         <SpotlightCard key={i} item={vid} />
                       ))}
