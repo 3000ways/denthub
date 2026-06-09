@@ -396,13 +396,13 @@ export default function Home() {
       <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 36px 100px' }}>
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, padding:'12px 0', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
           <div style={{ overflow:'hidden', height:230, margin: isMobile ? '0 auto' : '0' }}>
             <img src="/logo.png" alt="The Dental Commute" style={{ height:281, width:'auto', display:'block' }} />
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:16, paddingTop:8, flexShrink:0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
-            <a href="/about" style={{ fontSize:13, color:'#999', textDecoration:'none', fontFamily:FONT_BODY }}>About</a>
-            <button style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2, whiteSpace:'nowrap' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:20, flexShrink:0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
+            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.1 }}>About</a>
+            <button style={{ fontSize:12, padding:'8px 20px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
               Submit a resource
             </button>
           </div>
@@ -410,12 +410,12 @@ export default function Home() {
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
-          <div style={{ marginBottom:36 }}>
-            <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'#999', marginBottom:14, fontWeight:500 }}>The dentistry resource index</div>
-            <h1 style={{ fontSize:42, fontWeight:700, color:'#111', lineHeight:1.1, margin:'0 0 16px', letterSpacing:-1.5, fontFamily:FONT_DISPLAY }}>
+          <div style={{ marginBottom:44, paddingTop:36 }}>
+            <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aaa', marginBottom:16, fontWeight:600 }}>The dentistry resource index</div>
+            <h1 style={{ fontSize:48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing:-1.8, fontFamily:FONT_DISPLAY }}>
               Everything dentistry,<br/>ranked and curated
             </h1>
-            <p style={{ fontSize:15, color:'#777', lineHeight:1.65, maxWidth:560, margin:'0 0 20px', fontWeight:400 }}>
+            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, maxWidth:580, margin:'0 0 20px', fontWeight:400 }}>
               The dental professional's guide to learning on the go — the best podcasts, books, CE, coaching, and communities scored by dentists, for dentists.
             </p>
           </div>
@@ -427,7 +427,7 @@ export default function Home() {
             const isActive = activeCategory === key;
             return (
               <button key={label} onClick={() => selectCategory(key)}
-                style={{ fontSize:13, padding:'0 0 13px', marginRight:28, background:'none', border:'none', borderBottom: isActive ? `2px solid ${GREEN}`:'2px solid transparent', color: isActive ? '#111':'#999', fontWeight: isActive ? 600:400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap' }}>
+                style={{ fontSize:13, padding:'0 0 14px', marginRight:30, background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
                 {label}
               </button>
             );
@@ -437,7 +437,7 @@ export default function Home() {
         {/* Search bar + mode toggle */}
         <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12, flexWrap:'wrap' }}>
           {!episodeMode && (
-            <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', background:'#fff', flex:1 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:8, padding:'13px 18px', background:'#fff', flex:1, boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
@@ -447,7 +447,7 @@ export default function Home() {
             </div>
           )}
           {episodeMode && (
-            <div style={{ display:'flex', gap:10, alignItems:'center', border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', background:'#fff', flex:1 }}>
+            <div style={{ display:'flex', gap:10, alignItems:'center', border:`1px solid ${BORDER}`, borderRadius:8, padding:'13px 18px', background:'#fff', flex:1, boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
@@ -538,10 +538,10 @@ export default function Home() {
 
             {/* Spotlight: Latest Episodes & Videos */}
             {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
-              <div style={{ marginBottom:52 }}>
-                <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:20, paddingBottom:12, borderBottom:`2px solid #111` }}>
-                  <div style={{ fontSize:15, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.3 }}>What&rsquo;s New</div>
-                  <div style={{ fontSize:10, letterSpacing:'0.10em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Live from the feeds</div>
+              <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+                <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
+                  <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>What&rsquo;s New</div>
+                  <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Live from the feeds</div>
                 </div>
 
                 {/* Podcast episodes row */}
