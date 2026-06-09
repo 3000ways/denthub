@@ -297,7 +297,7 @@ export default function Home() {
   const [expandedId, setExpandedId] = useState(null);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
   const [isMobile, setIsMobile] = useState(false);
-  React.useEffect(() => {
+  useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
     check();
     window.addEventListener('resize', check);
