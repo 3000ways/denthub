@@ -390,7 +390,9 @@ export default function Home() {
 
         {/* Header */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
-          <img src="/logo.png" alt="The Dental Commute" style={{ height:281, width:'auto', display:'block' }} />
+          <div style={{ overflow:'hidden', height:230 }}>
+            <img src="/logo.png" alt="The Dental Commute" style={{ height:281, width:'auto', display:'block' }} />
+          </div>
           <div style={{ display:'flex', alignItems:'center', gap:16, paddingTop:8, flexShrink:0 }}>
             <a href="/about" style={{ fontSize:13, color:'#999', textDecoration:'none', fontFamily:FONT_BODY }}>About</a>
             <button style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2, whiteSpace:'nowrap' }}>
