@@ -1,25 +1,20 @@
-// Dynamic spotlight — fetches the top-ranked podcasts and YouTube channels from Airtable,
-// reads their RSS Feed URL field, then fetches the latest episode/video from each feed.
-// Results are cached for 6 hours to avoid hammering feeds on every page load.
+// Fetches the latest episode/video from every podcast and YouTube channel in the database.
+// Sorts all results by publish date and returns the 8 most recent of each type.
+// Cached for 6 hours. Per-feed timeout is 4s so slow feeds don't hold up the batch.
 
 const AIRTABLE_BASE   = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
 const AIRTABLE_TABLE  = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
 const AIRTABLE_PAT    = process.env.AIRTABLE_PAT;
 
-// How many of the top-ranked shows to spotlight
-const TOP_PODCASTS = 5;
-const TOP_VIDEOS   = 3;
+const DISPLAY_COUNT = 4; // how many of each type to show in the grid
 
 // ─── Airtable fetch ──────────────────────────────────────────────────────────
 
-async function fetchTopFromAirtable(type, limit) {
+async function fetchAllFromAirtable(type) {
   if (!AIRTABLE_PAT) return [];
 
   const params = new URLSearchParams();
-  params.set('filterByFormula', `AND({Type} = "${type}", {RSS Feed URL} != "")`);
-  params.set('sort[0][field]', 'Final Score');
-  params.set('sort[0][direction]', 'desc');
-  params.set('maxRecords', String(limit));
+  params.set('filterByFormula', `AND({Type} = "${type}", {RSS Feed URL} != "", {Status} = "Published")`);
 
   const res = await fetch(
     `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${params.toString()}`,
@@ -71,6 +66,7 @@ function parsePodcastFeed(xml, meta) {
   const description  = stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '');
   const episodeArt   = getAttr(item, 'itunes:image', 'href') || showArt;
   const enclosureUrl = getAttr(item, 'enclosure', 'url');
+  const parsedDate   = pubDate ? new Date(pubDate) : null;
 
   return {
     type:        'podcast',
@@ -78,7 +74,8 @@ function parsePodcastFeed(xml, meta) {
     title:       title || 'New episode',
     url:         enclosureUrl || link,
     image:       episodeArt,
-    date:        pubDate ? new Date(pubDate).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+    date:        parsedDate ? parsedDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+    sortDate:    parsedDate ? parsedDate.getTime() : 0,
     description: description.slice(0, 200),
     score:       meta.score,
   };
@@ -94,6 +91,7 @@ function parseYouTubeFeed(xml, meta) {
   const published  = getTag(entry, 'published');
   const description = stripHtml(getTag(entry, 'media:description') || '');
   const thumbnail  = getAttr(entry, 'media:thumbnail', 'url');
+  const parsedDate = published ? new Date(published) : null;
 
   return {
     type:        'video',
@@ -101,7 +99,8 @@ function parseYouTubeFeed(xml, meta) {
     title:       title || 'New video',
     url:         videoId ? `https://www.youtube.com/watch?v=${videoId}` : meta.rssUrl,
     image:       thumbnail || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null),
-    date:        published ? new Date(published).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+    date:        parsedDate ? parsedDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+    sortDate:    parsedDate ? parsedDate.getTime() : 0,
     description: description.slice(0, 200),
     score:       meta.score,
   };
@@ -109,8 +108,8 @@ function parseYouTubeFeed(xml, meta) {
 
 async function fetchFeed(url) {
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'DentHub/1.0 (+https://denthub-one.vercel.app)' },
-    signal: AbortSignal.timeout(8000),
+    headers: { 'User-Agent': 'TheDentalCommute/1.0 (+https://thedentalcommute.com)' },
+    signal: AbortSignal.timeout(4000), // tight timeout — stragglers won't block the batch
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.text();
@@ -118,7 +117,7 @@ async function fetchFeed(url) {
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
-let cache    = null;
+let cache     = null;
 let cacheTime = 0;
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -130,13 +129,13 @@ export default async function handler(req, res) {
     return res.status(200).json(cache);
   }
 
-  // 1. Fetch top-ranked podcasts and YouTube channels from Airtable
+  // 1. Fetch all podcasts and YouTube channels from Airtable
   const [podcastMeta, videoMeta] = await Promise.all([
-    fetchTopFromAirtable('Podcast', TOP_PODCASTS),
-    fetchTopFromAirtable('YouTube', TOP_VIDEOS),
+    fetchAllFromAirtable('Podcast'),
+    fetchAllFromAirtable('YouTube'),
   ]);
 
-  // 2. Fetch their RSS feeds in parallel
+  // 2. Fetch every RSS feed in parallel (4s timeout per feed — stragglers are dropped)
   const [podcastResults, videoResults] = await Promise.all([
     Promise.all(
       podcastMeta.map(meta =>
@@ -154,9 +153,20 @@ export default async function handler(req, res) {
     ),
   ]);
 
+  // 3. Sort each type by publish date descending, take the freshest DISPLAY_COUNT
+  const podcasts = podcastResults
+    .filter(Boolean)
+    .sort((a, b) => b.sortDate - a.sortDate)
+    .slice(0, DISPLAY_COUNT);
+
+  const videos = videoResults
+    .filter(Boolean)
+    .sort((a, b) => b.sortDate - a.sortDate)
+    .slice(0, DISPLAY_COUNT);
+
   const data = {
-    podcasts:  podcastResults.filter(Boolean),
-    videos:    videoResults.filter(Boolean),
+    podcasts,
+    videos,
     fetchedAt: new Date().toISOString(),
   };
 

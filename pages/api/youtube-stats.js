@@ -43,24 +43,29 @@ function parseYouTubeUrl(url) {
   return { handle: null, channelId: null };
 }
 
-// Parse latest video from YouTube RSS feed XML
-function parseLatestVideo(xml) {
-  const entryMatch = xml.match(/<entry>([\s\S]*?)<\/entry>/i);
-  if (!entryMatch) return null;
-  const entry = entryMatch[1];
-  const getId = (tag) => { const m = entry.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i')); return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : null; };
-  const getAt = (tag, attr) => { const m = entry.match(new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']*)["'][^>]*>`, 'i')); return m ? m[1] : null; };
-  const videoId   = getId('yt:videoId');
-  const title     = getId('title');
-  const published = getId('published');
-  const thumbnail = getAt('media:thumbnail', 'url');
-  return {
-    videoId,
-    title,
-    url:       videoId ? `https://www.youtube.com/watch?v=${videoId}` : null,
-    thumbnail: thumbnail || (videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : null),
-    date:      published ? new Date(published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-  };
+// Parse up to 4 recent videos from YouTube RSS feed XML
+function parseRecentVideos(xml) {
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
+  const videos = [];
+  let match;
+  while ((match = entryRegex.exec(xml)) !== null && videos.length < 3) {
+    const entry = match[1];
+    const getId = (tag) => { const m = entry.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i')); return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : null; };
+    const getAt = (tag, attr) => { const m = entry.match(new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']*)["'][^>]*>`, 'i')); return m ? m[1] : null; };
+    const videoId   = getId('yt:videoId');
+    const title     = getId('title');
+    const published = getId('published');
+    const thumbnail = getAt('media:thumbnail', 'url');
+    if (!videoId) continue;
+    videos.push({
+      videoId,
+      title,
+      url:       `https://www.youtube.com/watch?v=${videoId}`,
+      thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+      date:      published ? new Date(published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+    });
+  }
+  return videos;
 }
 
 async function ytGet(path) {
@@ -143,23 +148,24 @@ export default async function handler(req, res) {
       const rss = c.rssUrl || (c.ytId ? `https://www.youtube.com/feeds/videos.xml?channel_id=${c.ytId}` : null);
       if (!rss) return Promise.resolve(null);
       return fetch(rss, {
-        headers: { 'User-Agent': 'DentHub/1.0 (+https://denthub-one.vercel.app)' },
+        headers: { 'User-Agent': 'TheDentalCommute/1.0 (+https://thedentalcommute.com)' },
         signal: AbortSignal.timeout(8000),
-      }).then(r => r.ok ? r.text() : null).then(xml => xml ? parseLatestVideo(xml) : null);
+      }).then(r => r.ok ? r.text() : null).then(xml => xml ? parseRecentVideos(xml) : null);
     })
   );
 
   // 6. Build result map keyed by Airtable record ID
   const result = {};
   channels.forEach((c, i) => {
-    const yt     = ytMap[c.ytId] || {};
-    const latest = rssResults[i].status === 'fulfilled' ? rssResults[i].value : null;
+    const yt          = ytMap[c.ytId] || {};
+    const recentVids  = rssResults[i].status === 'fulfilled' ? (rssResults[i].value || []) : [];
     result[c.id] = {
       ytId:        c.ytId,
-      avatar:      yt.avatar   || null,
-      subscribers: yt.subscribers || null,
-      videos:      yt.videos   || null,
-      latest,
+      avatar:      yt.avatar       || null,
+      subscribers: yt.subscribers  || null,
+      videos:      yt.videos       || null,
+      recentVideos: recentVids,
+      latest:      recentVids[0]   || null,
     };
   });
 

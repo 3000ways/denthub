@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
 
-const THEMES = ['Learning & Education','Technology & Software','Coaching & Mentorship','Community & Network','Specialty Resources','Training & Career','Practice & Business','Wellbeing & Lifestyle','News & Media'];
-const THEME_SHORT = {'Learning & Education':'Learning','Technology & Software':'Technology','Coaching & Mentorship':'Coaching','Community & Network':'Community','Specialty Resources':'Specialty','Training & Career':'Career','Practice & Business':'Business','Wellbeing & Lifestyle':'Wellbeing','News & Media':'News'};
-const THEME_TYPES = {'Learning & Education':['Podcast','Book','CE Website','YouTube','Journal','Newsletter','Course','Conference'],'Technology & Software':['Software'],'Coaching & Mentorship':['Coaching','Mastermind','Mentorship'],'Community & Network':['Community','Forum','Association'],'Specialty Resources':['Podcast','Book','CE Website','Software','Journal','Course'],'Training & Career':['Residency','Job Board','Course'],'Practice & Business':['Consulting','Agency','Advisor','Platform'],'Wellbeing & Lifestyle':['Podcast','Book','Course'],'News & Media':['Newsletter','News','Instagram','YouTube']};
-const CAT_TYPE_MAP = {'Podcasts':'Podcast','Books':'Book','YouTube Channels':'YouTube','CE Websites':'CE Website','Dental Journals':'Journal','Online Courses':'Course','Dental Conferences':'Conference','Practice Management Software':'Software','Imaging & CBCT Systems':'Software','AI Diagnostic Tools':'Software','Intraoral Scanners':'Software','CAD/CAM Systems':'Software','Patient Communications':'Software','Billing & RCM Software':'Software','Digital Treatment Planning':'Software'};
+const CATEGORIES = [
+  { label:'Podcasts',    types:['Podcast'] },
+  { label:'YouTube',     types:['YouTube'] },
+  { label:'Books',       types:['Book'] },
+  { label:'CE Courses',  types:['CE Website','Course'] },
+  { label:'Conferences', types:['Conference'] },
+  { label:'Communities', types:['Community','Forum','Association'] },
+  { label:'Coaching',    types:['Coaching','Mastermind','Mentorship'] },
+];
+
+const SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Oral Radiology','Dental Anesthesiology','Pain'];
+
+const TOPICS = ['Clinical','Leadership','Marketing','Finance & Investment','Practice Growth','Wellness'];
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -21,6 +30,32 @@ const DEMO_RESOURCES = [
 ];
 
 function getDomain(url) { try { return new URL(url).hostname.replace('www.',''); } catch { return null; } }
+
+// Badge shown on non-dental resources recommended by the dental community
+function CommunityPickBadge() {
+  return (
+    <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:9, fontWeight:700, color:'#B7791F', background:'#FFFBEB', border:'1px solid #F6E05E', padding:'2px 7px', borderRadius:10, letterSpacing:'0.04em', textTransform:'uppercase', flexShrink:0 }}>
+      ★ Community Pick
+    </span>
+  );
+}
+
+// Highlights all search terms in a piece of text by wrapping matches in a yellow span.
+function Highlight({ text, terms }) {
+  if (!text) return null;
+  if (!terms || terms.length === 0 || terms.every(t => !t)) return <>{text}</>;
+  const pattern = new RegExp(`(${terms.filter(Boolean).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  const parts = text.split(pattern);
+  return (
+    <>
+      {parts.map((part, i) =>
+        pattern.test(part)
+          ? <mark key={i} style={{ background:'#FFF3B0', color:'inherit', borderRadius:2, padding:'0 1px' }}>{part}</mark>
+          : part
+      )}
+    </>
+  );
+}
 
 function Logo({ url, name, size, imageUrl }) {
   const [err, setErr] = useState(false);
@@ -253,16 +288,17 @@ function EpisodeCard({ ep }) {
 }
 
 export default function Home() {
-  const [categories, setCategories] = useState([]);
   const [resources, setResources]   = useState([]);
-  const [activeTheme, setActiveTheme] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [activeSpecialty, setActiveSpecialty] = useState(null);
+  const [activeTopic, setActiveTopic] = useState(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
-  const [activeType, setActiveType] = useState(null);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
   const [ytStats, setYtStats] = useState({});
+  const [podStats, setPodStats] = useState({});
+  const [bookStats, setBookStats] = useState({});
   const [episodeMode, setEpisodeMode] = useState(false);
   const [episodeQuery, setEpisodeQuery] = useState('');
   const [episodes, setEpisodes] = useState([]);
@@ -270,23 +306,24 @@ export default function Home() {
   const [episodeSearched, setEpisodeSearched] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/airtable?table=Categories').then(r => r.json()),
-      fetch('/api/airtable?table=Resources').then(r => r.json()),
-    ]).then(([cat, res]) => {
-      setCategories(cat.records || []);
+    fetch('/api/airtable?table=Resources').then(r => r.json()).then(res => {
       setResources(res.records || []);
     }).finally(() => setLoading(false));
 
     // Fetch live RSS spotlight data independently
-    fetch('/api/spotlight').then(r => r.json()).then(data => setSpotlight(data)).catch(() => {});
+    fetch('/api/spotlight').then(r => r.json()).then(data => {
+      const byDate = arr => [...(arr||[])].sort((a,b) => (b.sortDate||0) - (a.sortDate||0));
+      setSpotlight({ ...data, podcasts: byDate(data.podcasts), videos: byDate(data.videos) });
+    }).catch(() => {});
     // Fetch YouTube channel stats
     fetch('/api/youtube-stats').then(r => r.json()).then(data => setYtStats(data)).catch(() => {});
+    fetch('/api/podcast-stats').then(r => r.json()).then(data => setPodStats(data)).catch(() => {});
+    fetch('/api/book-stats').then(r => r.json()).then(data => setBookStats(data)).catch(() => {});
   }, []);
 
-  function selectTheme(t) { setActiveTheme(t); setActiveCategory(null); setActiveType(null); }
-  function selectCategory(name) { setActiveCategory(prev => prev === name ? null : name); }
-  function selectType(t) { setActiveType(t); setExpandedId(null); }
+  function selectCategory(cat) { setActiveCategory(prev => prev === cat ? null : cat); setExpandedId(null); }
+  function selectSpecialty(s) { setActiveSpecialty(prev => prev === s ? null : s); setExpandedId(null); }
+  function selectTopic(t) { setActiveTopic(prev => prev === t ? null : t); setExpandedId(null); }
 
   async function searchEpisodes(q) {
     if (!q || q.trim().length < 2) return;
@@ -306,30 +343,28 @@ export default function Home() {
 
   const filtered = displayResources.filter(r => {
     const f = r.fields;
-    const themeTypes = activeTheme ? THEME_TYPES[activeTheme] : null;
-    const matchTheme = !themeTypes || themeTypes.some(t => (f.Type||'').includes(t));
-    const catType = activeCategory ? CAT_TYPE_MAP[activeCategory] : null;
-    const matchCat = !catType || (f.Type||'') === catType;
-    const matchType = !activeType || (f.Type||'') === activeType;
-    const matchSearch = !search ||
-      (f.Name||'').toLowerCase().includes(search.toLowerCase()) ||
-      (f.Description||'').toLowerCase().includes(search.toLowerCase()) ||
-      (f.Type||'').toLowerCase().includes(search.toLowerCase());
-    return matchTheme && matchCat && matchType && matchSearch;
+    const catTypes = activeCategory ? CATEGORIES.find(c => c.label === activeCategory)?.types : null;
+    const matchCat = !catTypes || catTypes.some(t => (f.Type||'') === t);
+    const matchSpecialty = !activeSpecialty || (Array.isArray(f.Specialty) ? f.Specialty.includes(activeSpecialty) : (f.Specialty||'') === activeSpecialty);
+    const matchTopic = !activeTopic || (Array.isArray(f.Tags) ? f.Tags.includes(activeTopic) : (f.Tags||'') === activeTopic);
+    const searchTerms = search.toLowerCase().trim().split(/\s+/);
+    const searchHaystack = [f.Name, f.Description, f.Type, f['Host or Author']].filter(Boolean).join(' ').toLowerCase();
+    const matchSearch = !search || searchTerms.every(term => searchHaystack.includes(term));
+    return matchCat && matchSpecialty && matchTopic && matchSearch;
   });
 
-  const FEATURED_TYPES = ['Podcast', 'Book', 'CE Website', 'YouTube', 'Software', 'Journal', 'Newsletter'];
-  const typeGroups = FEATURED_TYPES.map(type => ({
-    type,
+  const hlTerms = search ? search.toLowerCase().trim().split(/\s+/).filter(Boolean) : [];
+
+  const typeGroups = CATEGORIES.map(cat => ({
+    label: cat.label,
+    types: cat.types,
     items: [...displayResources]
-      .filter(r => (r.fields.Type||'') === type)
+      .filter(r => cat.types.includes(r.fields.Type||''))
       .sort((a,b) => (b.fields['Final Score']||0) - (a.fields['Final Score']||0))
       .slice(0, 4),
   })).filter(g => g.items.length > 0);
 
-  const themeCats = activeTheme ? categories.filter(c => c.fields['Theme'] === activeTheme).sort((a,b) => (a.fields['Display Order']||0)-(b.fields['Display Order']||0)) : [];
-  const themeCounts = {};
-  THEMES.forEach(t => { themeCounts[t] = categories.filter(c => c.fields['Theme'] === t).length; });
+  const anyFilterActive = !!(activeCategory || activeSpecialty || activeTopic || search);
 
   const sorted = [...displayResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
   const trending = sorted.slice(0,4);
@@ -344,19 +379,19 @@ export default function Home() {
   const ranked = filtered.slice(0,50);
 
   const totalResources = displayResources.length;
-  const totalCategories = categories.length || 49;
+  const totalCategories = CATEGORIES.length;
 
   return (
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
       <div style={{ height:3, background:GREEN }} />
 
-      <div style={{ maxWidth:720, margin:'0 auto', padding:'0 28px 100px' }}>
+      <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 36px 100px' }}>
 
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:40 }}>
           <div style={{ fontSize:17, fontWeight:700, color:'#111', letterSpacing:-0.5, fontFamily:FONT_BODY }}>
-            Dent<span style={{ color:GREEN }}>Hub</span>
+            The Dental<span style={{ color:GREEN }}>Commute</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:24 }}>
             <a href="/about" style={{ fontSize:13, color:'#999', textDecoration:'none', fontFamily:FONT_BODY }}>About</a>
@@ -366,91 +401,99 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Hero */}
-        {!activeTheme && (
+        {/* Hero — only on homepage */}
+        {!anyFilterActive && (
           <div style={{ marginBottom:36 }}>
             <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'#999', marginBottom:14, fontWeight:500 }}>The dentistry resource index</div>
             <h1 style={{ fontSize:42, fontWeight:700, color:'#111', lineHeight:1.1, margin:'0 0 16px', letterSpacing:-1.5, fontFamily:FONT_DISPLAY }}>
               Everything dentistry,<br/>ranked and curated
             </h1>
-            <p style={{ fontSize:15, color:'#777', lineHeight:1.65, maxWidth:500, margin:'0 0 20px', fontWeight:400 }}>
-              The profession's best podcasts, books, CE, coaching, software, and communities — scored by dentists, for dentists.
+            <p style={{ fontSize:15, color:'#777', lineHeight:1.65, maxWidth:560, margin:'0 0 20px', fontWeight:400 }}>
+              The dental professional's guide to learning on the go — the best podcasts, books, CE, coaching, and communities scored by dentists, for dentists.
             </p>
-
-            {/* Stats bar */}
-            <div style={{ display:'flex', gap:28, paddingTop:20, borderTop:`1px solid ${BORDER}` }}>
-              {[
-                { value: totalResources, label:'resources indexed' },
-                { value: totalCategories, label:'categories' },
-                { value: 8, label:'themes' },
-                { value: '9+', label:'specialties covered' },
-              ].map(({ value, label }) => (
-                <div key={label}>
-                  <div style={{ fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>{value}</div>
-                  <div style={{ fontSize:11, color:'#aaa', marginTop:3 }}>{label}</div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
-        {activeTheme && (
-          <div style={{ paddingTop:4, marginBottom:28 }}>
-            <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'#999', marginBottom:10, fontWeight:500 }}>{activeTheme}</div>
-            <h1 style={{ fontSize:28, fontWeight:700, color:'#111', lineHeight:1.1, margin:0, letterSpacing:-0.8, fontFamily:FONT_DISPLAY }}>
-              {activeCategory ? activeCategory : `${themeCats.length} categories · ${filtered.length} resources`}
-            </h1>
-          </div>
-        )}
-
-        {/* Search mode toggle */}
-        <div style={{ display:'flex', gap:0, marginBottom:12, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', width:'fit-content' }}>
-          <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
-            style={{ fontSize:12, padding:'7px 16px', border:'none', background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
-            Resources
-          </button>
-          <button onClick={() => { setEpisodeMode(true); setSearch(''); }}
-            style={{ fontSize:12, padding:'7px 16px', border:'none', background: episodeMode ? GREEN : '#fff', color: episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s', display:'flex', alignItems:'center', gap:6 }}>
-            <span>🎙</span> Episode Search
-          </button>
+        {/* Category tabs */}
+        <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:16, overflowX:'auto', scrollbarWidth:'none' }}>
+          {[{label:'All', key:null}, ...CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
+            const isActive = activeCategory === key;
+            return (
+              <button key={label} onClick={() => selectCategory(key)}
+                style={{ fontSize:13, padding:'0 0 13px', marginRight:28, background:'none', border:'none', borderBottom: isActive ? `2px solid ${GREEN}`:'2px solid transparent', color: isActive ? '#111':'#999', fontWeight: isActive ? 600:400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap' }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Resource search */}
-        {!episodeMode && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', marginBottom:36, background:'#fff' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…"
-              style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
-            {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
-          </div>
-        )}
-
-        {/* Episode search */}
-        {episodeMode && (
-          <div style={{ marginBottom:36 }}>
-            <div style={{ display:'flex', gap:10, alignItems:'center', border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', background:'#fff', marginBottom:8 }}>
+        {/* Search bar + mode toggle */}
+        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+          {!episodeMode && (
+            <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', background:'#fff', flex:1 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
-              <input
-                value={episodeQuery}
-                onChange={e => setEpisodeQuery(e.target.value)}
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…"
+                style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
+              {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
+            </div>
+          )}
+          {episodeMode && (
+            <div style={{ display:'flex', gap:10, alignItems:'center', border:`1px solid ${BORDER}`, borderRadius:6, padding:'10px 16px', background:'#fff', flex:1 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input value={episodeQuery} onChange={e => setEpisodeQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && searchEpisodes(episodeQuery)}
                 placeholder="Search episodes… e.g. implant complications, cracked tooth, burnout"
                 style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }}
-                autoFocus
-              />
+                autoFocus />
               {episodeQuery && <button onClick={() => { setEpisodeQuery(''); setEpisodes([]); setEpisodeSearched(false); }} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
               <button onClick={() => searchEpisodes(episodeQuery)}
                 style={{ fontSize:12, padding:'5px 14px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, whiteSpace:'nowrap' }}>
                 Search
               </button>
             </div>
-            <div style={{ fontSize:11, color:'#bbb', paddingLeft:2 }}>Searches across millions of podcast episodes — not just the ones in DentHub</div>
+          )}
+          {/* Mode toggle — right of search bar */}
+          <div style={{ display:'flex', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', flexShrink:0 }}>
+            <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
+              style={{ fontSize:12, padding:'10px 16px', border:'none', background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
+              Resources
+            </button>
+            <button onClick={() => { setEpisodeMode(true); setSearch(''); }}
+              style={{ fontSize:12, padding:'10px 16px', border:'none', borderLeft:`1px solid ${BORDER}`, background: episodeMode ? GREEN : '#fff', color: episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s', display:'flex', alignItems:'center', gap:6 }}>
+              🎙 Episodes
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Specialty filter pills */}
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'10px 0 8px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
+          {[{label:'All Specialties', key:null}, ...SPECIALTIES.map(s => ({label:s, key:s}))].map(({label, key}) => {
+            const isActive = activeSpecialty === key;
+            return (
+              <button key={label} onClick={() => selectSpecialty(key)}
+                style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? GREEN : BORDER}`, background: isActive ? GREEN : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Topic filter pills */}
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'8px 0 20px', borderBottom:`1px solid ${BORDER}`, marginBottom:40 }}>
+          {[{label:'All Topics', key:null}, ...TOPICS.map(t => ({label:t, key:t}))].map(({label, key}) => {
+            const isActive = activeTopic === key;
+            return (
+              <button key={label} onClick={() => selectTopic(key)}
+                style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? '#6B46C1' : BORDER}`, background: isActive ? '#6B46C1' : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Episode search results */}
         {episodeMode && (episodeLoading || episodeSearched) && (
@@ -479,25 +522,12 @@ export default function Home() {
           </div>
         )}
 
-        {/* Theme tabs */}
-        <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:40, overflowX:'auto', scrollbarWidth:'none' }}>
-          {[{label:'All resources', key:null}, ...THEMES.map(t => ({label:THEME_SHORT[t], key:t}))].map(({label, key}) => {
-            const isActive = activeTheme === key;
-            return (
-              <button key={label} onClick={() => selectTheme(key)}
-                style={{ fontSize:13, padding:'0 0 13px', marginRight:28, background:'none', border:'none', borderBottom: isActive ? `2px solid ${GREEN}`:'2px solid transparent', color: isActive ? '#111':'#999', fontWeight: isActive ? 600:400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap' }}>
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
         {loading && <div style={{ padding:'80px 0', textAlign:'center', color:'#ccc', fontSize:14 }}>Loading…</div>}
 
         {!loading && (<>
 
           {/* HOME PAGE SECTIONS — only show when no filter active */}
-          {!activeTheme && !search && (<>
+          {!anyFilterActive && (<>
 
             {/* Spotlight: Latest Episodes & Videos */}
             {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
@@ -511,7 +541,7 @@ export default function Home() {
                 {spotlight.podcasts.length > 0 && (
                   <div style={{ marginBottom:28 }}>
                     <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:12 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
                       {spotlight.podcasts.slice(0,4).map((ep, i) => (
                         <SpotlightCard key={i} item={ep} />
                       ))}
@@ -523,8 +553,8 @@ export default function Home() {
                 {spotlight.videos.length > 0 && (
                   <div>
                     <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:12 }}>
-                      {spotlight.videos.slice(0,3).map((vid, i) => (
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+                      {spotlight.videos.slice(0,4).map((vid, i) => (
                         <SpotlightCard key={i} item={vid} />
                       ))}
                     </div>
@@ -571,37 +601,15 @@ export default function Home() {
 
           </>)}
 
-          {/* Category grid */}
-          {activeTheme && themeCats.length > 0 && (
-            <div style={{ marginBottom:44 }}>
-              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:14, fontWeight:600 }}>Categories</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:1, background:BORDER }}>
-                {themeCats.map(cat => {
-                  const catName = cat.fields['Category Name'];
-                  const isActive = activeCategory === catName;
-                  return (
-                    <div key={cat.id} onClick={() => selectCategory(catName)}
-                      style={{ padding:'14px 16px', background: isActive ? GREEN_LIGHT : '#fff', cursor:'pointer', borderLeft: isActive ? `3px solid ${GREEN}` : '3px solid transparent' }}
-                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background='#f7fdfb'; }}
-                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background='#fff'; }}
-                    >
-                      <div style={{ fontSize:13, fontWeight:500, color: isActive ? GREEN :'#111', marginBottom:2 }}>{catName}</div>
-                      {cat.fields['Description'] && <div style={{ fontSize:11, color:'#bbb' }}>{cat.fields['Description'].slice(0,60)}…</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Home page: grouped by type */}
-          {!activeTheme && !search && !activeType && typeGroups.map(({ type, items }) => (
-            <div key={type} style={{ marginBottom:48 }}>
+          {!anyFilterActive && typeGroups.map(({ label, items }) => (
+            <div key={label} style={{ marginBottom:48 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, paddingBottom:12, borderBottom:`2px solid #111` }}>
                 <div style={{ fontSize:15, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.3 }}>
-                  Top {type}s
+                  Top {label}
                 </div>
-                <span onClick={() => selectType(type)}
+                <span onClick={() => selectCategory(label)}
                   style={{ fontSize:12, color:GREEN, cursor:'pointer', fontWeight:500 }}>
                   See all →
                 </span>
@@ -617,7 +625,10 @@ export default function Home() {
                     { label:'Recency', value:f['Recency Score'] },
                     { label:'Clinical Depth', value:f['Clinical Depth Score'] },
                   ];
-                  const yt = f.Type === 'YouTube' ? (ytStats[r.id] || null) : null;
+                  const yt   = f.Type === 'YouTube' ? (ytStats[r.id]  || null) : null;
+                  const pod  = f.Type === 'Podcast'  ? (podStats[r.id] || null) : null;
+                  const book = f.Type === 'Book'     ? (bookStats[r.id]|| null) : null;
+                  const logoImage = yt?.avatar || pod?.showArt || book?.cover || f['Image URL'];
                   return (
                     <div key={r.id} style={{ borderBottom:`0.5px solid ${BORDER}` }}>
                       <div onClick={() => setExpandedId(isOpen ? null : r.id)}
@@ -626,11 +637,14 @@ export default function Home() {
                         onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
                       >
                         <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
-                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={yt?.avatar || f['Image URL']} />
+                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage} />
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:2 }}>{f.Name}</div>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
+                            <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
+                            {f['Community Pick'] && <CommunityPickBadge />}
+                          </div>
                           <div style={{ fontSize:11, color:'#bbb', display:'flex', gap:10, alignItems:'center' }}>
-                            {f['Host or Author'] && <span style={{ color:'#ccc' }}>{f['Host or Author']}</span>}
+                            {f['Host or Author'] && <span style={{ color:'#ccc' }}><Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
                             {yt?.subscribers && <span style={{ color:'#bbb' }}>· {yt.subscribers} subscribers</span>}
                             {yt?.videos && <span style={{ color:'#bbb' }}>· {yt.videos} videos</span>}
                           </div>
@@ -641,6 +655,13 @@ export default function Home() {
                               {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
                             </div>
                           )}
+                          {pod?.latest && (
+                            <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                              <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
+                              {pod.latest.title}
+                              {pod.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{pod.latest.date}</span>}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
                           <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
@@ -649,32 +670,85 @@ export default function Home() {
                       </div>
                       {isOpen && (
                         <div style={{ padding:'0 0 20px 38px', background:'#faf9f6' }}>
-                          {yt?.latest?.thumbnail && (
-                            <a href={yt.latest.url} target="_blank" rel="noopener noreferrer"
-                              style={{ display:'block', marginBottom:16, borderRadius:6, overflow:'hidden', maxWidth:280, position:'relative', textDecoration:'none' }}>
-                              <img src={yt.latest.thumbnail} alt={yt.latest.title}
-                                style={{ width:'100%', display:'block', borderRadius:6 }} />
-                              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                <div style={{ width:40, height:40, background:'rgba(0,0,0,0.7)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                  <span style={{ color:'#fff', fontSize:14, marginLeft:3 }}>▶</span>
-                                </div>
+                          {yt?.recentVideos?.length > 0 && (
+                            <div style={{ marginBottom:16 }}>
+                              <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Videos</div>
+                              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, paddingRight:80 }}>
+                                {yt.recentVideos.map((v, idx) => (
+                                  <a key={idx} href={v.url} target="_blank" rel="noopener noreferrer"
+                                    style={{ display:'block', borderRadius:7, overflow:'hidden', position:'relative', textDecoration:'none' }}>
+                                    <img src={v.thumbnail} alt={v.title}
+                                      style={{ width:'100%', display:'block', borderRadius:7, aspectRatio:'16/9', objectFit:'cover' }} />
+                                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                      <div style={{ width:32, height:32, background:'rgba(0,0,0,0.65)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                        <span style={{ color:'#fff', fontSize:12, marginLeft:2 }}>▶</span>
+                                      </div>
+                                    </div>
+                                    <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(transparent, rgba(0,0,0,0.75))', padding:'18px 8px 6px', borderRadius:'0 0 7px 7px' }}>
+                                      {idx === 0 && <div style={{ fontSize:9, color:GREEN, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:2 }}>New</div>}
+                                      <div style={{ fontSize:10, color:'#fff', fontWeight:500, lineHeight:1.3,
+                                        display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{v.title}</div>
+                                      {v.date && <div style={{ fontSize:9, color:'rgba(255,255,255,0.6)', marginTop:2 }}>{v.date}</div>}
+                                    </div>
+                                  </a>
+                                ))}
                               </div>
-                              <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(transparent, rgba(0,0,0,0.7))', padding:'20px 10px 8px', borderRadius:'0 0 6px 6px' }}>
-                                <div style={{ fontSize:11, color:'#fff', fontWeight:500, lineHeight:1.3 }}>{yt.latest.title}</div>
+                            </div>
+                          )}
+                          {pod?.episodes?.length > 0 && (
+                            <div style={{ marginBottom:16 }}>
+                              <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
+                              <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight:80 }}>
+                                {pod.episodes.map((ep, idx) => (
+                                  <a key={idx} href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
+                                    style={{ display:'flex', gap:10, textDecoration:'none', color:'inherit', alignItems:'center', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:7, padding:'8px 10px', transition:'border-color 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.borderColor=GREEN}
+                                    onMouseLeave={e => e.currentTarget.style.borderColor=BORDER}>
+                                    {ep.image && (
+                                      <img src={ep.image} alt={ep.title}
+                                        style={{ width:42, height:42, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
+                                    )}
+                                    <div style={{ flex:1, minWidth:0 }}>
+                                      <div style={{ fontSize:12, fontWeight:600, color:'#111', lineHeight:1.3 }}>{ep.title}</div>
+                                      {ep.description && (
+                                        <div style={{ fontSize:11, color:'#777', marginTop:2, lineHeight:1.4,
+                                          overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' }}>{ep.description}</div>
+                                      )}
+                                      <div style={{ fontSize:11, color:'#aaa', marginTop:2 }}>
+                                        {idx === 0 && <span style={{ color:GREEN, fontWeight:600, marginRight:6 }}>New</span>}
+                                        {ep.date}
+                                      </div>
+                                    </div>
+                                    <span style={{ fontSize:11, color:GREEN, fontWeight:500, flexShrink:0 }}>Listen →</span>
+                                  </a>
+                                ))}
                               </div>
-                            </a>
+                            </div>
                           )}
                           <div style={{ display:'flex', gap:32 }}>
                             <div style={{ flex:1 }}>
-                              {f.Description && <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 16px' }}>{f.Description}</p>}
+                              {book?.cover && (
+                                <img src={book.cover} alt={f.Name}
+                                  style={{ float:'right', width:80, borderRadius:4, boxShadow:'0 4px 16px rgba(0,0,0,0.15)', marginLeft:16, marginBottom:8 }} />
+                              )}
+                              {(book?.description || f.Description) && (
+                                <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 10px' }}>
+                                  {book?.description || f.Description}
+                                </p>
+                              )}
+                              {book && (book.pages || book.year || book.publisher) && (
+                                <div style={{ display:'flex', gap:16, marginBottom:14, flexWrap:'wrap' }}>
+                                  {book.year      && <span style={{ fontSize:11, color:'#aaa' }}>📅 {book.year}</span>}
+                                  {book.pages     && <span style={{ fontSize:11, color:'#aaa' }}>📄 {book.pages} pages</span>}
+                                  {book.publisher && <span style={{ fontSize:11, color:'#aaa' }}>🏢 {book.publisher}</span>}
+                                </div>
+                              )}
                               <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
                                 {f.Type === 'Book' ? (() => {
                                   const q = encodeURIComponent(`${f.Name} ${f['Host or Author'] || ''}`);
                                   return [
                                     { label:'Amazon', url:`https://www.amazon.com/s?k=${q}&i=stripbooks` },
-                                    { label:'Audible', url:`https://www.audible.com/search?keywords=${q}&node=18541642011` },
-                                    { label:'Goodreads', url:`https://www.goodreads.com/search?utf8=%E2%9C%93&query=${q}` },
-                                    { label:'Kindle', url:`https://www.amazon.com/s?k=${q}&i=digital-text&rh=n%3A154606011` },
+                                    { label:'Goodreads', url:`https://www.goodreads.com/search?query=${q}` },
                                   ].map(link => (
                                     <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
                                       style={{ fontSize:12, fontWeight:500, color:'#555', textDecoration:'none', border:`1px solid ${BORDER}`, padding:'5px 12px', borderRadius:4, fontFamily:FONT_BODY, background:'#fff' }}
@@ -716,25 +790,20 @@ export default function Home() {
             </div>
           ))}
 
-          {/* Ranked list — shown when filtering by theme, category, type, or search */}
-          {(activeTheme || search || activeType) && ranked.length > 0 && (
+          {/* Ranked list — shown when any filter active */}
+          {anyFilterActive && ranked.length > 0 && (
             <div style={{ marginBottom:44 }}>
-              {activeType && (
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
-                  <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>
-                    All {activeType}s — ranked
-                  </div>
-                  <span onClick={() => setActiveType(null)} style={{ fontSize:12, color:'#aaa', cursor:'pointer' }}>← Back</span>
-                </div>
-              )}
-              {!activeType && <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
-                {activeCategory ? `${activeCategory} — ranked` : 'Full rankings'}
-              </div>}
+              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
+                {filtered.length} {activeCategory ? `${activeCategory}` : 'resources'}{activeSpecialty ? ` · ${activeSpecialty}` : ''}{activeTopic ? ` · ${activeTopic}` : ''} — ranked
+              </div>
               <div>
                 {ranked.map((r, i) => {
                   const f = r.fields;
                   const isOpen = expandedId === r.id;
-                  const yt = f.Type === 'YouTube' ? (ytStats[r.id] || null) : null;
+                  const yt   = f.Type === 'YouTube' ? (ytStats[r.id]  || null) : null;
+                  const pod  = f.Type === 'Podcast'  ? (podStats[r.id] || null) : null;
+                  const book = f.Type === 'Book'     ? (bookStats[r.id]|| null) : null;
+                  const logoImage2 = yt?.avatar || pod?.showArt || book?.cover || f['Image URL'];
                   const breakdown = [
                     { label:'Expert', value:f['Expert Score'], weight:25 },
                     { label:'Community', value:f['Community Score'], weight:25 },
@@ -752,12 +821,15 @@ export default function Home() {
                         onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
                       >
                         <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
-                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={yt?.avatar || f['Image URL']} />
+                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage2} />
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:2 }}>{f.Name}</div>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
+                            <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
+                            {f['Community Pick'] && <CommunityPickBadge />}
+                          </div>
                           <div style={{ fontSize:11, color:'#bbb', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                             <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
-                            {f['Host or Author'] && <span style={{ color:'#ccc' }}>· {f['Host or Author']}</span>}
+                            {f['Host or Author'] && <span style={{ color:'#ccc' }}>· <Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
                             {yt?.subscribers && <span style={{ color:'#bbb' }}>· {yt.subscribers} subscribers</span>}
                             {yt?.videos && <span style={{ color:'#bbb' }}>· {yt.videos} videos</span>}
                           </div>
@@ -766,6 +838,13 @@ export default function Home() {
                               <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
                               {yt.latest.title}
                               {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
+                            </div>
+                          )}
+                          {pod?.latest && (
+                            <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                              <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
+                              {pod.latest.title}
+                              {pod.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{pod.latest.date}</span>}
                             </div>
                           )}
                         </div>
@@ -792,20 +871,61 @@ export default function Home() {
                               </div>
                             </a>
                           )}
+                          {pod?.episodes?.length > 0 && (
+                            <div style={{ marginBottom:16 }}>
+                              <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
+                              <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight:80 }}>
+                                {pod.episodes.map((ep, idx) => (
+                                  <a key={idx} href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
+                                    style={{ display:'flex', gap:10, textDecoration:'none', color:'inherit', alignItems:'center', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:7, padding:'8px 10px', transition:'border-color 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.borderColor=GREEN}
+                                    onMouseLeave={e => e.currentTarget.style.borderColor=BORDER}>
+                                    {ep.image && (
+                                      <img src={ep.image} alt={ep.title}
+                                        style={{ width:42, height:42, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
+                                    )}
+                                    <div style={{ flex:1, minWidth:0 }}>
+                                      <div style={{ fontSize:12, fontWeight:600, color:'#111', lineHeight:1.3 }}>{ep.title}</div>
+                                      {ep.description && (
+                                        <div style={{ fontSize:11, color:'#777', marginTop:2, lineHeight:1.4,
+                                          overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' }}>{ep.description}</div>
+                                      )}
+                                      <div style={{ fontSize:11, color:'#aaa', marginTop:2 }}>
+                                        {idx === 0 && <span style={{ color:GREEN, fontWeight:600, marginRight:6 }}>New</span>}
+                                        {ep.date}
+                                      </div>
+                                    </div>
+                                    <span style={{ fontSize:11, color:GREEN, fontWeight:500, flexShrink:0 }}>Listen →</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           <div style={{ display:'flex', gap:32 }}>
                             {/* Left: description + link */}
                             <div style={{ flex:1 }}>
-                              {f.Description && (
-                                <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 16px' }}>{f.Description}</p>
+                              {book?.cover && (
+                                <img src={book.cover} alt={f.Name}
+                                  style={{ float:'right', width:80, borderRadius:4, boxShadow:'0 4px 16px rgba(0,0,0,0.15)', marginLeft:16, marginBottom:8 }} />
+                              )}
+                              {(book?.description || f.Description) && (
+                                <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 10px' }}>
+                                  {book?.description || f.Description}
+                                </p>
+                              )}
+                              {book && (book.pages || book.year || book.publisher) && (
+                                <div style={{ display:'flex', gap:16, marginBottom:14, flexWrap:'wrap' }}>
+                                  {book.year      && <span style={{ fontSize:11, color:'#aaa' }}>📅 {book.year}</span>}
+                                  {book.pages     && <span style={{ fontSize:11, color:'#aaa' }}>📄 {book.pages} pages</span>}
+                                  {book.publisher && <span style={{ fontSize:11, color:'#aaa' }}>🏢 {book.publisher}</span>}
+                                </div>
                               )}
                               <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
                                 {f.Type === 'Book' ? (() => {
                                   const q = encodeURIComponent(`${f.Name} ${f['Host or Author'] || ''}`);
                                   const bookLinks = [
                                     { label:'Amazon', url:`https://www.amazon.com/s?k=${q}&i=stripbooks` },
-                                    { label:'Audible', url:`https://www.audible.com/search?keywords=${q}&node=18541642011` },
-                                    { label:'Goodreads', url:`https://www.goodreads.com/search?utf8=%E2%9C%93&query=${q}` },
-                                    { label:'Kindle', url:`https://www.amazon.com/s?k=${q}&i=digital-text&rh=n%3A154606011` },
+                                    { label:'Goodreads', url:`https://www.goodreads.com/search?query=${q}` },
                                   ];
                                   return bookLinks.map(link => (
                                     <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -850,24 +970,13 @@ export default function Home() {
             </div>
           )}
 
-          {(activeTheme || search || activeType) && ranked.length===0 && <div style={{ padding:'60px 0', textAlign:'center', color:'#ccc', fontSize:14 }}>No resources yet in this category.</div>}
-
-          {/* Browse by theme (home only) */}
-          {!activeTheme && (
-            <div>
-              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:20, fontWeight:600 }}>Browse by theme</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:1, background:BORDER }}>
-                {THEMES.map(t => (
-                  <div key={t} onClick={() => selectTheme(t)}
-                    style={{ padding:'20px 18px', background:'#fff', cursor:'pointer' }}
-                    onMouseEnter={e => e.currentTarget.style.background='#f7fdfb'}
-                    onMouseLeave={e => e.currentTarget.style.background='#fff'}
-                  >
-                    <div style={{ fontSize:13, fontWeight:600, color:'#111', marginBottom:3, lineHeight:1.3 }}>{t}</div>
-                    <div style={{ fontSize:11, color:'#bbb' }}>{themeCounts[t]} categories</div>
-                  </div>
-                ))}
-              </div>
+          {anyFilterActive && ranked.length === 0 && (
+            <div style={{ padding:'80px 0', textAlign:'center' }}>
+              <div style={{ fontSize:15, color:'#bbb', marginBottom:12 }}>Nothing here yet.</div>
+              <a href="mailto:hello@thedentalcommute.com?subject=Resource suggestion"
+                style={{ fontSize:13, color:GREEN, fontWeight:500, textDecoration:'none', border:`1px solid ${GREEN}`, padding:'8px 18px', borderRadius:4, fontFamily:FONT_BODY }}>
+                Suggest one →
+              </a>
             </div>
           )}
 
