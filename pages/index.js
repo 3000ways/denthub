@@ -389,8 +389,8 @@ export default function Home() {
       <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 36px 100px' }}>
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:40 }}>
-          <img src="/logo.png" alt="The Dental Commute" style={{ height:225, width:'auto', display:'block' }} />
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
+          <img src="/logo.png" alt="The Dental Commute" style={{ height:281, width:'auto', display:'block' }} />
           <div style={{ display:'flex', alignItems:'center', gap:24 }}>
             <a href="/about" style={{ fontSize:13, color:'#999', textDecoration:'none', fontFamily:FONT_BODY }}>About</a>
             <button style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2 }}>
