@@ -154,6 +154,18 @@ function TagToggle({ label, active, onToggle }) {
   );
 }
 
+function QueueCardLogo({ imageUrl, siteUrl, name }) {
+  const [src, setSrc] = useState(() => {
+    if (imageUrl) return imageUrl;
+    try { return `/api/airtable?logo=${new URL(siteUrl).hostname}`; } catch { return null; }
+  });
+  if (!src) return null;
+  return (
+    <img src={src} alt={name} onError={() => setSrc(null)}
+      style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />
+  );
+}
+
 const TYPE_MAP = {
   'YouTube Channel': 'YouTube', 'CE Website': 'Course', 'CE Platform': 'Course',
   'Website': 'Other', 'Consulting': 'Coaching', 'Consulting Firm': 'Coaching',
@@ -323,9 +335,7 @@ function QueueCard({ item, onRemove }) {
           <>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-              {form['Image URL'] && (
-                <img src={form['Image URL']} alt="" onError={e => e.target.style.display='none'} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: `1px solid ${BORDER}`, flexShrink: 0 }} />
-              )}
+              <QueueCardLogo imageUrl={form['Image URL']} siteUrl={form.URL} name={form.Name} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#111', lineHeight: 1.3, marginBottom: 5 }}>{form.Name || '(untitled)'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
