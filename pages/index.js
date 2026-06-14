@@ -10,7 +10,7 @@ const CATEGORIES = [
   { label:'Coaching',    types:['Coaching','Mastermind','Mentorship'] },
 ];
 
-const SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Oral Radiology','Dental Anesthesiology','Pain'];
+const SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
 
 const TOPICS = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
 

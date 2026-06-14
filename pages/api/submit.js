@@ -1,7 +1,7 @@
 const BASE_ID  = 'appICV69R7tzizCDY';
 const TABLE_ID = 'tblBlou0rXbImoQ75';
 
-const VALID_SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Oral Radiology','Dental Anesthesiology','Pain'];
+const VALID_SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
 const VALID_TOPICS      = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
 
 async function verifyTurnstile(token, ip) {
