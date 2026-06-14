@@ -530,7 +530,7 @@ export default function Home() {
         {/* Category tabs */}
         <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:16, overflowX:'auto', scrollbarWidth:'none' }}>
           {[{label:'All', key:null}, ...CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
-            const isActive = activeCategory === key;
+            const isActive = key !== null && activeCategory === key;
             return (
               <button key={label} onClick={() => selectCategory(key)}
                 style={{ fontSize:13, padding:'0 0 14px', marginRight:30, background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
@@ -585,7 +585,7 @@ export default function Home() {
         {/* Specialty filter pills */}
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'10px 0 8px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
           {[{label:'All', key:null}, ...SPECIALTIES.map(s => ({label:s.label, key:s.value}))].map(({label, key}) => {
-            const isActive = activeSpecialty === key;
+            const isActive = key !== null && activeSpecialty === key;
             return (
               <button key={label} onClick={() => selectSpecialty(key)}
                 style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? GREEN : BORDER}`, background: isActive ? GREEN : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
@@ -598,7 +598,7 @@ export default function Home() {
         {/* Topic filter pills */}
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'8px 0 20px', borderBottom:`1px solid ${BORDER}`, marginBottom:40 }}>
           {[{label:'All Topics', key:null}, ...TOPICS.map(t => ({label:t, key:t}))].map(({label, key}) => {
-            const isActive = activeTopic === key;
+            const isActive = key !== null && activeTopic === key;
             return (
               <button key={label} onClick={() => selectTopic(key)}
                 style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? '#6B46C1' : BORDER}`, background: isActive ? '#6B46C1' : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
@@ -905,7 +905,7 @@ export default function Home() {
           ))}
 
           {/* Ranked list — shown when any filter active */}
-          {ranked.length > 0 && (
+          {anyFilterActive && ranked.length > 0 && (
             <div style={{ marginBottom:44, background:'rgba(255,255,255,0.35)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
                 {filtered.length} {activeCategory ? `${activeCategory}` : 'resources'}{activeSpecialty ? ` · ${activeSpecialty}` : ''}{activeTopic ? ` · ${activeTopic}` : ''} — ranked
@@ -1085,7 +1085,7 @@ export default function Home() {
             </div>
           )}
 
-          {ranked.length === 0 && (
+          {anyFilterActive && ranked.length === 0 && (
             <div style={{ padding:'80px 0', textAlign:'center' }}>
               <div style={{ fontSize:15, color:'#bbb', marginBottom:12 }}>Nothing here yet.</div>
               <button onClick={openSubmitModal}
