@@ -155,13 +155,12 @@ function TagToggle({ label, active, onToggle }) {
 }
 
 function QueueCardLogo({ imageUrl, siteUrl, name }) {
-  const [src, setSrc] = useState(() => {
-    if (imageUrl) return imageUrl;
-    try { return `/api/airtable?logo=${new URL(siteUrl).hostname}`; } catch { return null; }
-  });
+  const faviconUrl = (() => { try { return `/api/airtable?logo=${new URL(siteUrl).hostname}`; } catch { return null; } })();
+  const [src, setSrc] = useState(imageUrl || faviconUrl);
   if (!src) return null;
   return (
-    <img src={src} alt={name} onError={() => setSrc(null)}
+    <img src={src} alt={name}
+      onError={() => setSrc(prev => prev !== faviconUrl ? faviconUrl : null)}
       style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />
   );
 }
