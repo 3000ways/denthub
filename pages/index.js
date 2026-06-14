@@ -1077,7 +1077,7 @@ export default function Home() {
                 <div style={{ fontSize:36, marginBottom:16 }}>✓</div>
                 <div style={{ fontSize:18, fontWeight:700, color:GREEN, marginBottom:8 }}>Thanks for the suggestion!</div>
                 <div style={{ fontSize:14, color:'#666', marginBottom:6 }}>
-                  We found <strong>{submitResult?.name}</strong> ({submitResult?.type}) and added it to our review queue. If approved, it will appear on the site shortly.
+                  We found <strong>{submitResult?.name}</strong> and added it to our review queue. If approved, it will appear on the site shortly.
                 </div>
                 <button onClick={() => setSubmitOpen(false)} style={{ marginTop:20, padding:'10px 28px', background:GREEN, color:'#fff', border:'none', borderRadius:5, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT_BODY }}>
                   Close
