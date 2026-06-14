@@ -426,16 +426,22 @@ For each resource, also score it on these 5 dimensions (0–100 scale):
 - RecencyScore: how current and actively maintained it is
 - ClinicalDepthScore: depth of clinical relevance and practical application
 
+For each resource, also assign:
+- Specialty: an array of dental specialties this resource targets (use only values from this list, can be multiple, or empty array if cross-specialty/non-dental): ["General Dentistry","Endodontics","Orthodontics","Periodontics","Oral Surgery","Prosthodontics","Oral Radiology","Dental Anesthesiology","Pain"]
+- Topic: an array of business/professional topics this resource covers (use only values from this list, can be multiple, must have at least one): ["Clinical","Technology","Leadership","Marketing","Finance & Investment","Practice Growth","Team & HR","Wellness"]
+
 After searching, return ONLY a valid JSON array of objects, each with:
 - Name (string)
 - URL (string — verified homepage URL)
 - Description (string — 1-2 sentences on what makes it valuable)
-- Type (one of: Podcast, YouTube Channel, Website, Book, Course, Software, Community, Other)
+- Type (one of: Podcast, YouTube, Website, Book, Course, Software, Community, Conference, Other)
 - ExpertScore (number 0–100)
 - CommunityScore (number 0–100)
 - PopularityScore (number 0–100)
 - RecencyScore (number 0–100)
 - ClinicalDepthScore (number 0–100)
+- Specialty (array of strings from the list above, or empty array)
+- Topic (array of strings from the list above, at least one)
 
 Return ONLY the JSON array, no other text.`;
   }

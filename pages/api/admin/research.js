@@ -133,8 +133,12 @@ For each resource, score it honestly on these 5 dimensions (0–100):
 - RecencyScore: how recently and actively it publishes
 - ClinicalDepthScore: clinical relevance and depth for practitioners
 
+For each resource, also assign:
+- Specialty: an array of dental specialties this resource targets (use only values from this list, can be multiple, or empty array if cross-specialty/non-dental): ["General Dentistry","Endodontics","Orthodontics","Periodontics","Oral Surgery","Prosthodontics","Oral Radiology","Dental Anesthesiology","Pain"]
+- Topic: an array of business/professional topics this resource covers (use only values from this list, can be multiple, must have at least one): ["Clinical","Technology","Leadership","Marketing","Finance & Investment","Practice Growth","Team & HR","Wellness"]
+
 Return ONLY a valid JSON array. Each object must have exactly these keys:
-Name, URL, Description, Type, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore
+Name, URL, Description, Type, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore, Specialty, Topic
 
 Type must be one of: Podcast, YouTube, Website, Book, Course, Software, Community, Conference, Other
 
@@ -227,6 +231,8 @@ export default async function handler(req, res) {
         ...(r.PopularityScore    != null ? { 'Popularity Score':      Number(r.PopularityScore) }    : {}),
         ...(r.RecencyScore       != null ? { 'Recency Score':         Number(r.RecencyScore) }       : {}),
         ...(r.ClinicalDepthScore != null ? { 'Clinical Depth Score':  Number(r.ClinicalDepthScore) } : {}),
+        ...(Array.isArray(r.Specialty) && r.Specialty.length ? { Specialty: r.Specialty } : {}),
+        ...(Array.isArray(r.Topic) && r.Topic.length ? { Topic: r.Topic } : {}),
         Source: 'AI Agent',
         'Submission Status': 'Pending',
       },
