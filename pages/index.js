@@ -477,7 +477,7 @@ export default function Home() {
 
       <div style={{ height:3, background:GREEN }} />
 
-      <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 36px 100px' }}>
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px 60px' : '0 36px 100px' }}>
 
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, padding:'12px 0', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
@@ -496,7 +496,7 @@ export default function Home() {
         {!anyFilterActive && (
           <div style={{ marginBottom:44, paddingTop:36 }}>
             <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aaa', marginBottom:16, fontWeight:600 }}>The dentistry resource index</div>
-            <h1 style={{ fontSize:48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing:-1.8, fontFamily:FONT_DISPLAY }}>
+            <h1 style={{ fontSize: isMobile ? 30 : 48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing: isMobile ? -0.8 : -1.8, fontFamily:FONT_DISPLAY }}>
               Everything dentistry,<br/>ranked and curated
             </h1>
             <p style={{ fontSize:17, color:'#666', lineHeight:1.7, maxWidth:580, margin:'0 0 20px', fontWeight:400 }}>
@@ -731,10 +731,10 @@ export default function Home() {
                         <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
-                            <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
+                            <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
                             {f['Community Pick'] && <CommunityPickBadge />}
                           </div>
-                          <div style={{ fontSize:11, color:'#bbb', display:'flex', gap:10, alignItems:'center' }}>
+                          <div style={{ fontSize: isMobile ? 13 : 11, color:'#bbb', display:'flex', gap:10, alignItems:'center' }}>
                             {f['Host or Author'] && <span style={{ color:'#ccc' }}><Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
                             {yt?.subscribers && <span style={{ color:'#bbb' }}>· {yt.subscribers} subscribers</span>}
                             {yt?.videos && <span style={{ color:'#bbb' }}>· {yt.videos} videos</span>}
@@ -915,7 +915,7 @@ export default function Home() {
                         <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage2} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
-                            <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
+                            <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
                             {f['Community Pick'] && <CommunityPickBadge />}
                           </div>
                           <div style={{ fontSize:11, color:'#bbb', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
