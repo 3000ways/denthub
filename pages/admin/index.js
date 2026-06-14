@@ -181,55 +181,63 @@ function ReviewQueue() {
         {items.map(item => {
           const f = item.fields;
           return (
-            <div key={item.id} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '16px', background: '#fff' }}>
-              {/* Header row: favicon + name + badge */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
-                <img src={`/api/favicon?domain=${encodeURIComponent(f.URL || '')}`} width={32} height={32} style={{ borderRadius: 6, border: `1px solid ${BORDER}`, flexShrink: 0, marginTop: 2 }} onError={e => { e.target.style.display='none'; }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>{f.Name || '(untitled)'}</div>
-                  <SourceBadge source={f.Source} />
-                </div>
-              </div>
-
-              {/* URL */}
-              <a href={f.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', textDecoration: 'none' }}>{f.URL}</a>
-
-              {/* Description */}
-              {f.Description && <div style={{ fontSize: 13, color: '#555', lineHeight: 1.5, marginBottom: 8 }}>{f.Description.slice(0, 220)}{f.Description.length > 220 ? '…' : ''}</div>}
-
-              {/* Type / category */}
-              <div style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>{[f.Type, f.Category].filter(Boolean).join(' · ')}</div>
-
-              {/* Scores */}
-              {(f['Expert Score'] != null || f['Final Score'] != null) && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+            <div key={item.id} style={{ border: `1px solid ${BORDER}`, borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
+              {/* Card body */}
+              <div style={{ padding: '16px 16px 12px' }}>
+                {/* Name + badge row */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#111', lineHeight: 1.3, marginBottom: 5 }}>{f.Name || '(untitled)'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <SourceBadge source={f.Source} />
+                      {f.Type && <span style={{ fontSize: 11, color: '#fff', background: '#6b7280', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>{f.Type}</span>}
+                    </div>
+                  </div>
                   {f['Final Score'] != null && (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: GREEN, padding: '3px 10px', borderRadius: 20 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', background: GREEN, padding: '4px 12px', borderRadius: 20, flexShrink: 0 }}>
                       ★ {Number(f['Final Score']).toFixed(1)}
                     </span>
                   )}
-                  {[
-                    { label: 'Expert',     val: f['Expert Score'] },
-                    { label: 'Community',  val: f['Community Score'] },
-                    { label: 'Popularity', val: f['Popularity Score'] },
-                    { label: 'Recency',    val: f['Recency Score'] },
-                    { label: 'Clinical',   val: f['Clinical Depth Score'] },
-                  ].filter(s => s.val != null).map(({ label, val }) => (
-                    <span key={label} style={{ fontSize: 11, color: '#555', background: '#f3f4f6', padding: '2px 8px', borderRadius: 20 }}>
-                      {label} {Number(val).toFixed(0)}
-                    </span>
-                  ))}
                 </div>
-              )}
 
-              {/* Action buttons — full width on mobile */}
-              <div style={{ display: 'flex', gap: 8 }}>
+                {/* URL */}
+                <a href={f.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', textDecoration: 'none' }}>{f.URL}</a>
+
+                {/* Description */}
+                {f.Description && <div style={{ fontSize: 13, color: '#444', lineHeight: 1.55, marginBottom: 10 }}>{f.Description.slice(0, 240)}{f.Description.length > 240 ? '…' : ''}</div>}
+
+                {/* Score chips */}
+                {[
+                  { label: 'Expert',     val: f['Expert Score'] },
+                  { label: 'Community',  val: f['Community Score'] },
+                  { label: 'Popularity', val: f['Popularity Score'] },
+                  { label: 'Recency',    val: f['Recency Score'] },
+                  { label: 'Clinical',   val: f['Clinical Depth Score'] },
+                ].some(s => s.val != null) && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Expert',     val: f['Expert Score'] },
+                      { label: 'Community',  val: f['Community Score'] },
+                      { label: 'Popularity', val: f['Popularity Score'] },
+                      { label: 'Recency',    val: f['Recency Score'] },
+                      { label: 'Clinical',   val: f['Clinical Depth Score'] },
+                    ].filter(s => s.val != null).map(({ label, val }) => (
+                      <span key={label} style={{ fontSize: 11, color: '#333', background: '#f0f0f0', padding: '3px 9px', borderRadius: 20, fontWeight: 500 }}>
+                        {label} <strong>{Number(val).toFixed(0)}</strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons — pinned to bottom, separated by a line */}
+              <div style={{ display: 'flex', borderTop: `1px solid ${BORDER}` }}>
                 <button onClick={() => act(item.id, 'approve')} disabled={!!acting[item.id]}
-                  style={{ flex: 1, padding: '10px', background: '#d1fae5', color: '#065f46', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: FONT }}>
+                  style={{ flex: 1, padding: '12px', background: acting[item.id] === 'approve' ? '#a7f3d0' : '#f0fdf4', color: '#065f46', border: 'none', borderRight: `1px solid ${BORDER}`, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: FONT }}>
                   {acting[item.id] === 'approve' ? '…' : '✓ Approve'}
                 </button>
                 <button onClick={() => act(item.id, 'reject')} disabled={!!acting[item.id]}
-                  style={{ flex: 1, padding: '10px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: FONT }}>
+                  style={{ flex: 1, padding: '12px', background: acting[item.id] === 'reject' ? '#fecaca' : '#fff5f5', color: '#dc2626', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: FONT }}>
                   {acting[item.id] === 'reject' ? '…' : '✕ Reject'}
                 </button>
               </div>
