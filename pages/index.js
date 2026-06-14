@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Head from 'next/head';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -466,6 +467,12 @@ export default function Home() {
   const totalCategories = CATEGORIES.length;
 
   return (
+    <>
+    <Head>
+      <title>The Dental Commute</title>
+      <link rel="icon" href="/logo.png" type="image/png" />
+      <link rel="apple-touch-icon" href="/logo.png" />
+    </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
       <div style={{ height:3, background:GREEN }} />
@@ -1127,5 +1134,6 @@ export default function Home() {
       )}
 
     </div>
+    </>
   );
 }
