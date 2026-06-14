@@ -529,8 +529,8 @@ export default function Home() {
 
         {/* Category tabs */}
         <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:16, overflowX:'auto', scrollbarWidth:'none' }}>
-          {[{label:'All', key:null}, ...CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
-            const isActive = key !== null && activeCategory === key;
+          {CATEGORIES.map(c => ({label:c.label, key:c.label})).map(({label, key}) => {
+            const isActive = activeCategory === key;
             return (
               <button key={label} onClick={() => selectCategory(key)}
                 style={{ fontSize:13, padding:'0 0 14px', marginRight:30, background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
@@ -584,8 +584,8 @@ export default function Home() {
 
         {/* Specialty filter pills */}
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'10px 0 8px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
-          {[{label:'All', key:null}, ...SPECIALTIES.map(s => ({label:s.label, key:s.value}))].map(({label, key}) => {
-            const isActive = key !== null && activeSpecialty === key;
+          {SPECIALTIES.map(s => ({label:s.label, key:s.value})).map(({label, key}) => {
+            const isActive = activeSpecialty === key;
             return (
               <button key={label} onClick={() => selectSpecialty(key)}
                 style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? GREEN : BORDER}`, background: isActive ? GREEN : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
@@ -597,8 +597,8 @@ export default function Home() {
 
         {/* Topic filter pills */}
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'8px 0 20px', borderBottom:`1px solid ${BORDER}`, marginBottom:40 }}>
-          {[{label:'All Topics', key:null}, ...TOPICS.map(t => ({label:t, key:t}))].map(({label, key}) => {
-            const isActive = key !== null && activeTopic === key;
+          {TOPICS.map(t => ({label:t, key:t})).map(({label, key}) => {
+            const isActive = activeTopic === key;
             return (
               <button key={label} onClick={() => selectTopic(key)}
                 style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? '#6B46C1' : BORDER}`, background: isActive ? '#6B46C1' : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
