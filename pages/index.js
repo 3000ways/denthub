@@ -906,7 +906,7 @@ export default function Home() {
 
           {/* Ranked list — shown when any filter active */}
           {anyFilterActive && ranked.length > 0 && (
-            <div style={{ marginBottom:44 }}>
+            <div style={{ marginBottom:44, background:'rgba(255,255,255,0.55)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
                 {filtered.length} {activeCategory ? `${activeCategory}` : 'resources'}{activeSpecialty ? ` · ${activeSpecialty}` : ''}{activeTopic ? ` · ${activeTopic}` : ''} — ranked
               </div>
