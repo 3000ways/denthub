@@ -154,6 +154,17 @@ function TagToggle({ label, active, onToggle }) {
   );
 }
 
+const TYPE_MAP = {
+  'YouTube Channel': 'YouTube', 'CE Website': 'Course', 'CE Platform': 'Course',
+  'Website': 'Other', 'Consulting': 'Coaching', 'Consulting Firm': 'Coaching',
+  'Mentor': 'Coaching', 'Mentorship': 'Coaching', 'Mastermind Group': 'Mastermind',
+};
+function normalizeType(raw) {
+  const t = raw || 'Other';
+  if (VALID_TYPES_RQ.includes(t)) return t;
+  return TYPE_MAP[t] || 'Other';
+}
+
 function QueueCard({ item, onRemove }) {
   const f = item.fields;
   const [editing, setEditing] = useState(false);
@@ -164,7 +175,7 @@ function QueueCard({ item, onRemove }) {
     Name:               f.Name || '',
     URL:                f.URL || '',
     Description:        f.Description || '',
-    Type:               f.Type || 'Other',
+    Type:               normalizeType(f.Type),
     'Host or Author':   f['Host or Author'] || '',
     Specialty:          Array.isArray(f.Specialty) ? [...f.Specialty] : [],
     Topic:              Array.isArray(f.Topic) ? [...f.Topic] : [],
