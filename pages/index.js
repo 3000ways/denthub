@@ -10,7 +10,18 @@ const CATEGORIES = [
   { label:'Coaching',    types:['Coaching','Mastermind','Mentorship'] },
 ];
 
-const SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
+const SPECIALTIES = [
+  { label: 'General',       value: 'General Dentistry' },
+  { label: 'Endodontics',   value: 'Endodontics' },
+  { label: 'Orthodontics',  value: 'Orthodontics' },
+  { label: 'Periodontics',  value: 'Periodontics' },
+  { label: 'Oral Surgery',  value: 'Oral Surgery' },
+  { label: 'Prosthodontics',value: 'Prosthodontics' },
+  { label: 'Pediatric',     value: 'Pediatric Dentistry' },
+  { label: 'Radiology',     value: 'Oral Radiology' },
+  { label: 'Anesthesiology',value: 'Dental Anesthesiology' },
+  { label: 'Pain',          value: 'Pain' },
+];
 
 const TOPICS = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
 
@@ -418,7 +429,7 @@ export default function Home() {
     const f = r.fields;
     const catTypes = activeCategory ? CATEGORIES.find(c => c.label === activeCategory)?.types : null;
     const matchCat = !catTypes || catTypes.some(t => (f.Type||'') === t);
-    const matchSpecialty = !activeSpecialty || (Array.isArray(f.Specialty) ? f.Specialty.includes(activeSpecialty) : (f.Specialty||'') === activeSpecialty);
+    const matchSpecialty = !activeSpecialty || (Array.isArray(f.Specialty) ? f.Specialty.some(s => (s.name||s) === activeSpecialty) : (f.Specialty||'') === activeSpecialty);
     const matchTopic = !activeTopic || (Array.isArray(f.Topic) ? f.Topic.includes(activeTopic) : (f.Topic||'') === activeTopic);
     const searchTerms = search.toLowerCase().trim().split(/\s+/);
     const searchHaystack = [f.Name, f.Description, f.Type, f['Host or Author']].filter(Boolean).join(' ').toLowerCase();
@@ -544,7 +555,7 @@ export default function Home() {
 
         {/* Specialty filter pills */}
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'10px 0 8px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
-          {[{label:'All Specialties', key:null}, ...SPECIALTIES.map(s => ({label:s, key:s}))].map(({label, key}) => {
+          {[{label:'All', key:null}, ...SPECIALTIES.map(s => ({label:s.label, key:s.value}))].map(({label, key}) => {
             const isActive = activeSpecialty === key;
             return (
               <button key={label} onClick={() => selectSpecialty(key)}
