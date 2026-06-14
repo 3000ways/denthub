@@ -334,7 +334,7 @@ export default function Home() {
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [episodeSearched, setEpisodeSearched] = useState(false);
 
-  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('submit') === '1');
   const [submitUrl, setSubmitUrl] = useState('');
   const [submitState, setSubmitState] = useState('idle'); // idle | loading | success | error
   const [submitError, setSubmitError] = useState('');

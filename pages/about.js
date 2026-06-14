@@ -19,9 +19,9 @@ export default function About() {
           </Link>
           <div style={{ display:'flex', alignItems:'center', gap:24 }}>
             <Link href="/about" style={{ fontSize:13, color:'#111', textDecoration:'none', fontWeight:500, fontFamily:FONT_BODY }}>About</Link>
-            <button style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2 }}>
+            <Link href="/?submit=1" style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2, textDecoration:'none' }}>
               Submit a resource
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -76,9 +76,9 @@ export default function About() {
             <p style={{ fontSize:14, color:'#777', lineHeight:1.65, marginBottom:20 }}>
               The Dental Commute is only as good as its community. If there's a podcast, book, course, or tool you think belongs here, submit it and we'll review it.
             </p>
-            <button style={{ fontSize:13, padding:'10px 22px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500 }}>
+            <Link href="/?submit=1" style={{ fontSize:13, padding:'10px 22px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, textDecoration:'none', display:'inline-block' }}>
               Submit a resource
-            </button>
+            </Link>
           </div>
 
           <div style={{ borderTop:`1px solid ${BORDER}`, paddingTop:32 }}>
