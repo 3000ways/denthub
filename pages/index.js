@@ -12,7 +12,7 @@ const CATEGORIES = [
 
 const SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Oral Radiology','Dental Anesthesiology','Pain'];
 
-const TOPICS = ['Clinical','Leadership','Marketing','Finance & Investment','Practice Growth','Wellness'];
+const TOPICS = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -353,7 +353,7 @@ export default function Home() {
     const catTypes = activeCategory ? CATEGORIES.find(c => c.label === activeCategory)?.types : null;
     const matchCat = !catTypes || catTypes.some(t => (f.Type||'') === t);
     const matchSpecialty = !activeSpecialty || (Array.isArray(f.Specialty) ? f.Specialty.includes(activeSpecialty) : (f.Specialty||'') === activeSpecialty);
-    const matchTopic = !activeTopic || (Array.isArray(f.Tags) ? f.Tags.includes(activeTopic) : (f.Tags||'') === activeTopic);
+    const matchTopic = !activeTopic || (Array.isArray(f.Topic) ? f.Topic.includes(activeTopic) : (f.Topic||'') === activeTopic);
     const searchTerms = search.toLowerCase().trim().split(/\s+/);
     const searchHaystack = [f.Name, f.Description, f.Type, f['Host or Author']].filter(Boolean).join(' ').toLowerCase();
     const matchSearch = !search || searchTerms.every(term => searchHaystack.includes(term));
