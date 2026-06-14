@@ -174,6 +174,7 @@ function QueueCard({ item, onRemove }) {
     'Recency Score':    f['Recency Score'] ?? '',
     'Clinical Depth Score': f['Clinical Depth Score'] ?? '',
     'RSS Feed URL':     f['RSS Feed URL'] || '',
+    'Image URL':        f['Image URL'] || '',
   });
 
   function toggleTag(field, val) {
@@ -193,6 +194,7 @@ function QueueCard({ item, onRemove }) {
         Type: form.Type,
         'Host or Author': form['Host or Author'],
         'RSS Feed URL': form['RSS Feed URL'],
+        'Image URL': form['Image URL'],
         Specialty: form.Specialty,
         Topic: form.Topic,
         ...(form['Expert Score'] !== '' ? { 'Expert Score': Number(form['Expert Score']) } : {}),
@@ -255,6 +257,11 @@ function QueueCard({ item, onRemove }) {
               <input value={form['RSS Feed URL']} onChange={e => setForm(p => ({ ...p, 'RSS Feed URL': e.target.value }))} style={{ ...inp(), marginTop: 4 }} placeholder="https://feeds.example.com/podcast" />
             </label>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+              Image URL
+              <input value={form['Image URL']} onChange={e => setForm(p => ({ ...p, 'Image URL': e.target.value }))} style={{ ...inp(), marginTop: 4 }} placeholder="https://example.com/cover.jpg" />
+              {form['Image URL'] && <img src={form['Image URL']} alt="" onError={e => e.target.style.display='none'} style={{ marginTop: 8, width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: `1px solid ${BORDER}` }} />}
+            </label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
               Description
               <textarea value={form.Description} onChange={e => setForm(p => ({ ...p, Description: e.target.value }))} rows={4} style={{ ...inp(), marginTop: 4, resize: 'vertical' }} />
             </label>
@@ -304,7 +311,10 @@ function QueueCard({ item, onRemove }) {
           /* ── VIEW MODE ── */
           <>
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+              {form['Image URL'] && (
+                <img src={form['Image URL']} alt="" onError={e => e.target.style.display='none'} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: `1px solid ${BORDER}`, flexShrink: 0 }} />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#111', lineHeight: 1.3, marginBottom: 5 }}>{form.Name || '(untitled)'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>

@@ -140,9 +140,10 @@ For each resource, also assign:
 For each resource, also include:
 - Author: the host, author, or creator name (or empty string if unknown)
 - RSSFeedURL: the RSS feed URL for podcasts (or empty string if not applicable/unknown)
+- ImageURL: a direct URL to the resource's cover art, book cover, channel avatar, or logo image (or empty string if not found)
 
 Return ONLY a valid JSON array. Each object must have exactly these keys:
-Name, URL, Description, Type, Author, RSSFeedURL, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore, Specialty, Topic
+Name, URL, Description, Type, Author, RSSFeedURL, ImageURL, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore, Specialty, Topic
 
 Type must be one of: Podcast, YouTube, Book, Course, Software, Community, Conference, Coaching, Mastermind, Other — do NOT use "Website"; if it's a coaching or consulting program use "Coaching", if it's a mastermind group use "Mastermind", if it's a CE platform use "Course", if it's a dental forum/community use "Community"
 
@@ -242,6 +243,7 @@ export default async function handler(req, res) {
         Tags: [category],
         ...(r.Author       ? { 'Host or Author': r.Author }       : {}),
         ...(r.RSSFeedURL   ? { 'RSS Feed URL':   r.RSSFeedURL }   : {}),
+        ...(r.ImageURL     ? { 'Image URL':      r.ImageURL }     : {}),
         ...(r.ExpertScore        != null ? { 'Expert Score':          Number(r.ExpertScore) }        : {}),
         ...(r.CommunityScore     != null ? { 'Community Score':       Number(r.CommunityScore) }     : {}),
         ...(r.PopularityScore    != null ? { 'Popularity Score':      Number(r.PopularityScore) }    : {}),
