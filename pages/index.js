@@ -312,6 +312,50 @@ export default function Home() {
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [episodeSearched, setEpisodeSearched] = useState(false);
 
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitUrl, setSubmitUrl] = useState('');
+  const [submitState, setSubmitState] = useState('idle'); // idle | loading | success | error
+  const [submitError, setSubmitError] = useState('');
+  const [submitResult, setSubmitResult] = useState(null);
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const token = window.turnstile?.getResponse?.();
+    if (!token) { setSubmitError('Please complete the human verification.'); return; }
+    setSubmitState('loading');
+    setSubmitError('');
+    try {
+      const res = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: submitUrl, turnstileToken: token }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      setSubmitResult(data);
+      setSubmitState('success');
+    } catch (err) {
+      setSubmitError(err.message);
+      setSubmitState('error');
+      window.turnstile?.reset?.();
+    }
+  }
+
+  function openSubmitModal() {
+    setSubmitUrl('');
+    setSubmitState('idle');
+    setSubmitError('');
+    setSubmitResult(null);
+    setSubmitOpen(true);
+  }
+
   useEffect(() => {
     fetch('/api/airtable?table=Resources').then(r => r.json()).then(res => {
       setResources(res.records || []);
@@ -402,7 +446,7 @@ export default function Home() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:20, flexShrink:0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.1 }}>About</a>
-            <button style={{ fontSize:12, padding:'8px 20px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
+            <button onClick={openSubmitModal} style={{ fontSize:12, padding:'8px 20px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
               Submit a resource
             </button>
           </div>
@@ -980,15 +1024,75 @@ export default function Home() {
           {anyFilterActive && ranked.length === 0 && (
             <div style={{ padding:'80px 0', textAlign:'center' }}>
               <div style={{ fontSize:15, color:'#bbb', marginBottom:12 }}>Nothing here yet.</div>
-              <a href="mailto:hello@thedentalcommute.com?subject=Resource suggestion"
-                style={{ fontSize:13, color:GREEN, fontWeight:500, textDecoration:'none', border:`1px solid ${GREEN}`, padding:'8px 18px', borderRadius:4, fontFamily:FONT_BODY }}>
+              <button onClick={openSubmitModal}
+                style={{ fontSize:13, color:GREEN, fontWeight:500, textDecoration:'none', border:`1px solid ${GREEN}`, padding:'8px 18px', borderRadius:4, fontFamily:FONT_BODY, background:'transparent', cursor:'pointer' }}>
                 Suggest one →
-              </a>
+              </button>
             </div>
           )}
 
         </>)}
       </div>
+
+      {/* Submission modal */}
+      {submitOpen && (
+        <div onClick={() => setSubmitOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:10, padding:36, maxWidth:480, width:'100%', boxShadow:'0 8px 40px rgba(0,0,0,0.18)', fontFamily:FONT_BODY }}>
+
+            {submitState === 'success' ? (
+              <div style={{ textAlign:'center', padding:'12px 0' }}>
+                <div style={{ fontSize:36, marginBottom:16 }}>✓</div>
+                <div style={{ fontSize:18, fontWeight:700, color:GREEN, marginBottom:8 }}>Thanks for the suggestion!</div>
+                <div style={{ fontSize:14, color:'#666', marginBottom:6 }}>
+                  We found <strong>{submitResult?.name}</strong> ({submitResult?.type}) and added it to our review queue. If approved, it will appear on the site shortly.
+                </div>
+                <button onClick={() => setSubmitOpen(false)} style={{ marginTop:20, padding:'10px 28px', background:GREEN, color:'#fff', border:'none', borderRadius:5, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT_BODY }}>
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
+                  <div>
+                    <div style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', marginBottom:4 }}>Suggest a resource</div>
+                    <div style={{ fontSize:13, color:'#888' }}>Paste a URL and our AI will do the rest.</div>
+                  </div>
+                  <button onClick={() => setSubmitOpen(false)} style={{ background:'none', border:'none', fontSize:20, color:'#aaa', cursor:'pointer', padding:0, lineHeight:1 }}>×</button>
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                  <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#555', marginBottom:6, letterSpacing:'0.05em', textTransform:'uppercase' }}>Resource URL</label>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://..."
+                    value={submitUrl}
+                    onChange={e => setSubmitUrl(e.target.value)}
+                    disabled={submitState === 'loading'}
+                    style={{ width:'100%', boxSizing:'border-box', padding:'10px 12px', border:'1px solid #ddd', borderRadius:5, fontSize:14, fontFamily:FONT_BODY, marginBottom:16, outline:'none' }}
+                  />
+
+                  <div className="cf-turnstile" data-sitekey="0x4AAAAAADknPTUZKfiTfeQc" data-theme="light" style={{ marginBottom:16 }} />
+
+                  {submitError && (
+                    <div style={{ fontSize:13, color:'#c0392b', marginBottom:12, padding:'8px 12px', background:'#fdf2f2', borderRadius:4 }}>
+                      {submitError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={submitState === 'loading'}
+                    style={{ width:'100%', padding:'11px', background: submitState === 'loading' ? '#aaa' : GREEN, color:'#fff', border:'none', borderRadius:5, fontSize:14, fontWeight:600, cursor: submitState === 'loading' ? 'not-allowed' : 'pointer', fontFamily:FONT_BODY, letterSpacing:0.2 }}>
+                    {submitState === 'loading' ? 'Analyzing resource…' : 'Submit for review'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
