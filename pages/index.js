@@ -716,7 +716,7 @@ export default function Home() {
 
 
           {/* Home page: grouped by type */}
-          {!anyFilterActive && typeGroups.map(({ label, items }) => (
+          {false && typeGroups.map(({ label, items }) => (
             <div key={label} style={{ marginBottom:48 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, paddingBottom:12, borderBottom:`2px solid #111` }}>
                 <div style={{ fontSize:15, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.3 }}>
@@ -905,7 +905,7 @@ export default function Home() {
           ))}
 
           {/* Ranked list — shown when any filter active */}
-          {anyFilterActive && ranked.length > 0 && (
+          {ranked.length > 0 && (
             <div style={{ marginBottom:44, background:'rgba(255,255,255,0.35)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
                 {filtered.length} {activeCategory ? `${activeCategory}` : 'resources'}{activeSpecialty ? ` · ${activeSpecialty}` : ''}{activeTopic ? ` · ${activeTopic}` : ''} — ranked
@@ -1085,7 +1085,7 @@ export default function Home() {
             </div>
           )}
 
-          {anyFilterActive && ranked.length === 0 && (
+          {ranked.length === 0 && (
             <div style={{ padding:'80px 0', textAlign:'center' }}>
               <div style={{ fontSize:15, color:'#bbb', marginBottom:12 }}>Nothing here yet.</div>
               <button onClick={openSubmitModal}
