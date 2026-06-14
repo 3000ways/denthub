@@ -173,6 +173,7 @@ function QueueCard({ item, onRemove }) {
     'Popularity Score': f['Popularity Score'] ?? '',
     'Recency Score':    f['Recency Score'] ?? '',
     'Clinical Depth Score': f['Clinical Depth Score'] ?? '',
+    'RSS Feed URL':     f['RSS Feed URL'] || '',
   });
 
   function toggleTag(field, val) {
@@ -191,6 +192,7 @@ function QueueCard({ item, onRemove }) {
         Description: form.Description,
         Type: form.Type,
         'Host or Author': form['Host or Author'],
+        'RSS Feed URL': form['RSS Feed URL'],
         Specialty: form.Specialty,
         Topic: form.Topic,
         ...(form['Expert Score'] !== '' ? { 'Expert Score': Number(form['Expert Score']) } : {}),
@@ -247,6 +249,10 @@ function QueueCard({ item, onRemove }) {
             <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
               Host / Author
               <input value={form['Host or Author']} onChange={e => setForm(p => ({ ...p, 'Host or Author': e.target.value }))} style={{ ...inp(), marginTop: 4 }} placeholder="Name of host, author, or creator" />
+            </label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+              RSS Feed URL
+              <input value={form['RSS Feed URL']} onChange={e => setForm(p => ({ ...p, 'RSS Feed URL': e.target.value }))} style={{ ...inp(), marginTop: 4 }} placeholder="https://feeds.example.com/podcast" />
             </label>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
               Description
@@ -323,7 +329,15 @@ function QueueCard({ item, onRemove }) {
             )}
 
             {/* URL */}
-            <a href={form.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', textDecoration: 'none' }}>{form.URL}</a>
+            <a href={form.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, marginBottom: form['RSS Feed URL'] ? 4 : 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', textDecoration: 'none' }}>{form.URL}</a>
+
+            {/* RSS Feed URL */}
+            {form['RSS Feed URL'] && (
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>RSS </span>
+                <a href={form['RSS Feed URL']} target="_blank" rel="noopener noreferrer" style={{ color: '#888', textDecoration: 'none' }}>{form['RSS Feed URL']}</a>
+              </div>
+            )}
 
             {/* Description */}
             {form.Description && <div style={{ fontSize: 13, color: '#444', lineHeight: 1.55, marginBottom: 10 }}>{form.Description}</div>}
