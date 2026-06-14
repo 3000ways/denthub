@@ -319,11 +319,33 @@ export default function Home() {
   const [submitResult, setSubmitResult] = useState(null);
 
   useEffect(() => {
+    if (document.querySelector('script[data-turnstile]')) return;
     const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     script.async = true;
+    script.setAttribute('data-turnstile', '1');
     document.head.appendChild(script);
   }, []);
+
+  useEffect(() => {
+    if (!submitOpen) return;
+    const container = document.getElementById('ts-widget');
+    if (!container) return;
+    function render() {
+      if (window.turnstile && container && !container.hasChildNodes()) {
+        window.turnstile.render(container, {
+          sitekey: '0x4AAAAAADknPTUZKfiTfeQc',
+          theme: 'light',
+        });
+      }
+    }
+    // Small delay to ensure modal DOM is painted
+    const t = setTimeout(render, 100);
+    return () => {
+      clearTimeout(t);
+      if (container) container.innerHTML = '';
+    };
+  }, [submitOpen]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -1072,7 +1094,7 @@ export default function Home() {
                     style={{ width:'100%', boxSizing:'border-box', padding:'10px 12px', border:'1px solid #ddd', borderRadius:5, fontSize:14, fontFamily:FONT_BODY, marginBottom:16, outline:'none' }}
                   />
 
-                  <div className="cf-turnstile" data-sitekey="0x4AAAAAADknPTUZKfiTfeQc" data-theme="light" style={{ marginBottom:16 }} />
+                  <div id="ts-widget" style={{ marginBottom:16 }} />
 
                   {submitError && (
                     <div style={{ fontSize:13, color:'#c0392b', marginBottom:12, padding:'8px 12px', background:'#fdf2f2', borderRadius:4 }}>
