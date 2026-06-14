@@ -137,8 +137,12 @@ For each resource, also assign:
 - Specialty: an array of dental specialties this resource targets (use only values from this list, must have at least one): ["General Dentistry","Endodontics","Orthodontics","Periodontics","Oral Surgery","Prosthodontics","Pediatric Dentistry","Oral Radiology","Dental Anesthesiology","Pain"]. If the resource is relevant to all dentists or is cross-specialty, include every specialty it applies to — do NOT leave this empty.
 - Topic: an array of business/professional topics this resource covers (use only values from this list, can be multiple, must have at least one): ["Clinical","Technology","Leadership","Marketing","Finance & Investment","Practice Growth","Team & HR","Wellness"]
 
+For each resource, also include:
+- Author: the host, author, or creator name (or empty string if unknown)
+- RSSFeedURL: the RSS feed URL for podcasts (or empty string if not applicable/unknown)
+
 Return ONLY a valid JSON array. Each object must have exactly these keys:
-Name, URL, Description, Type, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore, Specialty, Topic
+Name, URL, Description, Type, Author, RSSFeedURL, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore, Specialty, Topic
 
 Type must be one of: Podcast, YouTube, Book, Course, Software, Community, Conference, Coaching, Mastermind, Other — do NOT use "Website"; if it's a coaching or consulting program use "Coaching", if it's a mastermind group use "Mastermind", if it's a CE platform use "Course", if it's a dental forum/community use "Community"
 
@@ -236,6 +240,8 @@ export default async function handler(req, res) {
           return VALID.includes(mapped) ? mapped : 'Other';
         })(),
         Tags: [category],
+        ...(r.Author       ? { 'Host or Author': r.Author }       : {}),
+        ...(r.RSSFeedURL   ? { 'RSS Feed URL':   r.RSSFeedURL }   : {}),
         ...(r.ExpertScore        != null ? { 'Expert Score':          Number(r.ExpertScore) }        : {}),
         ...(r.CommunityScore     != null ? { 'Community Score':       Number(r.CommunityScore) }     : {}),
         ...(r.PopularityScore    != null ? { 'Popularity Score':      Number(r.PopularityScore) }    : {}),
