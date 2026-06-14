@@ -19,14 +19,12 @@ const CATEGORIES = [
   'Other',
 ];
 
-// ── Shared input style ──
 const inp = (extra = {}) => ({
   width: '100%', padding: '9px 12px', border: `1px solid ${BORDER}`, borderRadius: 6,
   fontSize: 13, fontFamily: FONT, outline: 'none', boxSizing: 'border-box',
   background: '#fff', ...extra,
 });
 
-// ── Source badge ──
 function SourceBadge({ source }) {
   const isAI = source === 'AI Agent';
   const isUser = source === 'User Submission';
@@ -80,19 +78,17 @@ function AddResource() {
   }
 
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Add a Resource</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>Paste a URL and we'll auto-detect the type and pre-fill the form.</p>
 
-      {/* URL detect row */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
-        <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && detect()} placeholder="https://..." style={{ ...inp(), flex: 1 }} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
+        <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && detect()} placeholder="https://..." style={{ ...inp(), flex: 1, minWidth: 200 }} />
         <button onClick={detect} disabled={detecting || !url.trim()} style={{ padding: '9px 18px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: detecting ? 0.6 : 1, whiteSpace: 'nowrap' }}>
           {detecting ? 'Detecting…' : 'Auto-detect'}
         </button>
       </div>
 
-      {/* Form */}
       <div style={{ display: 'grid', gap: 16 }}>
         <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
           Name *
@@ -106,21 +102,19 @@ function AddResource() {
           Description
           <textarea value={form.Description} onChange={e => setForm(f => ({ ...f, Description: e.target.value }))} rows={3} style={{ ...inp(), marginTop: 4, resize: 'vertical' }} placeholder="Brief description…" />
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-            Type
-            <select value={form.Type} onChange={e => setForm(f => ({ ...f, Type: e.target.value }))} style={{ ...inp(), marginTop: 4 }}>
-              {RESOURCE_TYPES.map(t => <option key={t}>{t}</option>)}
-            </select>
-          </label>
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-            Category
-            <select value={form.Category} onChange={e => setForm(f => ({ ...f, Category: e.target.value }))} style={{ ...inp(), marginTop: 4 }}>
-              <option value="">— select —</option>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
-          </label>
-        </div>
+        <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+          Type
+          <select value={form.Type} onChange={e => setForm(f => ({ ...f, Type: e.target.value }))} style={{ ...inp(), marginTop: 4 }}>
+            {RESOURCE_TYPES.map(t => <option key={t}>{t}</option>)}
+          </select>
+        </label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+          Category
+          <select value={form.Category} onChange={e => setForm(f => ({ ...f, Category: e.target.value }))} style={{ ...inp(), marginTop: 4 }}>
+            <option value="">— select —</option>
+            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
             Expert Score (0–10)
@@ -136,7 +130,7 @@ function AddResource() {
       {error && <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
       {saved && <div style={{ marginTop: 12, padding: '8px 12px', background: '#d1fae5', color: '#065f46', borderRadius: 6, fontSize: 13 }}>✓ Resource saved to Airtable</div>}
 
-      <button onClick={save} disabled={saving} style={{ marginTop: 20, padding: '11px 28px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: saving ? 0.6 : 1 }}>
+      <button onClick={save} disabled={saving} style={{ marginTop: 20, width: '100%', padding: '13px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: saving ? 0.6 : 1 }}>
         {saving ? 'Saving…' : 'Save Resource'}
       </button>
     </div>
@@ -187,43 +181,55 @@ function ReviewQueue() {
         {items.map(item => {
           const f = item.fields;
           return (
-            <div key={item.id} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '16px 20px', background: '#fff', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-              <img src={`/api/favicon?domain=${encodeURIComponent(f.URL || '')}`} width={32} height={32} style={{ borderRadius: 6, border: `1px solid ${BORDER}`, flexShrink: 0 }} onError={e => { e.target.style.display='none'; }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{f.Name || '(untitled)'}</div>
+            <div key={item.id} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '16px', background: '#fff' }}>
+              {/* Header row: favicon + name + badge */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
+                <img src={`/api/favicon?domain=${encodeURIComponent(f.URL || '')}`} width={32} height={32} style={{ borderRadius: 6, border: `1px solid ${BORDER}`, flexShrink: 0, marginTop: 2 }} onError={e => { e.target.style.display='none'; }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>{f.Name || '(untitled)'}</div>
                   <SourceBadge source={f.Source} />
                 </div>
-                <a href={f.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#0F6E56', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', textDecoration: 'none' }}>{f.URL}</a>
-                {f.Description && <div style={{ fontSize: 12, color: '#777', lineHeight: 1.5 }}>{f.Description.slice(0, 200)}{f.Description.length > 200 ? '…' : ''}</div>}
-                <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>{f.Type} · {f.Category}</div>
-                {f['Submitter Email'] && <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>From: {f['Submitter Email']}</div>}
-                {(f['Expert Score'] != null || f['Final Score'] != null) && (
-                  <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {f['Final Score'] != null && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: GREEN, padding: '2px 10px', borderRadius: 20 }}>
-                        ★ {Number(f['Final Score']).toFixed(1)}
-                      </span>
-                    )}
-                    {[
-                      { label: 'Expert',     val: f['Expert Score'] },
-                      { label: 'Community',  val: f['Community Score'] },
-                      { label: 'Popularity', val: f['Popularity Score'] },
-                      { label: 'Recency',    val: f['Recency Score'] },
-                      { label: 'Clinical',   val: f['Clinical Depth Score'] },
-                    ].filter(s => s.val != null).map(({ label, val }) => (
-                      <span key={label} style={{ fontSize: 11, color: '#555', background: '#f3f4f6', padding: '2px 8px', borderRadius: 20 }}>
-                        {label} {Number(val).toFixed(0)}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <button onClick={() => act(item.id, 'approve')} disabled={!!acting[item.id]} style={{ padding: '7px 14px', background: '#d1fae5', color: '#065f46', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: FONT }}>
+
+              {/* URL */}
+              <a href={f.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', textDecoration: 'none' }}>{f.URL}</a>
+
+              {/* Description */}
+              {f.Description && <div style={{ fontSize: 13, color: '#555', lineHeight: 1.5, marginBottom: 8 }}>{f.Description.slice(0, 220)}{f.Description.length > 220 ? '…' : ''}</div>}
+
+              {/* Type / category */}
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>{[f.Type, f.Category].filter(Boolean).join(' · ')}</div>
+
+              {/* Scores */}
+              {(f['Expert Score'] != null || f['Final Score'] != null) && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+                  {f['Final Score'] != null && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: GREEN, padding: '3px 10px', borderRadius: 20 }}>
+                      ★ {Number(f['Final Score']).toFixed(1)}
+                    </span>
+                  )}
+                  {[
+                    { label: 'Expert',     val: f['Expert Score'] },
+                    { label: 'Community',  val: f['Community Score'] },
+                    { label: 'Popularity', val: f['Popularity Score'] },
+                    { label: 'Recency',    val: f['Recency Score'] },
+                    { label: 'Clinical',   val: f['Clinical Depth Score'] },
+                  ].filter(s => s.val != null).map(({ label, val }) => (
+                    <span key={label} style={{ fontSize: 11, color: '#555', background: '#f3f4f6', padding: '2px 8px', borderRadius: 20 }}>
+                      {label} {Number(val).toFixed(0)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Action buttons — full width on mobile */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => act(item.id, 'approve')} disabled={!!acting[item.id]}
+                  style={{ flex: 1, padding: '10px', background: '#d1fae5', color: '#065f46', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: FONT }}>
                   {acting[item.id] === 'approve' ? '…' : '✓ Approve'}
                 </button>
-                <button onClick={() => act(item.id, 'reject')} disabled={!!acting[item.id]} style={{ padding: '7px 14px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: FONT }}>
+                <button onClick={() => act(item.id, 'reject')} disabled={!!acting[item.id]}
+                  style={{ flex: 1, padding: '10px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: FONT }}>
                   {acting[item.id] === 'reject' ? '…' : '✕ Reject'}
                 </button>
               </div>
@@ -236,14 +242,13 @@ function ReviewQueue() {
 }
 
 // ══════════════════════════════════════════
-//  TAB 3 — All Resources
+//  TAB 3 — All Resources (card layout on mobile)
 // ══════════════════════════════════════════
 const SORT_COLS = [
   { key: 'added',     label: 'Recently Added', fn: (a, b) => b.id.localeCompare(a.id) },
   { key: 'name',      label: 'Name',           fn: (a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || '') },
   { key: 'type',      label: 'Type',           fn: (a, b) => (a.fields.Type || '').localeCompare(b.fields.Type || '') },
   { key: 'expert',    label: 'Expert Score',   fn: (a, b) => (b.fields['Expert Score'] || 0) - (a.fields['Expert Score'] || 0) },
-  { key: 'community', label: 'Community Score',fn: (a, b) => (b.fields['Community Score'] || 0) - (a.fields['Community Score'] || 0) },
   { key: 'source',    label: 'Source',         fn: (a, b) => (a.fields.Source || '').localeCompare(b.fields.Source || '') },
   { key: 'status',    label: 'Status',         fn: (a, b) => (a.fields.Status || '').localeCompare(b.fields.Status || '') },
 ];
@@ -269,11 +274,6 @@ function AllResources() {
   }
 
   useEffect(() => { load(); }, []);
-
-  function toggleSort(key) {
-    if (sortKey === key) { setSortAsc(a => !a); }
-    else { setSortKey(key); setSortAsc(key === 'name' || key === 'type' || key === 'source' || key === 'status'); }
-  }
 
   const sortFn = SORT_COLS.find(c => c.key === sortKey)?.fn || SORT_COLS[0].fn;
   const filtered = items
@@ -311,82 +311,71 @@ function AllResources() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>All Resources</h2>
         <span style={{ fontSize: 13, color: '#888' }}>{items.length} total</span>
       </div>
-      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, category, type…" style={{ ...inp(), marginBottom: 16 }} />
 
-      <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead>
-            <tr style={{ background: '#f9fafb', borderBottom: `1px solid ${BORDER}` }}>
-              {[
-                { label: 'Name',      key: 'name' },
-                { label: 'Type',      key: 'type' },
-                { label: 'Category',  key: null },
-                { label: 'Expert',    key: 'expert' },
-                { label: 'Community', key: 'community' },
-                { label: 'Source',    key: 'source' },
-                { label: 'Status',    key: 'status' },
-                { label: 'Added',     key: 'added' },
-                { label: '',          key: null },
-              ].map(({ label, key }) => (
-                <th key={label + (key || '')} onClick={key ? () => toggleSort(key) : undefined}
-                  style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: sortKey === key ? '#111' : '#555', whiteSpace: 'nowrap', cursor: key ? 'pointer' : 'default', userSelect: 'none' }}>
-                  {label}{key && sortKey === key ? (sortAsc ? ' ↑' : ' ↓') : key ? ' ↕' : ''}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(item => {
-              const f = item.fields;
-              const isEditing = editing === item.id;
-              return (
-                <tr key={item.id} style={{ borderBottom: `1px solid ${BORDER}`, background: isEditing ? '#f0fdf4' : '#fff' }}>
-                  <td style={{ padding: '10px 12px', maxWidth: 200 }}>
-                    {isEditing
-                      ? <input value={editFields.Name} onChange={e => setEditFields(ef => ({ ...ef, Name: e.target.value }))} style={{ ...inp({ padding: '4px 8px', fontSize: 12, width: 160 }) }} />
-                      : <span style={{ fontWeight: 600, color: '#111' }}>{f.Name}</span>}
-                  </td>
-                  <td style={{ padding: '10px 12px', color: '#555' }}>{f.Type}</td>
-                  <td style={{ padding: '10px 12px', color: '#555', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.Category}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    {isEditing
-                      ? <input type="number" min="0" max="10" step="0.1" value={editFields['Expert Score']} onChange={e => setEditFields(ef => ({ ...ef, 'Expert Score': e.target.value }))} style={{ ...inp({ padding: '4px 8px', fontSize: 12, width: 56 }) }} />
-                      : <span style={{ color: f['Expert Score'] ? GREEN : '#ccc', fontWeight: 600 }}>{f['Expert Score'] || '—'}</span>}
-                  </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    {isEditing
-                      ? <input type="number" min="0" max="10" step="0.1" value={editFields['Community Score']} onChange={e => setEditFields(ef => ({ ...ef, 'Community Score': e.target.value }))} style={{ ...inp({ padding: '4px 8px', fontSize: 12, width: 56 }) }} />
-                      : <span style={{ color: f['Community Score'] ? GREEN : '#ccc', fontWeight: 600 }}>{f['Community Score'] || '—'}</span>}
-                  </td>
-                  <td style={{ padding: '10px 12px' }}><SourceBadge source={f.Source} /></td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 20, background: f.Status === 'Published' ? '#d1fae5' : '#fef3c7', color: f.Status === 'Published' ? '#065f46' : '#92400e', fontWeight: 600 }}>
+      {/* Search + sort row */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, type…" style={{ ...inp(), flex: 1, minWidth: 160 }} />
+        <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{ ...inp({ width: 'auto', flex: '0 0 auto', fontSize: 12 }) }}>
+          {SORT_COLS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+        </select>
+      </div>
+
+      {/* Card list */}
+      <div style={{ display: 'grid', gap: 10 }}>
+        {filtered.map(item => {
+          const f = item.fields;
+          const isEditing = editing === item.id;
+          return (
+            <div key={item.id} style={{ border: `1px solid ${isEditing ? GREEN : BORDER}`, borderRadius: 8, padding: '14px 16px', background: isEditing ? '#f0fdf4' : '#fff' }}>
+              {isEditing ? (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+                    Name
+                    <input value={editFields.Name} onChange={e => setEditFields(ef => ({ ...ef, Name: e.target.value }))} style={{ ...inp({ fontSize: 13, marginTop: 4 }) }} />
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+                      Expert Score
+                      <input type="number" min="0" max="100" value={editFields['Expert Score']} onChange={e => setEditFields(ef => ({ ...ef, 'Expert Score': e.target.value }))} style={{ ...inp({ fontSize: 13, marginTop: 4 }) }} />
+                    </label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+                      Community Score
+                      <input type="number" min="0" max="100" value={editFields['Community Score']} onChange={e => setEditFields(ef => ({ ...ef, 'Community Score': e.target.value }))} style={{ ...inp({ fontSize: 13, marginTop: 4 }) }} />
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button onClick={() => saveEdit(item.id)} disabled={saving} style={{ flex: 1, padding: '10px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: FONT }}>Save</button>
+                    <button onClick={() => setEditing(null)} style={{ flex: 1, padding: '10px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: FONT }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#111', flex: 1, minWidth: 0 }}>{f.Name}</div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => startEdit(item)} style={{ padding: '5px 12px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: FONT }}>Edit</button>
+                      <button onClick={() => deleteItem(item.id)} disabled={deleting === item.id} style={{ padding: '5px 12px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontFamily: FONT }}>Del</button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: '#777', background: '#f3f4f6', padding: '2px 8px', borderRadius: 20 }}>{f.Type}</span>
+                    <SourceBadge source={f.Source} />
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: f.Status === 'Published' ? '#d1fae5' : '#fef3c7', color: f.Status === 'Published' ? '#065f46' : '#92400e', fontWeight: 600 }}>
                       {f.Status || 'Draft'}
                     </span>
-                  </td>
-                  <td style={{ padding: '10px 12px' }} />
-                  <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => saveEdit(item.id)} disabled={saving} style={{ padding: '4px 10px', background: GREEN, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: FONT }}>Save</button>
-                        <button onClick={() => setEditing(null)} style={{ padding: '4px 10px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontFamily: FONT }}>Cancel</button>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => startEdit(item)} style={{ padding: '4px 10px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontFamily: FONT }}>Edit</button>
-                        <button onClick={() => deleteItem(item.id)} disabled={deleting === item.id} style={{ padding: '4px 10px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontFamily: FONT }}>Del</button>
-                      </div>
+                    {f['Expert Score'] != null && (
+                      <span style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>Expert {f['Expert Score']}</span>
                     )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -403,6 +392,7 @@ function RunResearch() {
   const [error, setError] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
   const [promptEdited, setPromptEdited] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
 
   const THEMES = ['Learning & Education', 'Technology & Software', 'Coaching & Mentorship', 'Community & Network', 'Specialty Resources', 'Training & Career', 'Practice & Business', 'Wellbeing & Lifestyle'];
 
@@ -479,86 +469,85 @@ Return ONLY the JSON array, no other text.`;
   }
 
   return (
-    <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>AI Research Agent</h2>
+        <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, textDecoration: 'none', fontWeight: 500 }}>Check Perplexity credits ↗</a>
+      </div>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>Choose a category and let the AI find new resources. Results land in the Review Queue as <strong>🤖 AI Agent / Pending</strong> for your approval.</p>
 
-      {/* Left — controls */}
-      <div style={{ flex: '0 0 420px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>AI Research Agent</h2>
-          <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, textDecoration: 'none', fontWeight: 500 }}>Check Perplexity credits ↗</a>
-        </div>
-        <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>Choose a category and let the AI find new resources. Results land in the Review Queue as <strong>🤖 AI Agent / Pending</strong> for your approval.</p>
+      <div style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+          Category *
+          <select value={category} onChange={e => handleCategoryChange(e.target.value)} style={{ ...inp(), marginTop: 4 }}>
+            <option value="">— select a category —</option>
+            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+          Theme (optional)
+          <select value={theme} onChange={e => handleThemeChange(e.target.value)} style={{ ...inp(), marginTop: 4 }}>
+            <option value="">— any —</option>
+            {THEMES.map(t => <option key={t}>{t}</option>)}
+          </select>
+        </label>
+      </div>
 
-        <div style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-            Category *
-            <select value={category} onChange={e => handleCategoryChange(e.target.value)} style={{ ...inp(), marginTop: 4 }}>
-              <option value="">— select a category —</option>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
-          </label>
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-            Theme (optional — helps focus the search)
-            <select value={theme} onChange={e => handleThemeChange(e.target.value)} style={{ ...inp(), marginTop: 4 }}>
-              <option value="">— any —</option>
-              {THEMES.map(t => <option key={t}>{t}</option>)}
-            </select>
-          </label>
-        </div>
-
-        {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
-
-        <button onClick={run} disabled={running || !category} style={{ padding: '11px 28px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: running ? 0.6 : 1 }}>
-          {running ? '🤖 Researching…' : '🤖 Run AI Research'}
+      {/* Collapsible prompt editor */}
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={() => setShowPrompt(s => !s)} style={{ fontSize: 12, color: '#888', background: 'none', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '7px 14px', cursor: 'pointer', fontFamily: FONT, width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Edit prompt{promptEdited ? ' (modified)' : ''}</span>
+          <span>{showPrompt ? '▲' : '▼'}</span>
         </button>
-
-        {result && (
-          <div style={{ marginTop: 24 }}>
-            {result.status === 'no_ai_key' ? (
-              <div style={{ padding: '16px', background: '#fef3c7', borderRadius: 8, fontSize: 13, color: '#92400e' }}>
-                <strong>No AI key configured.</strong> {result.message}
-              </div>
-            ) : (
-              <div>
-                <div style={{ padding: '12px 16px', background: '#d1fae5', borderRadius: 8, fontSize: 13, color: '#065f46', marginBottom: 16 }}>
-                  ✓ Found {result.added} resources — added to Review Queue as AI Agent / Pending.
-                  {result.skipped?.length > 0 && <div style={{ marginTop: 6, fontSize: 12, color: '#047857' }}>Skipped {result.skipped.length}: {result.skipped.map(s => `${s.name} (${s.reason})`).join(', ')}</div>}
-                </div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {(result.found || []).map((r, i) => (
-                    <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '12px 16px', background: '#fff' }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 2 }}>{r.Name}</div>
-                      <a href={r.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: GREEN, marginBottom: 4, display: 'block', textDecoration: 'none' }}>{r.URL}</a>
-                      <div style={{ fontSize: 12, color: '#777' }}>{r.Description}</div>
-                      <div style={{ fontSize: 11, color: '#bbb', marginTop: 4 }}>{r.Type}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {showPrompt && (
+          <div style={{ marginTop: 8 }}>
+            {promptEdited && (
+              <button onClick={resetPrompt} style={{ fontSize: 11, padding: '4px 12px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#555', fontFamily: FONT, marginBottom: 8 }}>
+                ↺ Reset to default
+              </button>
             )}
+            <textarea
+              value={customPrompt || (category ? buildDefaultPrompt(category, theme) : '')}
+              onChange={e => handlePromptChange(e.target.value)}
+              placeholder="Select a category above to generate the prompt…"
+              style={{ ...inp(), fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7, minHeight: 300, resize: 'vertical', color: category ? '#333' : '#bbb' }}
+            />
           </div>
         )}
       </div>
 
-      {/* Right — editable prompt */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-          Prompt
-          <span style={{ fontSize: 11, fontWeight: 400, color: '#bbb' }}>sent to GPT-4o — edit freely</span>
-          {promptEdited && (
-            <button onClick={resetPrompt} style={{ marginLeft: 'auto', fontSize: 11, padding: '3px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#555', fontFamily: FONT }}>
-              ↺ Reset to default
-            </button>
+      {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+
+      <button onClick={run} disabled={running || !category} style={{ width: '100%', padding: '13px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: running ? 0.6 : 1 }}>
+        {running ? '🤖 Researching… (takes ~30s)' : '🤖 Run AI Research'}
+      </button>
+
+      {result && (
+        <div style={{ marginTop: 24 }}>
+          {result.status === 'no_ai_key' ? (
+            <div style={{ padding: '16px', background: '#fef3c7', borderRadius: 8, fontSize: 13, color: '#92400e' }}>
+              <strong>No AI key configured.</strong> {result.message}
+            </div>
+          ) : (
+            <div>
+              <div style={{ padding: '12px 16px', background: '#d1fae5', borderRadius: 8, fontSize: 13, color: '#065f46', marginBottom: 16 }}>
+                ✓ Found {result.added} resources — added to Review Queue as AI Agent / Pending.
+                {result.skipped?.length > 0 && <div style={{ marginTop: 6, fontSize: 12, color: '#047857' }}>Skipped {result.skipped.length}: {result.skipped.map(s => `${s.name} (${s.reason})`).join(', ')}</div>}
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {(result.found || []).map((r, i) => (
+                  <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '12px 16px', background: '#fff' }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 2 }}>{r.Name}</div>
+                    <a href={r.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: GREEN, marginBottom: 4, display: 'block', textDecoration: 'none', wordBreak: 'break-all' }}>{r.URL}</a>
+                    <div style={{ fontSize: 12, color: '#777' }}>{r.Description}</div>
+                    <div style={{ fontSize: 11, color: '#bbb', marginTop: 4 }}>{r.Type}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
-        <textarea
-          value={customPrompt || (category ? buildDefaultPrompt(category, theme) : '')}
-          onChange={e => handlePromptChange(e.target.value)}
-          placeholder="Select a category above to generate the prompt…"
-          style={{ ...inp(), fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7, minHeight: 760, resize: 'vertical', color: category ? '#333' : '#bbb' }}
-        />
-      </div>
-
+      )}
     </div>
   );
 }
@@ -571,7 +560,7 @@ function Settings() {
   const [newPass, setNewPass] = useState('');
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null); // { type: 'success'|'error', text }
+  const [message, setMessage] = useState(null);
 
   async function changePassword(e) {
     e.preventDefault();
@@ -594,11 +583,11 @@ function Settings() {
   }
 
   return (
-    <div style={{ maxWidth: 480 }}>
+    <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Settings</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 32 }}>Manage your admin panel credentials.</p>
 
-      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '28px 28px 24px' }}>
+      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '24px 20px' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 20 }}>Change Password</div>
         <form onSubmit={changePassword} style={{ display: 'grid', gap: 14 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
@@ -620,7 +609,7 @@ function Settings() {
             </div>
           )}
 
-          <button type="submit" disabled={saving || !current || !newPass || !confirm} style={{ padding: '10px 22px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: saving ? 0.6 : 1, justifySelf: 'start', marginTop: 4 }}>
+          <button type="submit" disabled={saving || !current || !newPass || !confirm} style={{ width: '100%', padding: '12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: saving ? 0.6 : 1, marginTop: 4 }}>
             {saving ? 'Updating…' : 'Update password'}
           </button>
         </form>
@@ -650,8 +639,8 @@ function Login({ onLogin }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f2eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT }}>
-      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12, padding: '40px 36px', width: 340, boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
+    <div style={{ minHeight: '100vh', background: '#f5f2eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, padding: '20px' }}>
+      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12, padding: '40px 28px', width: '100%', maxWidth: 340, boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#aaa', marginBottom: 8 }}>Admin Portal</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#111' }}>The Dental Commute</div>
@@ -676,7 +665,6 @@ export default function AdminPage() {
   const [checking, setChecking] = useState(true);
   const [tab, setTab] = useState(0);
 
-  // Check if already logged in (cookie present)
   useEffect(() => {
     fetch('/api/admin/resources', { method: 'GET' })
       .then(r => { if (r.ok || r.status !== 401) setAuthed(true); })
@@ -695,25 +683,27 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f5f2eb', fontFamily: FONT }}>
       {/* Top bar */}
-      <div style={{ background: '#fff', borderBottom: `1px solid ${BORDER}`, padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-          <div style={{ padding: '14px 0', fontSize: 13, fontWeight: 700, color: '#111' }}>⚙ Admin</div>
-          <div style={{ display: 'flex', gap: 0 }}>
-            {TABS.map((t, i) => (
-              <button key={t} onClick={() => setTab(i)} style={{ padding: '16px 18px', background: 'none', border: 'none', borderBottom: tab === i ? `2px solid ${GREEN}` : '2px solid transparent', color: tab === i ? '#111' : '#aaa', fontWeight: tab === i ? 600 : 400, cursor: 'pointer', fontSize: 13, fontFamily: FONT, whiteSpace: 'nowrap' }}>
-                {t}
-              </button>
-            ))}
+      <div style={{ background: '#fff', borderBottom: `1px solid ${BORDER}`, padding: '0 16px', position: 'sticky', top: 0, zIndex: 50 }}>
+        {/* Row 1: title + logout */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>⚙ Admin</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <a href="/" target="_blank" style={{ fontSize: 12, color: '#888', textDecoration: 'none' }}>← Site</a>
+            <button onClick={logout} style={{ fontSize: 12, padding: '5px 12px', border: `1px solid ${BORDER}`, borderRadius: 5, background: '#fff', cursor: 'pointer', color: '#555', fontFamily: FONT }}>Log out</button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <a href="/" target="_blank" style={{ fontSize: 12, color: '#888', textDecoration: 'none' }}>← View site</a>
-          <button onClick={logout} style={{ fontSize: 12, padding: '6px 14px', border: `1px solid ${BORDER}`, borderRadius: 5, background: '#fff', cursor: 'pointer', color: '#555', fontFamily: FONT }}>Log out</button>
+        {/* Row 2: tabs (scrollable) */}
+        <div style={{ display: 'flex', gap: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {TABS.map((t, i) => (
+            <button key={t} onClick={() => setTab(i)} style={{ padding: '10px 14px', background: 'none', border: 'none', borderBottom: tab === i ? `2px solid ${GREEN}` : '2px solid transparent', color: tab === i ? '#111' : '#aaa', fontWeight: tab === i ? 600 : 400, cursor: 'pointer', fontSize: 13, fontFamily: FONT, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '36px 28px' }}>
+      <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px 60px' }}>
         {tab === 0 && <AddResource />}
         {tab === 1 && <ReviewQueue />}
         {tab === 2 && <AllResources />}
