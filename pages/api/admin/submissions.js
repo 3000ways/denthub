@@ -29,7 +29,7 @@ export default async function handler(req, res) {
         pageSize: '100',
       });
       const data = await airtableRequest(`?${params}`);
-      const records = (data.records || []).sort((a, b) => b.id.localeCompare(a.id));
+      const records = (data.records || []).sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
       return res.status(200).json(records);
     } catch (e) {
       return res.status(500).json({ error: e.message });
