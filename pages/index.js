@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useAuth } from '../lib/auth-context';
+import { SignInModal, OnboardingModal } from '../components/AuthModal';
+import { CommunitySection } from '../components/Community';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -300,6 +303,9 @@ function EpisodeCard({ ep }) {
 }
 
 export default function Home() {
+  const { user, profile } = useAuth();
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [resources, setResources]   = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeSpecialty, setActiveSpecialty] = useState(null);
@@ -315,6 +321,10 @@ export default function Home() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  useEffect(() => {
+    if (user && profile && !profile.role) setShowOnboarding(true);
+  }, [user, profile]);
   const [ytStats, setYtStats] = useState({});
   const [podStats, setPodStats] = useState({});
   const [bookStats, setBookStats] = useState({});
@@ -486,6 +496,18 @@ export default function Home() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:20, flexShrink:0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.1 }}>About</a>
+            {user ? (
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY }}>
+                  {profile?.role ? `${profile.role}` : user.email?.split('@')[0]}
+                  {profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600 }}>✓ Verified</span>}
+                </span>
+              </div>
+            ) : (
+              <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'8px 18px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600 }}>
+                Sign in
+              </button>
+            )}
             <button onClick={openSubmitModal} style={{ fontSize:12, padding:'8px 20px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
               Submit a resource
             </button>
@@ -872,6 +894,7 @@ export default function Home() {
                               ))}
                             </div>
                           </div>
+                          <CommunitySection resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
                         </div>
                       )}
                     </div>
@@ -1052,6 +1075,7 @@ export default function Home() {
                               ))}
                             </div>
                           </div>
+                          <CommunitySection resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
                         </div>
                       )}
                     </div>
@@ -1134,6 +1158,9 @@ export default function Home() {
       )}
 
     </div>
+
+    {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
+    {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
     </>
   );
 }
