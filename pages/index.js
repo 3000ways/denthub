@@ -727,7 +727,7 @@ export default function Home() {
                         onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background='#f9f9f9'; }}
                         onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
                       >
-                        <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
+                        <div style={{ fontSize:11, color: isMobile ? '#888' : '#ccc', minWidth: isMobile ? 14 : 22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
                         <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
@@ -911,7 +911,7 @@ export default function Home() {
                         onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background='#f9f9f9'; }}
                         onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
                       >
-                        <div style={{ fontSize:11, color:'#ccc', minWidth:22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
+                        <div style={{ fontSize:11, color: isMobile ? '#888' : '#ccc', minWidth: isMobile ? 14 : 22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
                         <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage2} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
