@@ -734,19 +734,19 @@ export default function Home() {
                             <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
                             {f['Community Pick'] && <CommunityPickBadge />}
                           </div>
-                          <div style={{ fontSize: isMobile ? 13 : 11, color:'#bbb', display:'flex', gap:10, alignItems:'center' }}>
-                            {f['Host or Author'] && <span style={{ color:'#ccc' }}><Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
-                            {yt?.subscribers && <span style={{ color:'#bbb' }}>· {yt.subscribers} subscribers</span>}
-                            {yt?.videos && <span style={{ color:'#bbb' }}>· {yt.videos} videos</span>}
+                          <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#666' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                            {f['Host or Author'] && <span style={{ color: isMobile ? '#777' : '#ccc' }}><Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
+                            {yt?.subscribers && <span>· {yt.subscribers} subs</span>}
+                            {yt?.videos && <span>· {yt.videos} videos</span>}
                           </div>
-                          {yt?.latest && (
+                          {!isMobile && yt?.latest && (
                             <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                               <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
                               {yt.latest.title}
                               {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
                             </div>
                           )}
-                          {pod?.latest && (
+                          {!isMobile && pod?.latest && (
                             <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                               <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
                               {pod.latest.title}
@@ -760,11 +760,11 @@ export default function Home() {
                         </div>
                       </div>
                       {isOpen && (
-                        <div style={{ padding:'0 0 20px 38px', background:'#faf9f6' }}>
+                        <div style={{ padding: isMobile ? '0 0 20px 0' : '0 0 20px 38px', background:'#faf9f6' }}>
                           {yt?.recentVideos?.length > 0 && (
                             <div style={{ marginBottom:16 }}>
                               <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Videos</div>
-                              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, paddingRight:80 }}>
+                              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, paddingRight: isMobile ? 0 : 80 }}>
                                 {yt.recentVideos.map((v, idx) => (
                                   <a key={idx} href={v.url} target="_blank" rel="noopener noreferrer"
                                     style={{ display:'block', borderRadius:7, overflow:'hidden', position:'relative', textDecoration:'none' }}>
@@ -789,7 +789,7 @@ export default function Home() {
                           {pod?.episodes?.length > 0 && (
                             <div style={{ marginBottom:16 }}>
                               <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
-                              <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight:80 }}>
+                              <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight: isMobile ? 0 : 80 }}>
                                 {pod.episodes.map((ep, idx) => (
                                   <a key={idx} href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
                                     style={{ display:'flex', gap:10, textDecoration:'none', color:'inherit', alignItems:'center', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:7, padding:'8px 10px', transition:'border-color 0.15s' }}
@@ -816,22 +816,22 @@ export default function Home() {
                               </div>
                             </div>
                           )}
-                          <div style={{ display:'flex', gap:32 }}>
+                          <div style={{ display:'flex', gap:32, flexDirection: isMobile ? 'column' : 'row' }}>
                             <div style={{ flex:1 }}>
                               {book?.cover && (
                                 <img src={book.cover} alt={f.Name}
                                   style={{ float:'right', width:80, borderRadius:4, boxShadow:'0 4px 16px rgba(0,0,0,0.15)', marginLeft:16, marginBottom:8 }} />
                               )}
                               {(book?.description || f.Description) && (
-                                <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 10px' }}>
+                                <p style={{ fontSize:13, color:'#444', lineHeight:1.65, margin:'0 0 10px' }}>
                                   {book?.description || f.Description}
                                 </p>
                               )}
                               {book && (book.pages || book.year || book.publisher) && (
                                 <div style={{ display:'flex', gap:16, marginBottom:14, flexWrap:'wrap' }}>
-                                  {book.year      && <span style={{ fontSize:11, color:'#aaa' }}>📅 {book.year}</span>}
-                                  {book.pages     && <span style={{ fontSize:11, color:'#aaa' }}>📄 {book.pages} pages</span>}
-                                  {book.publisher && <span style={{ fontSize:11, color:'#aaa' }}>🏢 {book.publisher}</span>}
+                                  {book.year      && <span style={{ fontSize:11, color:'#888' }}>📅 {book.year}</span>}
+                                  {book.pages     && <span style={{ fontSize:11, color:'#888' }}>📄 {book.pages} pages</span>}
+                                  {book.publisher && <span style={{ fontSize:11, color:'#888' }}>🏢 {book.publisher}</span>}
                                 </div>
                               )}
                               <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
@@ -857,15 +857,15 @@ export default function Home() {
                                 <VoteButtons resourceId={r.id} />
                               </div>
                             </div>
-                            <div style={{ width:180, flexShrink:0, paddingRight:16 }}>
-                              <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
+                            <div style={{ width: isMobile ? '100%' : 180, flexShrink:0, paddingRight: isMobile ? 0 : 16 }}>
+                              <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#888', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
                               {breakdown.map(b => (
                                 <div key={b.label} style={{ marginBottom:8 }}>
                                   <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
-                                    <span style={{ fontSize:11, color:'#888' }}>{b.label}</span>
+                                    <span style={{ fontSize:11, color:'#666' }}>{b.label}</span>
                                     <span style={{ fontSize:11, fontWeight:600, color: b.value != null ? GREEN : '#ddd' }}>{b.value ?? '—'}</span>
                                   </div>
-                                  <div style={{ height:3, background:'#eee', borderRadius:2 }}>
+                                  <div style={{ height:3, background:'#ddd', borderRadius:2 }}>
                                     <div style={{ height:3, width: b.value ? `${Math.min((b.value > 10 ? b.value : b.value*10), 100)}%` : '0%', background:GREEN, borderRadius:2, transition:'width 0.4s' }} />
                                   </div>
                                 </div>
@@ -918,20 +918,20 @@ export default function Home() {
                             <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
                             {f['Community Pick'] && <CommunityPickBadge />}
                           </div>
-                          <div style={{ fontSize:11, color:'#bbb', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                          <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#666' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                             <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
-                            {f['Host or Author'] && <span style={{ color:'#ccc' }}>· <Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
-                            {yt?.subscribers && <span style={{ color:'#bbb' }}>· {yt.subscribers} subscribers</span>}
-                            {yt?.videos && <span style={{ color:'#bbb' }}>· {yt.videos} videos</span>}
+                            {f['Host or Author'] && <span style={{ color: isMobile ? '#777' : '#ccc' }}>· <Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
+                            {yt?.subscribers && <span>· {yt.subscribers} subs</span>}
+                            {yt?.videos && <span>· {yt.videos} videos</span>}
                           </div>
-                          {yt?.latest && (
+                          {!isMobile && yt?.latest && (
                             <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                               <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
                               {yt.latest.title}
                               {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
                             </div>
                           )}
-                          {pod?.latest && (
+                          {!isMobile && pod?.latest && (
                             <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                               <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
                               {pod.latest.title}
@@ -947,7 +947,7 @@ export default function Home() {
 
                       {/* Expanded panel */}
                       {isOpen && (
-                        <div style={{ padding:'0 0 20px 38px', background:'#faf9f6' }}>
+                        <div style={{ padding: isMobile ? '0 0 20px 0' : '0 0 20px 38px', background:'#faf9f6' }}>
                           {yt?.latest?.thumbnail && (
                             <a href={yt.latest.url} target="_blank" rel="noopener noreferrer"
                               style={{ display:'block', marginBottom:16, borderRadius:6, overflow:'hidden', maxWidth:280, position:'relative', textDecoration:'none' }}>
@@ -965,7 +965,7 @@ export default function Home() {
                           {pod?.episodes?.length > 0 && (
                             <div style={{ marginBottom:16 }}>
                               <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
-                              <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight:80 }}>
+                              <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight: isMobile ? 0 : 80 }}>
                                 {pod.episodes.map((ep, idx) => (
                                   <a key={idx} href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
                                     style={{ display:'flex', gap:10, textDecoration:'none', color:'inherit', alignItems:'center', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:7, padding:'8px 10px', transition:'border-color 0.15s' }}
@@ -992,7 +992,7 @@ export default function Home() {
                               </div>
                             </div>
                           )}
-                          <div style={{ display:'flex', gap:32 }}>
+                          <div style={{ display:'flex', gap:32, flexDirection: isMobile ? 'column' : 'row' }}>
                             {/* Left: description + link */}
                             <div style={{ flex:1 }}>
                               {book?.cover && (
@@ -1000,15 +1000,15 @@ export default function Home() {
                                   style={{ float:'right', width:80, borderRadius:4, boxShadow:'0 4px 16px rgba(0,0,0,0.15)', marginLeft:16, marginBottom:8 }} />
                               )}
                               {(book?.description || f.Description) && (
-                                <p style={{ fontSize:13, color:'#555', lineHeight:1.65, margin:'0 0 10px' }}>
+                                <p style={{ fontSize:13, color:'#444', lineHeight:1.65, margin:'0 0 10px' }}>
                                   {book?.description || f.Description}
                                 </p>
                               )}
                               {book && (book.pages || book.year || book.publisher) && (
                                 <div style={{ display:'flex', gap:16, marginBottom:14, flexWrap:'wrap' }}>
-                                  {book.year      && <span style={{ fontSize:11, color:'#aaa' }}>📅 {book.year}</span>}
-                                  {book.pages     && <span style={{ fontSize:11, color:'#aaa' }}>📄 {book.pages} pages</span>}
-                                  {book.publisher && <span style={{ fontSize:11, color:'#aaa' }}>🏢 {book.publisher}</span>}
+                                  {book.year      && <span style={{ fontSize:11, color:'#888' }}>📅 {book.year}</span>}
+                                  {book.pages     && <span style={{ fontSize:11, color:'#888' }}>📄 {book.pages} pages</span>}
+                                  {book.publisher && <span style={{ fontSize:11, color:'#888' }}>🏢 {book.publisher}</span>}
                                 </div>
                               )}
                               <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
@@ -1037,15 +1037,15 @@ export default function Home() {
                             </div>
 
                             {/* Right: score bars */}
-                            <div style={{ width:180, flexShrink:0, paddingRight:16 }}>
-                              <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
+                            <div style={{ width: isMobile ? '100%' : 180, flexShrink:0, paddingRight: isMobile ? 0 : 16 }}>
+                              <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#888', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
                               {breakdown.map(b => (
                                 <div key={b.label} style={{ marginBottom:8 }}>
                                   <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
-                                    <span style={{ fontSize:11, color:'#888' }}>{b.label}</span>
+                                    <span style={{ fontSize:11, color:'#666' }}>{b.label}</span>
                                     <span style={{ fontSize:11, fontWeight:600, color: b.value != null ? GREEN : '#ddd' }}>{b.value ?? '—'}</span>
                                   </div>
-                                  <div style={{ height:3, background:'#eee', borderRadius:2 }}>
+                                  <div style={{ height:3, background:'#ddd', borderRadius:2 }}>
                                     <div style={{ height:3, width: b.value ? `${Math.min((b.value > 10 ? b.value : b.value*10), 100)}%` : '0%', background:GREEN, borderRadius:2, transition:'width 0.4s' }} />
                                   </div>
                                 </div>
