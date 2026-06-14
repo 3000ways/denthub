@@ -427,7 +427,7 @@ For each resource, also score it on these 5 dimensions (0–100 scale):
 - ClinicalDepthScore: depth of clinical relevance and practical application
 
 For each resource, also assign:
-- Specialty: an array of dental specialties this resource targets (use only values from this list, can be multiple, or empty array if cross-specialty/non-dental): ["General Dentistry","Endodontics","Orthodontics","Periodontics","Oral Surgery","Prosthodontics","Oral Radiology","Dental Anesthesiology","Pain"]
+- Specialty: an array of dental specialties this resource targets (use only values from this list, must have at least one): ["General Dentistry","Endodontics","Orthodontics","Periodontics","Oral Surgery","Prosthodontics","Oral Radiology","Dental Anesthesiology","Pain"]. If the resource is relevant to all dentists or is cross-specialty, include every specialty it applies to — do NOT leave this empty.
 - Topic: an array of business/professional topics this resource covers (use only values from this list, can be multiple, must have at least one): ["Clinical","Technology","Leadership","Marketing","Finance & Investment","Practice Growth","Team & HR","Wellness"]
 
 After searching, return ONLY a valid JSON array of objects, each with:
