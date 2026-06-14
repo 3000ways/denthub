@@ -232,7 +232,7 @@ export default async function handler(req, res) {
         ...(r.RecencyScore       != null ? { 'Recency Score':         Number(r.RecencyScore) }       : {}),
         ...(r.ClinicalDepthScore != null ? { 'Clinical Depth Score':  Number(r.ClinicalDepthScore) } : {}),
         ...(Array.isArray(r.Specialty) && r.Specialty.length ? { Specialty: r.Specialty } : { Specialty: ['General Dentistry'] }),
-        ...(Array.isArray(r.Topic) && r.Topic.length ? { Topic: r.Topic } : {}),
+        ...(Array.isArray(r.Topic) && r.Topic.length ? { Topic: r.Topic } : { Topic: ['Clinical'] }),
         Source: 'AI Agent',
         'Submission Status': 'Pending',
       },
