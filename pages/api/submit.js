@@ -3,6 +3,7 @@ const TABLE_ID = 'tblBlou0rXbImoQ75';
 
 const VALID_SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
 const VALID_TOPICS      = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
+const VALID_TYPES       = ['Podcast','YouTube','Book','Course','Software','Community','Conference','Coaching','Mastermind','Other'];
 
 async function verifyTurnstile(token, ip) {
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -24,7 +25,7 @@ Visit the page and research this resource online. Then return a JSON object (no 
 {
   "Name": "the resource's title",
   "Description": "1-2 sentences on what it is and why it's valuable to dental professionals",
-  "Type": "one of: Podcast, YouTube, Website, Book, Course, Software, Community, Conference, Other",
+  "Type": "one of: Podcast, YouTube, Book, Course, Software, Community, Conference, Coaching, Mastermind, Other — do NOT use 'Website'; if the resource is a coaching or consulting program use 'Coaching', if it's a mastermind group use 'Mastermind', if it's a CE platform use 'Course', if it's a dental community/forum use 'Community'",
   "Author": "author, host, or creator name (or empty string if unknown)",
   "Specialty": ["array of applicable dental specialties — must have at least one — from: General Dentistry, Endodontics, Orthodontics, Periodontics, Oral Surgery, Prosthodontics, Oral Radiology, Dental Anesthesiology, Pain — if relevant to all dentists include all that apply"],
   "Topic": ["array of applicable topics — must have at least one — from: Clinical, Technology, Leadership, Marketing, Finance & Investment, Practice Growth, Team & HR, Wellness"],
@@ -89,10 +90,21 @@ export default async function handler(req, res) {
   const finalSpecialty = specialty.length ? specialty : ['General Dentistry'];
   const finalTopic     = topic.length     ? topic     : ['Clinical'];
 
-  // Normalize Type
-  const typeMap = { 'YouTube Channel': 'YouTube', 'CE Website': 'Course' };
-  const rawType = parsed.Type || 'Website';
-  const finalType = typeMap[rawType] || rawType;
+  // Normalize Type — map common AI variants, then clamp to valid list
+  const typeMap = {
+    'YouTube Channel': 'YouTube',
+    'CE Website': 'Course',
+    'CE Platform': 'Course',
+    'Website': 'Other',
+    'Consulting': 'Coaching',
+    'Consulting Firm': 'Coaching',
+    'Mentor': 'Coaching',
+    'Mentorship': 'Coaching',
+    'Mastermind Group': 'Mastermind',
+  };
+  const rawType = parsed.Type || 'Other';
+  const mappedType = typeMap[rawType] || rawType;
+  const finalType = VALID_TYPES.includes(mappedType) ? mappedType : 'Other';
 
   // Write to Airtable
   const fields = {

@@ -140,7 +140,7 @@ For each resource, also assign:
 Return ONLY a valid JSON array. Each object must have exactly these keys:
 Name, URL, Description, Type, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore, Specialty, Topic
 
-Type must be one of: Podcast, YouTube, Website, Book, Course, Software, Community, Conference, Other
+Type must be one of: Podcast, YouTube, Book, Course, Software, Community, Conference, Coaching, Mastermind, Other — do NOT use "Website"; if it's a coaching or consulting program use "Coaching", if it's a mastermind group use "Mastermind", if it's a CE platform use "Course", if it's a dental forum/community use "Community"
 
 Find as many qualifying resources as possible — aim for 10. It is better to return 8 good results than 1 perfect one.`;
 
@@ -224,7 +224,17 @@ export default async function handler(req, res) {
         Name: r.Name || '',
         URL: r.URL || '',
         Description: r.Description || '',
-        Type: (r.Type || 'Website') === 'YouTube Channel' ? 'YouTube' : (r.Type || 'Website'),
+        Type: (() => {
+          const typeMap = {
+            'YouTube Channel': 'YouTube', 'CE Website': 'Course', 'CE Platform': 'Course',
+            'Website': 'Other', 'Consulting': 'Coaching', 'Consulting Firm': 'Coaching',
+            'Mentor': 'Coaching', 'Mentorship': 'Coaching', 'Mastermind Group': 'Mastermind',
+          };
+          const VALID = ['Podcast','YouTube','Book','Course','Software','Community','Conference','Coaching','Mastermind','Other'];
+          const raw = r.Type || 'Other';
+          const mapped = typeMap[raw] || raw;
+          return VALID.includes(mapped) ? mapped : 'Other';
+        })(),
         Tags: [category],
         ...(r.ExpertScore        != null ? { 'Expert Score':          Number(r.ExpertScore) }        : {}),
         ...(r.CommunityScore     != null ? { 'Community Score':       Number(r.CommunityScore) }     : {}),
