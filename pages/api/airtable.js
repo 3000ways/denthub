@@ -38,11 +38,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const url = `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(table)}?${params.toString()}`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${PAT}` } });
-    const data = await r.json();
+    const baseUrl = `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(table)}`;
+    const headers = { Authorization: `Bearer ${PAT}` };
+    let allRecords = [];
+    let offset;
+    do {
+      if (offset) params.set('offset', offset);
+      const r = await fetch(`${baseUrl}?${params.toString()}`, { headers });
+      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+      const data = await r.json();
+      allRecords = allRecords.concat(data.records || []);
+      offset = data.offset;
+    } while (offset);
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
-    return res.status(200).json(data);
+    return res.status(200).json({ records: allRecords });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
