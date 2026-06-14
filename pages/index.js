@@ -470,7 +470,7 @@ export default function Home() {
     <>
     <Head>
       <title>The Dental Commute</title>
-      <link rel="icon" href="/logo.png" type="image/png" />
+      <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       <link rel="apple-touch-icon" href="/logo.png" />
     </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
