@@ -698,11 +698,19 @@ function AllResources() {
         <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>All Resources</h2>
         <span style={{ fontSize: 13, color: '#888' }}>{items.length} total</span>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, type…" style={{ ...inp(), flex: 1, minWidth: 160 }} />
-        <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{ ...inp({ width: 'auto', flex: '0 0 auto', fontSize: 12 }) }}>
-          {SORT_COLS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-        </select>
+      <div style={{ marginBottom: 8 }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, type…" style={{ ...inp(), width: '100%', boxSizing: 'border-box' }} />
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+        {SORT_COLS.map(c => {
+          const active = sortKey === c.key;
+          return (
+            <button key={c.key} onClick={() => setSortKey(c.key)}
+              style={{ fontSize: 11, padding: '4px 12px', borderRadius: 20, border: `1px solid ${active ? GREEN : BORDER}`, background: active ? GREEN : '#fff', color: active ? '#fff' : '#777', cursor: 'pointer', fontFamily: FONT, fontWeight: active ? 600 : 400, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+              {c.label}
+            </button>
+          );
+        })}
       </div>
       <div style={{ display: 'grid', gap: 12 }}>
         {filtered.map(item => (
