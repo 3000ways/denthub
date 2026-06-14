@@ -734,8 +734,8 @@ export default function Home() {
                             <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
                             {f['Community Pick'] && <CommunityPickBadge />}
                           </div>
-                          <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#666' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                            {f['Host or Author'] && <span style={{ color: isMobile ? '#777' : '#ccc' }}><Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
+                          <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#555' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                            {f['Host or Author'] && <span style={{ color: isMobile ? '#444' : '#ccc' }}><Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
                             {yt?.subscribers && <span>· {yt.subscribers} subs</span>}
                             {yt?.videos && <span>· {yt.videos} videos</span>}
                           </div>
