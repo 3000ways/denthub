@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../components/AuthModal';
 import { CommunitySection } from '../components/Community';
@@ -323,6 +324,7 @@ export async function getServerSideProps() {
 }
 
 export default function Home({ initialResources }) {
+  const router = useRouter();
   const { user, profile } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -742,7 +744,7 @@ export default function Home({ initialResources }) {
                 <div style={{ borderTop:`1px solid ${BORDER}` }}>
                   {recentlyAdded.map(r => (
                     <div key={r.id}
-                      onClick={() => r.fields.URL && window.open(r.fields.URL,'_blank')}
+                      onClick={() => router.push(`/resource/${r.id}`)}
                       style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
                       onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
                       onMouseLeave={e => e.currentTarget.style.background='transparent'}
@@ -759,9 +761,7 @@ export default function Home({ initialResources }) {
                         </div>
                       </div>
                       <div style={{ fontSize:12, color:'#ccc', whiteSpace:'nowrap' }}>{r.fields.createdAt}</div>
-                      <div onClick={e => e.stopPropagation()}>
-                        <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} />
-                      </div>
+                      <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} />
                     </div>
                   ))}
                 </div>
@@ -976,175 +976,48 @@ export default function Home({ initialResources }) {
               <div>
                 {ranked.map((r, i) => {
                   const f = r.fields;
-                  const isOpen = expandedId === r.id;
                   const yt   = f.Type === 'YouTube' ? (ytStats[r.id]  || null) : null;
                   const pod  = f.Type === 'Podcast'  ? (podStats[r.id] || null) : null;
                   const book = f.Type === 'Book'     ? (bookStats[r.id]|| null) : null;
                   const logoImage2 = yt?.avatar || pod?.showArt || book?.cover || f['Image URL'];
-                  const breakdown = [
-                    { label:'Expert', value:f['Expert Score'], weight:25 },
-                    { label:'Community', value:f['Community Score'], weight:25 },
-                    { label:'Popularity', value:f['Popularity Score'], weight:20 },
-                    { label:'Recency', value:f['Recency Score'], weight:15 },
-                    { label:'Clinical Depth', value:f['Clinical Depth Score'], weight:15 },
-                  ];
                   return (
-                    <div key={r.id} style={{ borderBottom:`0.5px solid ${BORDER}` }}>
-                      {/* Row */}
-                      <div
-                        onClick={() => setExpandedId(isOpen ? null : r.id)}
-                        style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', cursor:'pointer', background: isOpen ? '#faf9f6' : 'transparent' }}
-                        onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background='#f9f9f9'; }}
-                        onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
-                      >
-                        <div style={{ fontSize:11, color: isMobile ? '#888' : '#ccc', minWidth: isMobile ? 14 : 22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
-                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage2} />
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
-                            <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                              <Link href={`/resource/${r.id}`} onClick={e => e.stopPropagation()} style={{ color:'#111', textDecoration:'none' }} onMouseEnter={e => e.currentTarget.style.color=GREEN} onMouseLeave={e => e.currentTarget.style.color='#111'}>
-                                <Highlight text={f.Name} terms={hlTerms} />
-                              </Link>
-                            </div>
-                            {f['Community Pick'] && <CommunityPickBadge />}
+                    <div key={r.id}
+                      onClick={() => router.push(`/resource/${r.id}`)}
+                      style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background='#f9f9f9'}
+                      onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                    >
+                      <div style={{ fontSize:11, color: isMobile ? '#888' : '#ccc', minWidth: isMobile ? 14 : 22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
+                      <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage2} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
+                          <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                            <Highlight text={f.Name} terms={hlTerms} />
                           </div>
-                          <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#666' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                            <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
-                            {f['Host or Author'] && <span style={{ color: isMobile ? '#777' : '#ccc' }}>· <Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
-                            {yt?.subscribers && <span>· {yt.subscribers} subs</span>}
-                            {yt?.videos && <span>· {yt.videos} videos</span>}
+                          {f['Community Pick'] && <CommunityPickBadge />}
+                        </div>
+                        <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#666' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                          <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
+                          {f['Host or Author'] && <span style={{ color: isMobile ? '#777' : '#ccc' }}>· <Highlight text={f['Host or Author']} terms={hlTerms} /></span>}
+                          {yt?.subscribers && <span>· {yt.subscribers} subs</span>}
+                          {yt?.videos && <span>· {yt.videos} videos</span>}
+                        </div>
+                        {!isMobile && yt?.latest && (
+                          <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                            <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
+                            {yt.latest.title}
+                            {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
                           </div>
-                          {!isMobile && yt?.latest && (
-                            <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                              <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
-                              {yt.latest.title}
-                              {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
-                            </div>
-                          )}
-                          {!isMobile && pod?.latest && (
-                            <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                              <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
-                              {pod.latest.title}
-                              {pod.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{pod.latest.date}</span>}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-                          <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
-                          <span style={{ fontSize:16, color:'#ccc', lineHeight:1, transform: isOpen ? 'rotate(180deg)':'rotate(0)', transition:'transform 0.2s' }}>›</span>
-                        </div>
+                        )}
+                        {!isMobile && pod?.latest && (
+                          <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                            <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
+                            {pod.latest.title}
+                            {pod.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{pod.latest.date}</span>}
+                          </div>
+                        )}
                       </div>
-
-                      {/* Expanded panel */}
-                      {isOpen && (
-                        <div style={{ padding: isMobile ? '0 0 20px 0' : '0 0 20px 38px', background:'#faf9f6' }}>
-                          {yt?.latest?.thumbnail && (
-                            <a href={yt.latest.url} target="_blank" rel="noopener noreferrer"
-                              style={{ display:'block', marginBottom:16, borderRadius:6, overflow:'hidden', maxWidth:280, position:'relative', textDecoration:'none' }}>
-                              <img src={yt.latest.thumbnail} alt={yt.latest.title} style={{ width:'100%', display:'block', borderRadius:6 }} />
-                              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                <div style={{ width:40, height:40, background:'rgba(0,0,0,0.7)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                  <span style={{ color:'#fff', fontSize:14, marginLeft:3 }}>▶</span>
-                                </div>
-                              </div>
-                              <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(transparent, rgba(0,0,0,0.7))', padding:'20px 10px 8px', borderRadius:'0 0 6px 6px' }}>
-                                <div style={{ fontSize:11, color:'#fff', fontWeight:500, lineHeight:1.3 }}>{yt.latest.title}</div>
-                              </div>
-                            </a>
-                          )}
-                          {pod?.episodes?.length > 0 && (
-                            <div style={{ marginBottom:16 }}>
-                              <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
-                              <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight: isMobile ? 0 : 80 }}>
-                                {pod.episodes.map((ep, idx) => (
-                                  <a key={idx} href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
-                                    style={{ display:'flex', gap:10, textDecoration:'none', color:'inherit', alignItems:'center', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:7, padding:'8px 10px', transition:'border-color 0.15s' }}
-                                    onMouseEnter={e => e.currentTarget.style.borderColor=GREEN}
-                                    onMouseLeave={e => e.currentTarget.style.borderColor=BORDER}>
-                                    {ep.image && (
-                                      <img src={ep.image} alt={ep.title}
-                                        style={{ width:42, height:42, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
-                                    )}
-                                    <div style={{ flex:1, minWidth:0 }}>
-                                      <div style={{ fontSize:12, fontWeight:600, color:'#111', lineHeight:1.3 }}>{ep.title}</div>
-                                      {ep.description && (
-                                        <div style={{ fontSize:11, color:'#777', marginTop:2, lineHeight:1.4,
-                                          overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' }}>{ep.description}</div>
-                                      )}
-                                      <div style={{ fontSize:11, color:'#aaa', marginTop:2 }}>
-                                        {idx === 0 && <span style={{ color:GREEN, fontWeight:600, marginRight:6 }}>New</span>}
-                                        {ep.date}
-                                      </div>
-                                    </div>
-                                    <span style={{ fontSize:11, color:GREEN, fontWeight:500, flexShrink:0 }}>Listen →</span>
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <div style={{ display:'flex', gap:32, flexDirection: isMobile ? 'column' : 'row' }}>
-                            {/* Left: description + link */}
-                            <div style={{ flex:1 }}>
-                              {book?.cover && (
-                                <img src={book.cover} alt={f.Name}
-                                  style={{ float:'right', width:80, borderRadius:4, boxShadow:'0 4px 16px rgba(0,0,0,0.15)', marginLeft:16, marginBottom:8 }} />
-                              )}
-                              {(book?.description || f.Description) && (
-                                <p style={{ fontSize:13, color:'#444', lineHeight:1.65, margin:'0 0 10px' }}>
-                                  {book?.description || f.Description}
-                                </p>
-                              )}
-                              {book && (book.pages || book.year || book.publisher) && (
-                                <div style={{ display:'flex', gap:16, marginBottom:14, flexWrap:'wrap' }}>
-                                  {book.year      && <span style={{ fontSize:11, color:'#888' }}>📅 {book.year}</span>}
-                                  {book.pages     && <span style={{ fontSize:11, color:'#888' }}>📄 {book.pages} pages</span>}
-                                  {book.publisher && <span style={{ fontSize:11, color:'#888' }}>🏢 {book.publisher}</span>}
-                                </div>
-                              )}
-                              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-                                {f.Type === 'Book' ? (() => {
-                                  const q = encodeURIComponent(`${f.Name} ${f['Host or Author'] || ''}`);
-                                  const bookLinks = [
-                                    { label:'Amazon', url:`https://www.amazon.com/s?k=${q}&i=stripbooks` },
-                                    { label:'Goodreads', url:`https://www.goodreads.com/search?query=${q}` },
-                                  ];
-                                  return bookLinks.map(link => (
-                                    <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
-                                      style={{ fontSize:12, fontWeight:500, color:'#555', textDecoration:'none', border:`1px solid ${BORDER}`, padding:'5px 12px', borderRadius:4, fontFamily:FONT_BODY, background:'#fff', transition:'all 0.15s' }}
-                                      onMouseEnter={e => { e.currentTarget.style.borderColor=GREEN; e.currentTarget.style.color=GREEN; }}
-                                      onMouseLeave={e => { e.currentTarget.style.borderColor=BORDER; e.currentTarget.style.color='#555'; }}>
-                                      {link.label}
-                                    </a>
-                                  ));
-                                })() : f.URL && (
-                                  <a href={f.URL} target="_blank" rel="noopener noreferrer"
-                                    style={{ fontSize:12, fontWeight:600, color:GREEN, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:5, border:`1px solid ${GREEN}`, padding:'6px 14px', borderRadius:4, fontFamily:FONT_BODY }}>
-                                    Visit resource →
-                                  </a>
-                                )}
-                                <VoteButtons resourceId={r.id} />
-                              </div>
-                            </div>
-
-                            {/* Right: score bars */}
-                            <div style={{ width: isMobile ? '100%' : 180, flexShrink:0, paddingRight: isMobile ? 0 : 16 }}>
-                              <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#888', fontWeight:600, marginBottom:10 }}>Score breakdown</div>
-                              {breakdown.map(b => (
-                                <div key={b.label} style={{ marginBottom:8 }}>
-                                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
-                                    <span style={{ fontSize:11, color:'#666' }}>{b.label}</span>
-                                    <span style={{ fontSize:11, fontWeight:600, color: b.value != null ? GREEN : '#ddd' }}>{b.value ?? '—'}</span>
-                                  </div>
-                                  <div style={{ height:3, background:'#ddd', borderRadius:2 }}>
-                                    <div style={{ height:3, width: b.value ? `${Math.min((b.value > 10 ? b.value : b.value*10), 100)}%` : '0%', background:GREEN, borderRadius:2, transition:'width 0.4s' }} />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <CommunitySection resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
-                        </div>
-                      )}
+                      <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
                     </div>
                   );
                 })}
