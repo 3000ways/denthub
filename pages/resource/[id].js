@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
@@ -14,13 +14,27 @@ export async function getServerSideProps({ params }) {
   try {
     const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
     const pat = process.env.AIRTABLE_PAT;
+
+    // Fetch the main record
     const r = await fetch(`https://api.airtable.com/v0/${base}/Resources/${params.id}`, {
       headers: { Authorization: `Bearer ${pat}` },
     });
     if (!r.ok) return { notFound: true };
     const record = await r.json();
     if (record.fields?.Status !== 'Published') return { notFound: true };
-    return { props: { record } };
+
+    // Fetch related resources (same type or specialty)
+    const type = record.fields?.Type;
+    const specialty = record.fields?.Specialty;
+    let filterFormula = `AND({Status}='Published', RECORD_ID() != '${params.id}', {Type}='${type}')`;
+    const relRes = await fetch(
+      `https://api.airtable.com/v0/${base}/Resources?filterByFormula=${encodeURIComponent(filterFormula)}&sort[0][field]=Final+Score&sort[0][direction]=desc&pageSize=4`,
+      { headers: { Authorization: `Bearer ${pat}` } }
+    );
+    const relData = await relRes.json();
+    const related = (relData.records || []).filter(r => r.id !== params.id).slice(0, 4);
+
+    return { props: { record, related } };
   } catch {
     return { notFound: true };
   }
@@ -41,11 +55,15 @@ function ScoreBar({ label, value }) {
 }
 
 function Logo({ url, name, imageUrl, size = 64 }) {
-  const [err, setErr] = useState(false);
+  const [src, setSrc] = useState(imageUrl || null);
   const domain = (() => { try { return new URL(url).hostname; } catch { return null; } })();
   const favicon = domain ? `/api/airtable?logo=${domain}` : null;
-  const src = imageUrl || favicon;
-  if (!src || err) {
+
+  useEffect(() => {
+    if (!src && favicon) setSrc(favicon);
+  }, []);
+
+  if (!src) {
     return (
       <div style={{ width: size, height: size, borderRadius: 12, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.4, fontWeight: 700, color: GREEN, fontFamily: FONT, flexShrink: 0 }}>
         {name?.[0] || '?'}
@@ -53,16 +71,67 @@ function Logo({ url, name, imageUrl, size = 64 }) {
     );
   }
   return (
-    <img src={src} alt={name} onError={() => setErr(true)}
+    <img src={src} alt={name}
+      onError={() => { if (src !== favicon && favicon) setSrc(favicon); else setSrc(null); }}
       style={{ width: size, height: size, borderRadius: 12, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />
   );
 }
 
-export default function ResourcePage({ record }) {
+function SmallLogo({ url, name, imageUrl, size = 40 }) {
+  const [err, setErr] = useState(false);
+  const domain = (() => { try { return new URL(url).hostname; } catch { return null; } })();
+  const src = imageUrl || (domain ? `/api/airtable?logo=${domain}` : null);
+  if (!src || err) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.4, fontWeight: 700, color: GREEN, fontFamily: FONT, flexShrink: 0 }}>
+        {name?.[0] || '?'}
+      </div>
+    );
+  }
+  return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />;
+}
+
+function EpisodeCard({ ep, isNew }) {
+  return (
+    <a href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
+      style={{ display: 'flex', gap: 12, textDecoration: 'none', color: 'inherit', alignItems: 'center', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 12px', transition: 'border-color 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = GREEN}
+      onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
+      {ep.image && <img src={ep.image} alt={ep.title} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111', lineHeight: 1.3, marginBottom: 2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ep.title}</div>
+        {ep.description && <div style={{ fontSize: 11, color: '#888', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{ep.description}</div>}
+        <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>
+          {isNew && <span style={{ color: GREEN, fontWeight: 600, marginRight: 6 }}>New</span>}
+          {ep.date}
+        </div>
+      </div>
+      <span style={{ fontSize: 11, color: GREEN, fontWeight: 500, flexShrink: 0 }}>Listen →</span>
+    </a>
+  );
+}
+
+export default function ResourcePage({ record, related }) {
   const f = record.fields;
   const { user } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [podData, setPodData] = useState(null);
+  const [logoSrc, setLogoSrc] = useState(f['Image URL'] || null);
+
+  const isPodcast = f.Type === 'Podcast';
+
+  useEffect(() => {
+    if (isPodcast && f['RSS Feed URL']) {
+      fetch(`/api/podcast-single?id=${record.id}`)
+        .then(r => r.json())
+        .then(data => {
+          setPodData(data);
+          if (!f['Image URL'] && data.showArt) setLogoSrc(data.showArt);
+        })
+        .catch(() => {});
+    }
+  }, [record.id]);
 
   const score = f['Final Score'] ? (f['Final Score'] % 1 === 0 ? f['Final Score'].toString() : f['Final Score'].toFixed(1)) : null;
   const breakdown = [
@@ -94,17 +163,9 @@ export default function ResourcePage({ record }) {
           "name": f.Name,
           "description": description,
           "url": f.URL,
-          "reviewRating": score ? {
-            "@type": "Rating",
-            "ratingValue": score,
-            "bestRating": "100"
-          } : undefined,
+          "reviewRating": score ? { "@type": "Rating", "ratingValue": score, "bestRating": "100" } : undefined,
           "author": { "@type": "Organization", "name": "The Dental Commute" },
-          "itemReviewed": {
-            "@type": "Thing",
-            "name": f.Name,
-            "url": f.URL,
-          }
+          "itemReviewed": { "@type": "Thing", "name": f.Name, "url": f.URL }
         })}} />
       </Head>
 
@@ -117,21 +178,18 @@ export default function ResourcePage({ record }) {
             <Link href="/">
               <img src="/logo.png" alt="The Dental Commute" style={{ height: 48, width: 'auto' }} />
             </Link>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              {user ? (
-                <span style={{ fontSize: 13, color: '#555' }}>{user.email}</span>
-              ) : (
-                <button onClick={() => setShowSignIn(true)} style={{ fontSize: 13, padding: '7px 18px', borderRadius: 4, background: GREEN, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: FONT, fontWeight: 600 }}>
-                  Sign in
-                </button>
-              )}
-            </div>
+            {user ? (
+              <span style={{ fontSize: 13, color: '#555' }}>{user.email}</span>
+            ) : (
+              <button onClick={() => setShowSignIn(true)} style={{ fontSize: 13, padding: '7px 18px', borderRadius: 4, background: GREEN, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: FONT, fontWeight: 600 }}>
+                Sign in
+              </button>
+            )}
           </div>
         </div>
 
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px 80px' }}>
 
-          {/* Back link */}
           <Link href="/" style={{ fontSize: 13, color: GREEN, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 32 }}>
             ← Back to all resources
           </Link>
@@ -139,14 +197,14 @@ export default function ResourcePage({ record }) {
           {/* Hero */}
           <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-              <Logo url={f.URL} name={f.Name} imageUrl={f['Image URL']} size={72} />
+              <Logo url={f.URL} name={f.Name} imageUrl={logoSrc} size={80} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: '#e8f5f0', padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.Type}</span>
                   {f.Specialty && <span style={{ fontSize: 11, color: '#888', background: '#f0f0f0', padding: '3px 10px', borderRadius: 20 }}>{f.Specialty}</span>}
                 </div>
                 <h1 style={{ fontSize: 26, fontWeight: 700, color: '#111', margin: '0 0 4px', fontFamily: FONT_DISPLAY, letterSpacing: -0.5, lineHeight: 1.2 }}>{f.Name}</h1>
-                {f['Host or Author'] && <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>{f['Host or Author']}</div>}
+                {f['Host or Author'] && <div style={{ fontSize: 13, color: '#888', marginBottom: 10 }}>{f['Host or Author']}</div>}
                 {score && (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: GREEN, color: '#fff', padding: '5px 14px', borderRadius: 20, fontSize: 14, fontWeight: 700 }}>
                     ★ {score}
@@ -159,7 +217,6 @@ export default function ResourcePage({ record }) {
               <p style={{ fontSize: 14, color: '#444', lineHeight: 1.7, margin: '24px 0 0' }}>{f.Description}</p>
             )}
 
-            {/* CTA */}
             <div style={{ marginTop: 24, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {f.URL && (
                 <a href={f.URL} target="_blank" rel="noopener noreferrer"
@@ -176,6 +233,29 @@ export default function ResourcePage({ record }) {
             </div>
           </div>
 
+          {/* Recent Episodes */}
+          {isPodcast && podData?.recent?.length > 0 && (
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Recent Episodes</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {podData.recent.map((ep, i) => <EpisodeCard key={i} ep={ep} isNew={i === 0} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Notable Episodes */}
+          {isPodcast && podData?.notable?.length > 0 && (
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999' }}>Notable Episodes</div>
+              </div>
+              <div style={{ fontSize: 12, color: '#bbb', marginBottom: 16 }}>Classic episodes still in the feed — evergreen content worth revisiting.</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {podData.notable.map((ep, i) => <EpisodeCard key={i} ep={ep} isNew={false} />)}
+              </div>
+            </div>
+          )}
+
           {/* Score breakdown */}
           <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 20 }}>Score Breakdown</div>
@@ -185,10 +265,37 @@ export default function ResourcePage({ record }) {
           </div>
 
           {/* Community */}
-          <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+          <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Community</div>
             <CommunitySection resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
           </div>
+
+          {/* You might also like */}
+          {related?.length > 0 && (
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>You Might Also Like</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {related.map((r, i) => {
+                  const rf = r.fields;
+                  const relScore = rf['Final Score'] ? (rf['Final Score'] % 1 === 0 ? rf['Final Score'].toString() : rf['Final Score'].toFixed(1)) : null;
+                  return (
+                    <Link key={r.id} href={`/resource/${r.id}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < related.length - 1 ? `1px solid ${BORDER}` : 'none', textDecoration: 'none', color: 'inherit' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#fafaf8'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <SmallLogo url={rf.URL} name={rf.Name} imageUrl={rf['Image URL']} size={40} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 2 }}>{rf.Name}</div>
+                        {rf['Host or Author'] && <div style={{ fontSize: 12, color: '#aaa' }}>{rf['Host or Author']}</div>}
+                      </div>
+                      {relScore && (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: GREEN, flexShrink: 0 }}>★ {relScore}</div>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
