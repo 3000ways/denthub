@@ -3,7 +3,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
+import { useBookmarks } from '../lib/bookmarks-context';
 import { SignInModal, OnboardingModal } from '../components/AuthModal';
+import { BookmarkButton } from '../components/BookmarkButton';
 import { CommunitySection } from '../components/Community';
 
 const CATEGORIES = [
@@ -326,6 +328,7 @@ export async function getServerSideProps() {
 export default function Home({ initialResources }) {
   const router = useRouter();
   const { user, profile } = useAuth();
+  const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [resources, setResources]   = useState(initialResources);
@@ -494,6 +497,11 @@ export default function Home({ initialResources }) {
     .sort((a,b) => new Date(b.fields.createdAt) - new Date(a.fields.createdAt))
     .slice(0,4);
 
+  // Saved channel — the user's bookmarked resources, newest first.
+  const savedResources = bookmarkCount > 0
+    ? [...displayResources].filter(r => bookmarkIds.has(r.id))
+    : [];
+
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0,50);
 
@@ -555,6 +563,12 @@ export default function Home({ initialResources }) {
           </a>
           <div style={{ display:'flex', alignItems:'center', gap:20 }}>
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500 }}>About</a>
+            {user && (
+              <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                Saved{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
+              </Link>
+            )}
             {user ? (
               <a href="/profile" style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8 }}>
                 {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
@@ -705,6 +719,40 @@ export default function Home({ initialResources }) {
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
 
+            {/* Saved channel — only when signed in and the user has bookmarks */}
+            {user && savedResources.length > 0 && (
+              <div style={{ marginBottom:52 }}>
+                <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12, marginBottom:18, paddingBottom:14, borderBottom:`2px solid #111` }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:12 }}>
+                    <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Saved</div>
+                    <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>{bookmarkCount} bookmarked</div>
+                  </div>
+                  <Link href="/saved" style={{ fontSize:12, color:GREEN, fontWeight:500, textDecoration:'none' }}>View all →</Link>
+                </div>
+                <div style={{ borderTop:`1px solid ${BORDER}` }}>
+                  {savedResources.slice(0,4).map(r => (
+                    <div key={r.id}
+                      onClick={() => router.push(`/resource/${r.id}`)}
+                      style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+                      onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                    >
+                      <Logo url={r.fields.URL} name={r.fields.Name} size={36} imageUrl={r.fields['Image URL']} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:14, fontWeight:500, color:'#111', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.fields.Name}</div>
+                        <div style={{ fontSize:11, color:'#bbb' }}>
+                          <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{r.fields.Type}</span>
+                          {r.fields['Host or Author'] ? <span> · {r.fields['Host or Author']}</span> : ''}
+                        </div>
+                      </div>
+                      <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(r.fields['Final Score']||0)} fields={r.fields} />
+                      <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Spotlight: Latest Episodes & Videos */}
             {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
               <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
@@ -764,6 +812,7 @@ export default function Home({ initialResources }) {
                       </div>
                       <div style={{ fontSize:12, color:'#ccc', whiteSpace:'nowrap' }}>{r.fields.createdAt}</div>
                       <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} />
+                      <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
                     </div>
                   ))}
                 </div>
@@ -1020,6 +1069,7 @@ export default function Home({ initialResources }) {
                         )}
                       </div>
                       <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
+                      <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
                     </div>
                   );
                 })}
