@@ -302,16 +302,35 @@ function EpisodeCard({ ep }) {
   );
 }
 
-export default function Home() {
+export async function getServerSideProps() {
+  try {
+    const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
+    const pat = process.env.AIRTABLE_PAT;
+    const params = new URLSearchParams();
+    params.set('filterByFormula', "{Status}='Published'");
+    params.set('sort[0][field]', 'Final Score');
+    params.set('sort[0][direction]', 'desc');
+    params.set('pageSize', '100');
+    const r = await fetch(`https://api.airtable.com/v0/${base}/Resources?${params}`, {
+      headers: { Authorization: `Bearer ${pat}` },
+    });
+    const data = await r.json();
+    return { props: { initialResources: data.records || [] } };
+  } catch {
+    return { props: { initialResources: [] } };
+  }
+}
+
+export default function Home({ initialResources }) {
   const { user, profile } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [resources, setResources]   = useState([]);
+  const [resources, setResources]   = useState(initialResources);
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeSpecialty, setActiveSpecialty] = useState(null);
   const [activeTopic, setActiveTopic] = useState(null);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialResources.length === 0);
   const [expandedId, setExpandedId] = useState(null);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
   const [isMobile, setIsMobile] = useState(false);
@@ -401,9 +420,11 @@ export default function Home() {
   }
 
   useEffect(() => {
-    fetch('/api/airtable?table=Resources').then(r => r.json()).then(res => {
-      setResources(res.records || []);
-    }).finally(() => setLoading(false));
+    if (initialResources.length === 0) {
+      fetch('/api/airtable?table=Resources').then(r => r.json()).then(res => {
+        setResources(res.records || []);
+      }).finally(() => setLoading(false));
+    }
 
     // Fetch live RSS spotlight data independently
     fetch('/api/spotlight').then(r => r.json()).then(data => {
@@ -479,9 +500,46 @@ export default function Home() {
   return (
     <>
     <Head>
-      <title>The Dental Commute</title>
+      <title>The Dental Commute — Everything Dentistry, Ranked and Curated</title>
+      <meta name="description" content="The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals." />
+      <meta name="robots" content="index, follow" />
+      <link rel="canonical" href="https://thedentalcommute.com" />
+
+      {/* Open Graph */}
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://thedentalcommute.com" />
+      <meta property="og:title" content="The Dental Commute — Everything Dentistry, Ranked and Curated" />
+      <meta property="og:description" content="The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals." />
+      <meta property="og:image" content="https://thedentalcommute.com/logo.png" />
+      <meta property="og:site_name" content="The Dental Commute" />
+
+      {/* Twitter */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="The Dental Commute — Everything Dentistry, Ranked and Curated" />
+      <meta name="twitter:description" content="The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals." />
+      <meta name="twitter:image" content="https://thedentalcommute.com/logo.png" />
+
       <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       <link rel="apple-touch-icon" href="/logo.png" />
+
+      {/* JSON-LD structured data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "The Dental Commute",
+        "url": "https://thedentalcommute.com",
+        "description": "The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "The Dental Commute",
+          "logo": { "@type": "ImageObject", "url": "https://thedentalcommute.com/logo.png" }
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://thedentalcommute.com/?search={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      })}} />
     </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 

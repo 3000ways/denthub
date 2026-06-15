@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Head from 'next/head';
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -7,6 +8,16 @@ const BORDER = '#e8e8e8';
 
 export default function About() {
   return (
+    <>
+    <Head>
+      <title>About — The Dental Commute</title>
+      <meta name="description" content="The Dental Commute is a curated index of the best dental resources — built by a dentist, for dentists." />
+      <meta property="og:title" content="About — The Dental Commute" />
+      <meta property="og:description" content="The Dental Commute is a curated index of the best dental resources — built by a dentist, for dentists." />
+      <meta property="og:url" content="https://thedentalcommute.com/about" />
+      <meta property="og:image" content="https://thedentalcommute.com/logo.png" />
+      <link rel="canonical" href="https://thedentalcommute.com/about" />
+    </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
       <div style={{ height:3, background:GREEN }} />
 
@@ -99,5 +110,6 @@ export default function About() {
         </div>
       </div>
     </div>
+    </>
   );
 }

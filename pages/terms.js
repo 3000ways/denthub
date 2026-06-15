@@ -1,5 +1,12 @@
+import Head from 'next/head';
+
 export default function TermsOfService() {
   return (
+    <>
+    <Head>
+      <title>Terms of Service — The Dental Commute</title>
+      <meta name="robots" content="noindex" />
+    </Head>
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '60px 24px 80px', fontFamily: "'Inter', sans-serif", color: '#111' }}>
       <div style={{ marginBottom: 48 }}>
         <a href="/" style={{ fontSize: 13, color: '#2D6A4F', textDecoration: 'none' }}>← The Dental Commute</a>
@@ -107,5 +114,6 @@ export default function TermsOfService() {
         </p>
       </section>
     </div>
+    </>
   );
 }
