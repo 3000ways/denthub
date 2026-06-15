@@ -10,6 +10,30 @@ const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 
+function parseYtRss(xml, limit = 9) {
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
+  const videos = [];
+  let match;
+  while ((match = entryRegex.exec(xml)) !== null && videos.length < limit) {
+    const entry = match[1];
+    const getId = tag => { const m = entry.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i')); return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : null; };
+    const getAt = (tag, attr) => { const m = entry.match(new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']*)["'][^>]*>`, 'i')); return m ? m[1] : null; };
+    const videoId = getId('yt:videoId');
+    const title = getId('title');
+    const published = getId('published');
+    const thumbnail = getAt('media:thumbnail', 'url');
+    if (!videoId) continue;
+    videos.push({
+      videoId,
+      title,
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+      date: published ? new Date(published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+    });
+  }
+  return videos;
+}
+
 export async function getServerSideProps({ params }) {
   try {
     const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
@@ -40,6 +64,7 @@ export async function getServerSideProps({ params }) {
     let bookData = null;
 
     if (type === 'YouTube') {
+      // Try the full youtube-stats API first (gives subscriber count + stats)
       try {
         const ytRes = await fetch(`${origin}/api/youtube-stats`);
         if (ytRes.ok) {
@@ -47,6 +72,23 @@ export async function getServerSideProps({ params }) {
           ytData = ytAll[params.id] || null;
         }
       } catch {}
+      // Fall back to direct RSS parsing if API key not set or call failed
+      if (!ytData?.recentVideos?.length) {
+        const rssUrl = record.fields['RSS Feed URL'];
+        if (rssUrl) {
+          try {
+            const feedRes = await fetch(rssUrl, {
+              headers: { 'User-Agent': 'TheDentalCommute/1.0 (+https://thedentalcommute.com)' },
+              signal: AbortSignal.timeout(8000),
+            });
+            if (feedRes.ok) {
+              const xml = await feedRes.text();
+              const recentVideos = parseYtRss(xml, 9);
+              ytData = { ...(ytData || {}), recentVideos };
+            }
+          } catch {}
+        }
+      }
     }
 
     if (type === 'Book') {
