@@ -559,10 +559,13 @@ export default function Home({ initialResources }) {
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.1 }}>About</a>
             {user ? (
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <span style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY }}>
-                  {profile?.role ? `${profile.role}` : user.email?.split('@')[0]}
+                <a href="/profile" style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8 }}>
+                  {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
+                    <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}` }} />
+                  )}
+                  {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
                   {profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600 }}>✓ Verified</span>}
-                </span>
+                </a>
               </div>
             ) : (
               <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'8px 18px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600 }}>

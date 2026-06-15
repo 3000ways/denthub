@@ -248,7 +248,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
               <img src="/logo.png" alt="The Dental Commute" style={{ height: 48, width: 'auto' }} />
             </Link>
             {user ? (
-              <span style={{ fontSize: 13, color: '#555' }}>{user.email}</span>
+              <Link href="/profile" style={{ fontSize: 13, color: '#555', textDecoration: 'none' }}>{user.email}</Link>
             ) : (
               <button onClick={() => setShowSignIn(true)} style={{ fontSize: 13, padding: '7px 18px', borderRadius: 4, background: GREEN, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: FONT, fontWeight: 600 }}>
                 Sign in

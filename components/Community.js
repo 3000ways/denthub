@@ -13,7 +13,7 @@ export function CommunitySection({ resourceId, onSignInRequired }) {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const [loadingVote, setLoadingVote] = useState(false);
 
   useEffect(() => {
