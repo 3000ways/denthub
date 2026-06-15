@@ -500,23 +500,23 @@ export default function Home({ initialResources }) {
   return (
     <>
     <Head>
-      <title>The Dental Commute — Everything Dentistry, Ranked and Curated</title>
-      <meta name="description" content="The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals." />
+      <title>The Dental Commute — Dentistry, Ranked & Curated</title>
+      <meta name="description" content="The best dental podcasts, books, CE courses, YouTube channels, and software — ranked by dentists." />
       <meta name="robots" content="index, follow" />
       <link rel="canonical" href="https://thedentalcommute.com" />
 
       {/* Open Graph */}
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://thedentalcommute.com" />
-      <meta property="og:title" content="The Dental Commute — Everything Dentistry, Ranked and Curated" />
-      <meta property="og:description" content="The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals." />
+      <meta property="og:title" content="The Dental Commute — Dentistry, Ranked & Curated" />
+      <meta property="og:description" content="The best dental podcasts, books, CE courses, YouTube channels, and software — ranked by dentists." />
       <meta property="og:image" content="https://thedentalcommute.com/og-image.jpg" />
       <meta property="og:site_name" content="The Dental Commute" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="The Dental Commute — Everything Dentistry, Ranked and Curated" />
-      <meta name="twitter:description" content="The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals." />
+      <meta name="twitter:title" content="The Dental Commute — Dentistry, Ranked & Curated" />
+      <meta name="twitter:description" content="The best dental podcasts, books, CE courses, YouTube channels, and software — ranked by dentists." />
       <meta name="twitter:image" content="https://thedentalcommute.com/og-image.jpg" />
 
       <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
