@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useAuth } from '../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../components/AuthModal';
 import { CommunitySection } from '../components/Community';
@@ -811,7 +812,11 @@ export default function Home({ initialResources }) {
                         <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
-                            <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
+                            <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                              <Link href={`/resource/${r.id}`} onClick={e => e.stopPropagation()} style={{ color:'#111', textDecoration:'none' }} onMouseEnter={e => e.currentTarget.style.color=GREEN} onMouseLeave={e => e.currentTarget.style.color='#111'}>
+                                <Highlight text={f.Name} terms={hlTerms} />
+                              </Link>
+                            </div>
                             {f['Community Pick'] && <CommunityPickBadge />}
                           </div>
                           <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#555' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -996,7 +1001,11 @@ export default function Home({ initialResources }) {
                         <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage2} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
-                            <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><Highlight text={f.Name} terms={hlTerms} /></div>
+                            <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                              <Link href={`/resource/${r.id}`} onClick={e => e.stopPropagation()} style={{ color:'#111', textDecoration:'none' }} onMouseEnter={e => e.currentTarget.style.color=GREEN} onMouseLeave={e => e.currentTarget.style.color='#111'}>
+                                <Highlight text={f.Name} terms={hlTerms} />
+                              </Link>
+                            </div>
                             {f['Community Pick'] && <CommunityPickBadge />}
                           </div>
                           <div style={{ fontSize: isMobile ? 13 : 11, color: isMobile ? '#666' : '#bbb', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
