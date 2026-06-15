@@ -475,7 +475,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
           {/* Claim this page */}
           <div style={{ marginTop: 40, textAlign: 'center' }}>
             <a
-              href={`mailto:hello@thedentalcommute.com?subject=Claim%20page%3A%20${encodeURIComponent(f.Name)}&body=Hi%2C%0A%0AI%20am%20the%20creator%2Fowner%20of%20${encodeURIComponent(f.Name)}%20and%20I%20would%20like%20to%20claim%20this%20page.%0A%0AProof%20of%20ownership%3A%20`}
+              href={`mailto:hello@thedentalcommute.com?subject=Claim%20page%3A%20${encodeURIComponent(f.Name)}&body=Hi%2C%0A%0AI%20am%20the%20creator%2Fowner%20of%20${encodeURIComponent(f.Name)}%20and%20I%20would%20like%20to%20suggest%20some%20changes%20to%20this%20page.%20Can%20you%20kindly%20make%20the%20following%20changes%20for%20me%3A%0A%0A`}
               style={{ fontSize: 12, color: '#bbb', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: 1 }}
               onMouseEnter={e => e.currentTarget.style.color = '#888'}
               onMouseLeave={e => e.currentTarget.style.color = '#bbb'}
