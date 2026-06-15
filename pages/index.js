@@ -592,7 +592,7 @@ export default function Home({ initialResources }) {
 
         {/* Category tabs */}
         <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:16, overflowX:'auto', scrollbarWidth:'none' }}>
-          {CATEGORIES.map(c => ({label:c.label, key:c.label})).map(({label, key}) => {
+          {[{label:'All', key:null}, ...CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
             const isActive = activeCategory === key;
             return (
               <button key={label} onClick={() => selectCategory(key)}
