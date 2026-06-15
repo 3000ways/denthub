@@ -48,6 +48,12 @@ else depends on._
      (leadership/systems/hiring/marketing), _New Graduate_ (clinical fundamentals,
      career, associate contracts), _Dental Technology_ (AI, CBCT, digital workflows).
 
+   - **Channel types:** _Editorial_ (curated by Andrei, tag-driven), _Smart_
+     (auto-built from the onboarding quiz / specialty), and _Personal_ —
+     **"My Bookmarks" is just a personal channel** the user curates by following
+     shows. Same shelf, same UI, same player; the "new from your bookmarks" feed and
+     a channel's "what's new" view are the same feature pointed at different inputs.
+
 3. **Onboarding quiz / personalized front door** — a short first-visit quiz (no login
    needed, remembered in the browser) that builds an interest profile and assembles a
    personalized home page of channels:
@@ -64,7 +70,9 @@ Let dentists follow shows and listen, the way they would in any podcast app —
 building toward a hands-free, in-car experience.
 
 - **Bookmark / follow podcasts** — like saving a show in a podcast app. Starts with
-  no login (saved in the browser) so it works immediately.
+  no login (saved in the browser) so it works immediately. Note: once Channels exist,
+  **"My Bookmarks" is simply a personal channel** the user curates — same UI/player
+  as editorial channels (see Channels above).
 - **"New from your bookmarks" feed** — shows the latest episodes from only the shows
   a user follows. Reuses the existing live-RSS engine (`/api/spotlight`); bookmarks
   just point that feed at the user's shows.
