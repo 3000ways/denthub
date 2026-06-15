@@ -14,6 +14,7 @@ export async function getServerSideProps({ params }) {
   try {
     const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
     const pat = process.env.AIRTABLE_PAT;
+    const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
 
     // Fetch the main record
     const r = await fetch(`https://api.airtable.com/v0/${base}/Resources/${params.id}`, {
@@ -23,18 +24,42 @@ export async function getServerSideProps({ params }) {
     const record = await r.json();
     if (record.fields?.Status !== 'Published') return { notFound: true };
 
-    // Fetch related resources (same type or specialty)
     const type = record.fields?.Type;
-    const specialty = record.fields?.Specialty;
-    let filterFormula = `AND({Status}='Published', RECORD_ID() != '${params.id}', {Type}='${type}')`;
+
+    // Fetch related resources (same type)
+    const filterFormula = `AND({Status}='Published', RECORD_ID() != '${params.id}', {Type}='${type}')`;
     const relRes = await fetch(
       `https://api.airtable.com/v0/${base}/Resources?filterByFormula=${encodeURIComponent(filterFormula)}&sort[0][field]=Final+Score&sort[0][direction]=desc&pageSize=4`,
       { headers: { Authorization: `Bearer ${pat}` } }
     );
     const relData = await relRes.json();
-    const related = (relData.records || []).filter(r => r.id !== params.id).slice(0, 4);
+    const related = (relData.records || []).filter(rec => rec.id !== params.id).slice(0, 4);
 
-    return { props: { record, related } };
+    // Fetch type-specific enrichment data
+    let ytData = null;
+    let bookData = null;
+
+    if (type === 'YouTube') {
+      try {
+        const ytRes = await fetch(`${origin}/api/youtube-stats`);
+        if (ytRes.ok) {
+          const ytAll = await ytRes.json();
+          ytData = ytAll[params.id] || null;
+        }
+      } catch {}
+    }
+
+    if (type === 'Book') {
+      try {
+        const bookRes = await fetch(`${origin}/api/book-stats`);
+        if (bookRes.ok) {
+          const bookAll = await bookRes.json();
+          bookData = bookAll[params.id] || null;
+        }
+      } catch {}
+    }
+
+    return { props: { record, related, ytData, bookData } };
   } catch {
     return { notFound: true };
   }
@@ -111,7 +136,7 @@ function EpisodeCard({ ep, isNew }) {
   );
 }
 
-export default function ResourcePage({ record, related }) {
+export default function ResourcePage({ record, related, ytData, bookData }) {
   const f = record.fields;
   const { user } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
@@ -120,6 +145,8 @@ export default function ResourcePage({ record, related }) {
   const [logoSrc, setLogoSrc] = useState(f['Image URL'] || null);
 
   const isPodcast = f.Type === 'Podcast';
+  const isYouTube = f.Type === 'YouTube';
+  const isBook    = f.Type === 'Book';
 
   useEffect(() => {
     if (isPodcast && f['RSS Feed URL']) {
@@ -221,10 +248,28 @@ export default function ResourcePage({ record, related }) {
               {f.URL && (
                 <a href={f.URL} target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: GREEN, textDecoration: 'none', padding: '10px 20px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  Visit {f.Name} →
+                  {isYouTube ? 'Subscribe on YouTube →' : isBook ? 'View on Amazon →' : `Visit ${f.Name} →`}
                 </a>
               )}
-              {f['RSS Feed URL'] && (
+              {isPodcast && (
+                <>
+                  <a href={`https://podcasts.apple.com/search?term=${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    Apple Podcasts
+                  </a>
+                  <a href={`https://open.spotify.com/search/${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    Spotify
+                  </a>
+                </>
+              )}
+              {isBook && (
+                <a href={`https://www.goodreads.com/search?q=${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  Goodreads
+                </a>
+              )}
+              {f['RSS Feed URL'] && !isPodcast && (
                 <a href={f['RSS Feed URL']} target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   RSS Feed
@@ -232,6 +277,94 @@ export default function ResourcePage({ record, related }) {
               )}
             </div>
           </div>
+
+          {/* YouTube section */}
+          {isYouTube && ytData && (
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+              {/* Stats bar */}
+              {(ytData.subscribers || ytData.videos) && (
+                <div style={{ display: 'flex', gap: 32, marginBottom: 24 }}>
+                  {ytData.subscribers && (
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY }}>{ytData.subscribers}</div>
+                      <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Subscribers</div>
+                    </div>
+                  )}
+                  {ytData.videos && (
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY }}>{ytData.videos}</div>
+                      <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Videos</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Recent videos */}
+              {ytData.recentVideos?.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Recent Videos</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                    {ytData.recentVideos.map((v, i) => (
+                      <a key={i} href={v.url} target="_blank" rel="noopener noreferrer"
+                        style={{ textDecoration: 'none', color: 'inherit', borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, background: '#fff', display: 'flex', flexDirection: 'column' }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = GREEN}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
+                        <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
+                          <img src={v.thumbnail} alt={v.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ color: '#fff', fontSize: 14, marginLeft: 3 }}>▶</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ padding: '8px 10px 10px' }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#111', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{v.title}</div>
+                          {v.date && <div style={{ fontSize: 11, color: '#bbb', marginTop: 4 }}>{v.date}</div>}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Book section */}
+          {isBook && bookData && (
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+              <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+                {bookData.cover && (
+                  <img src={bookData.cover} alt={f.Name}
+                    style={{ width: 110, borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', flexShrink: 0 }} />
+                )}
+                <div style={{ flex: 1 }}>
+                  {/* Metadata row */}
+                  <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {bookData.year && (
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY }}>{bookData.year}</div>
+                        <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Published</div>
+                      </div>
+                    )}
+                    {bookData.pages && (
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY }}>{bookData.pages}</div>
+                        <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Pages</div>
+                      </div>
+                    )}
+                    {bookData.publisher && (
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY }}>{bookData.publisher}</div>
+                        <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Publisher</div>
+                      </div>
+                    )}
+                  </div>
+                  {bookData.description && (
+                    <p style={{ fontSize: 13, color: '#555', lineHeight: 1.65, margin: 0 }}>{bookData.description}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Recent Episodes */}
           {isPodcast && podData?.recent?.length > 0 && (
