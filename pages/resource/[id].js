@@ -38,7 +38,7 @@ export async function getServerSideProps({ params }) {
   try {
     const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
     const pat = process.env.AIRTABLE_PAT;
-    const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const origin = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://thedentalcommute.com';
 
     // Fetch the main record
     const r = await fetch(`https://api.airtable.com/v0/${base}/Resources/${params.id}`, {
