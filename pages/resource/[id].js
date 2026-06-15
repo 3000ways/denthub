@@ -243,7 +243,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
 
         {/* Header */}
         <div style={{ borderBottom: `1px solid ${BORDER}`, background: 'rgba(245,242,235,0.95)' }}>
-          <div style={{ maxWidth: 760, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Link href="/">
               <img src="/logo.png" alt="The Dental Commute" style={{ height: 48, width: 'auto' }} />
             </Link>
@@ -257,7 +257,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
           </div>
         </div>
 
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px 80px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px 80px' }}>
 
           <Link href="/" style={{ fontSize: 13, color: GREEN, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 32 }}>
             ← Back to all resources
