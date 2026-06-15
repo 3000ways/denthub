@@ -48,7 +48,7 @@ function parseRecentVideos(xml) {
   const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
   const videos = [];
   let match;
-  while ((match = entryRegex.exec(xml)) !== null && videos.length < 3) {
+  while ((match = entryRegex.exec(xml)) !== null && videos.length < 9) {
     const entry = match[1];
     const getId = (tag) => { const m = entry.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i')); return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : null; };
     const getAt = (tag, attr) => { const m = entry.match(new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']*)["'][^>]*>`, 'i')); return m ? m[1] : null; };
