@@ -343,13 +343,13 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
               {/* Recent videos */}
               {ytData.recentVideos?.length > 0 && (
                 <>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Recent Videos</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666', marginBottom: 16, borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>Recent Videos</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
                     {ytData.recentVideos.map((v, i) => (
                       <a key={i} href={v.url} target="_blank" rel="noopener noreferrer"
-                        style={{ textDecoration: 'none', color: 'inherit', borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, background: '#fff', display: 'flex', flexDirection: 'column' }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = GREEN}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
+                        style={{ textDecoration: 'none', color: 'inherit', borderRadius: 10, overflow: 'hidden', border: `1px solid ${BORDER}`, background: '#fff', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = GREEN; e.currentTarget.style.boxShadow = '0 2px 8px rgba(15,110,86,0.1)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.boxShadow = 'none'; }}>
                         <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
                           <img src={v.thumbnail} alt={v.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -358,9 +358,9 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
                             </div>
                           </div>
                         </div>
-                        <div style={{ padding: '8px 10px 10px' }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: '#111', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{v.title}</div>
-                          {v.date && <div style={{ fontSize: 11, color: '#bbb', marginTop: 4 }}>{v.date}</div>}
+                        <div style={{ padding: '10px 12px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#111', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>{v.title}</div>
+                          {v.date && <div style={{ fontSize: 11, color: '#bbb', marginTop: 'auto', paddingTop: 4 }}>{v.date}</div>}
                         </div>
                       </a>
                     ))}
