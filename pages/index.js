@@ -546,37 +546,36 @@ export default function Home({ initialResources }) {
     </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
-      <div style={{ height:3, background:GREEN }} />
-
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px 60px' : '0 36px 100px' }}>
-
-        {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, padding:'12px 0', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
-          <div style={{ overflow:'hidden', height:230, margin: isMobile ? '0 auto' : '0' }}>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height:281, width:'auto', display:'block' }} />
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:20, flexShrink:0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
-            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.1 }}>About</a>
+      {/* Sticky nav bar */}
+      <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}` }}>
+        <div style={{ height:3, background:GREEN }} />
+        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:64 }}>
+          <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
+            <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
+          </a>
+          <div style={{ display:'flex', alignItems:'center', gap:20 }}>
+            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500 }}>About</a>
             {user ? (
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <a href="/profile" style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8 }}>
-                  {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
-                    <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}` }} />
-                  )}
-                  {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
-                  {profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600 }}>✓ Verified</span>}
-                </a>
-              </div>
+              <a href="/profile" style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8 }}>
+                {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
+                  <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}` }} />
+                )}
+                {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
+                {profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600 }}>✓ Verified</span>}
+              </a>
             ) : (
-              <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'8px 18px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600 }}>
+              <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600 }}>
                 Sign in
               </button>
             )}
-            <button onClick={openSubmitModal} style={{ fontSize:12, padding:'8px 20px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
+            <button onClick={openSubmitModal} style={{ fontSize:12, padding:'7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
               Submit a resource
             </button>
           </div>
         </div>
+      </div>
+
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px 60px' : '0 36px 100px' }}>
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (

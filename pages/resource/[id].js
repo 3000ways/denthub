@@ -242,13 +242,14 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
         <div style={{ height: 3, background: GREEN }} />
 
         {/* Header */}
-        <div style={{ borderBottom: `1px solid ${BORDER}`, background: 'rgba(245,242,235,0.95)' }}>
-          <div style={{ maxWidth: 960, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${BORDER}`, background: 'rgba(245,242,235,0.97)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+          <div style={{ height: 3, background: GREEN }} />
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Link href="/">
-              <img src="/logo.png" alt="The Dental Commute" style={{ height: 48, width: 'auto' }} />
+              <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto' }} />
             </Link>
             {user ? (
-              <Link href="/profile" style={{ fontSize: 13, color: '#555', textDecoration: 'none' }}>{user.email}</Link>
+              <Link href="/profile" style={{ fontSize: 13, color: '#555', textDecoration: 'none' }}>{profile?.full_name || user.email}</Link>
             ) : (
               <button onClick={() => setShowSignIn(true)} style={{ fontSize: 13, padding: '7px 18px', borderRadius: 4, background: GREEN, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: FONT, fontWeight: 600 }}>
                 Sign in
