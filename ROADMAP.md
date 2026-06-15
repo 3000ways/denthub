@@ -58,6 +58,24 @@ else depends on._
      channels to show. Skippable and re-takeable.
    - Upgrades automatically to real per-user personalization once accounts ship.
 
+## 🎧 Big Theme: Bookmarks & embedded player ("podcast app" experience)
+
+Let dentists follow shows and listen, the way they would in any podcast app —
+building toward a hands-free, in-car experience.
+
+- **Bookmark / follow podcasts** — like saving a show in a podcast app. Starts with
+  no login (saved in the browser) so it works immediately.
+- **"New from your bookmarks" feed** — shows the latest episodes from only the shows
+  a user follows. Reuses the existing live-RSS engine (`/api/spotlight`); bookmarks
+  just point that feed at the user's shows.
+- **Embedded audio player** — play episodes directly on the website (later). A clean,
+  responsive in-browser player gets most of the way to the car use case, since a
+  Tesla just runs a web browser — no app store needed.
+- **Cross-device / in-car ("Tesla") experience** — open the site in the car and your
+  bookmarks are right there, press play for the road trip. Requires sign-in +
+  cloud-synced bookmarks so they follow the *person* across devices — this piece is
+  gated on the user-accounts work below.
+
 ## 🔨 Now (actively working on / next up)
 
 - Continue populating resources across remaining categories and themes.
@@ -66,6 +84,8 @@ else depends on._
 
 - Home-page quick wins (see "Quick wins" above): Editor's/Andrei's Pick,
   Trending this week, Clinical pearl, Dynamic hero.
+- Bookmark/follow podcasts + "New from your bookmarks" feed (browser-based MVP;
+  see "Bookmarks & embedded player" above).
 - Refine the UI toward the magazine aesthetic (white background, strong typography,
   minimal decoration — away from anything spreadsheet/card-grid-like).
 - Build out dental software rankings as a dedicated pillar.
@@ -74,6 +94,8 @@ else depends on._
 
 - **Channels + personalized onboarding system** (see "The big idea" above) —
   tagging foundation → channels → onboarding quiz.
+- **Embedded audio player + cross-device/in-car ("Tesla") bookmarks** (see
+  "Bookmarks & embedded player" above) — the in-car piece depends on accounts below.
 - Implement a phased user account + voting system
   (launch as aggregator → Google/Apple sign-in → NPI-verified voting).
 - Bayesian vote confidence adjustment to prevent score gaming.
