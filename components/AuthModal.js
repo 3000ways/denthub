@@ -26,7 +26,7 @@ export function SignInModal({ onClose }) {
         <div style={{ fontSize: 28, marginBottom: 8 }}>🦷</div>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 8 }}>Join The Dental Commute</div>
         <div style={{ fontSize: 14, color: '#666', marginBottom: 28, lineHeight: 1.5 }}>
-          Sign in to vote on resources and leave comments for the dental community.
+          Sign in to save resources, follow your favorite shows, vote, and leave comments for the dental community.
         </div>
         <button onClick={signInWithGoogle} style={{
           width: '100%', padding: '13px 20px', borderRadius: 8, border: `1px solid ${BORDER}`,

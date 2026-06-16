@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
+import { useBookmarks } from '../lib/bookmarks-context';
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -18,13 +19,26 @@ const SPECIALTIES = [
 
 const ROLES = ['Dentist', 'Dental Student', 'Dental Hygienist', 'Dental Assistant', 'Practice Manager', 'Other'];
 
+function getDomain(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return null; } }
+
 export default function ProfilePage() {
   const { user, profile, loading, updateProfile } = useAuth();
+  const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const router = useRouter();
 
   const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedResources, setSavedResources] = useState([]);
+
+  // Pull resource details so we can preview a few bookmarks here.
+  useEffect(() => {
+    if (!user) return;
+    fetch('/api/airtable?table=Resources')
+      .then(r => r.json())
+      .then(res => setSavedResources(res.records || []))
+      .catch(() => setSavedResources([]));
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) router.replace('/');
@@ -152,6 +166,43 @@ export default function ProfilePage() {
             </div>
 
           </form>
+
+          {/* Saved resources */}
+          <div style={{ marginTop:56, paddingTop:36, borderTop:`1px solid ${BORDER}` }}>
+            <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:18 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'#111', letterSpacing:0.2 }}>
+                Saved resources{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
+              </div>
+              {bookmarkCount > 0 && (
+                <Link href="/saved" style={{ fontSize:12, color:GREEN, fontWeight:500, textDecoration:'none' }}>View all →</Link>
+              )}
+            </div>
+            {bookmarkCount === 0 ? (
+              <div style={{ fontSize:13, color:'#aaa' }}>
+                Nothing saved yet. Tap the bookmark icon on any resource to save it here.
+              </div>
+            ) : (
+              <div style={{ borderTop:`1px solid ${BORDER}` }}>
+                {savedResources.filter(r => bookmarkIds.has(r.id)).slice(0,5).map(r => {
+                  const f = r.fields;
+                  const domain = getDomain(f.URL);
+                  const logo = f['Image URL'] || (domain ? `/api/airtable?logo=${domain}` : null);
+                  return (
+                    <Link key={r.id} href={`/resource/${r.id}`}
+                      style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, textDecoration:'none', color:'inherit' }}>
+                      {logo
+                        ? <img src={logo} alt={f.Name} style={{ width:34, height:34, borderRadius:6, objectFit:'contain', background:'#fafafa', border:`0.5px solid ${BORDER}`, flexShrink:0 }} />
+                        : <div style={{ width:34, height:34, borderRadius:6, background:'#E8F5F0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:600, color:GREEN, flexShrink:0 }}>{(f.Name||'?')[0]}</div>}
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
+                        <div style={{ fontSize:11, color:GREEN, fontWeight:500, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Back link */}
           <div style={{ marginTop:48, paddingTop:28, borderTop:`1px solid ${BORDER}` }}>

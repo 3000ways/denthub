@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
+import { BookmarkButton } from '../../components/BookmarkButton';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -180,7 +181,7 @@ function EpisodeCard({ ep, isNew }) {
 
 export default function ResourcePage({ record, related, ytData, bookData }) {
   const f = record.fields;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [podData, setPodData] = useState(null);
@@ -318,6 +319,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
                   RSS Feed
                 </a>
               )}
+              <BookmarkButton resourceId={record.id} variant="labeled" kind={(isPodcast || isYouTube) ? 'follow' : 'save'} onSignInRequired={() => setShowSignIn(true)} />
             </div>
           </div>
 
