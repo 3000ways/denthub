@@ -33,9 +33,10 @@ else depends on._
    define a starter tag vocabulary, then tag existing resources. Tags span three kinds:
    - _Specialty_ — Endodontics, Ortho, Perio…
    - _Career stage_ — student, new grad, associate, owner, thinking-of-selling
-   - _Goals_ — selling your practice, increasing EBITDA, hiring an associate,
+   - _Goals / outcomes_ — selling your practice, increasing EBITDA, hiring an associate,
      finding a job/associate, investment advice, going digital (AI, CBCT, digital
-     workflows), clinical fundamentals…
+     workflows), clinical fundamentals… (this is also the "reasons to listen" taxonomy —
+     see the "Why should you listen?" theme below)
    - Note: channels only feel good once enough resources are tagged — a channel with
      2 items feels empty. This is the biggest content-work item.
 
@@ -63,6 +64,34 @@ else depends on._
    - Each answer is a tag; each channel is a bundle of tags; the quiz picks which
      channels to show. Skippable and re-takeable.
    - Upgrades automatically to real per-user personalization once accounts ship.
+
+## 🎯 Big Theme: "Why should you listen?" — outcome-driven recommendations
+
+Work backwards from what a dentist is trying to achieve. Every recommendation comes
+with a compelling reason ("Listen to this *because* it'll help you introduce implants").
+Sits directly on top of the tagging foundation above — the "reasons" ARE the goal/outcome
+tags, written as benefits.
+
+**Two pieces:**
+1. **Outcome taxonomy** — the master list of "reasons a dentist would listen," which
+   doubles as the goal dimension of the Tags field. Tag every resource with the
+   outcomes it delivers, then any goal can surface "all the books/podcasts that help
+   you do that" (e.g. pick "introduce implants" → see every matching resource).
+2. **"Why you should listen" line** — short, compelling editorial micro-copy shown on
+   the recommendation, tailored to the goal.
+
+**Starter list of reasons (to refine together):**
+- _Grow clinical services:_ introduce implants, start clear aligners/ortho, offer
+  sedation/sleep, master molar endo / full-arch / digital same-day dentistry, handle
+  complications with confidence.
+- _Build a better business:_ scale before selling, increase profitability (EBITDA),
+  improve case acceptance, get more new patients / marketing, open or acquire a
+  second location.
+- _People & leadership:_ find an amazing associate, hire and keep a great team,
+  become a better leader.
+- _Career & money:_ land your first job & negotiate your contract, plan your exit /
+  sell your practice, build wealth outside the chair / tackle student debt.
+- _Wellbeing:_ beat burnout & find balance.
 
 ## 🎧 Big Theme: Bookmarks & embedded player ("podcast app" experience)
 
@@ -105,6 +134,8 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 - **Channels + personalized onboarding system** (see "The big idea" above) —
   tagging foundation → channels → onboarding quiz.
+- **"Why should you listen?" outcome-driven recommendations** (see theme above) —
+  builds on the same tagging foundation; brainstorm/finalize the reasons taxonomy.
 - **Embedded audio player + car-friendly layout** for the in-car ("Tesla") experience
   (see "Bookmarks & embedded player" above). Bookmarks already sync across devices via
   accounts; this is the remaining playback/layout work.
