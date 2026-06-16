@@ -103,7 +103,9 @@ export default function About() {
 
               {/* DMD Yodabot */}
               <div style={{ flex:'1 1 220px', minWidth:220, display:'flex', gap:14 }}>
-                <div style={{ width:52, height:52, borderRadius:'50%', background:'#E8F5F0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>🤖</div>
+                <div style={{ width:52, height:52, borderRadius:'50%', background:'#E8F5F0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0, overflow:'hidden' }}>
+                  <img src="/yodabot.png" alt="DMD Yodabot" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e => { e.currentTarget.replaceWith(document.createTextNode('🤖')); }} />
+                </div>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:'#111' }}>DMD Yodabot</div>
                   <div style={{ fontSize:11, color:GREEN, fontWeight:600, marginBottom:8, letterSpacing:0.2 }}>Chief Resource Officer (AI)</div>
