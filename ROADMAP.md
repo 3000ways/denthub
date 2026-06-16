@@ -69,20 +69,25 @@ else depends on._
 Let dentists follow shows and listen, the way they would in any podcast app —
 building toward a hands-free, in-car experience.
 
-- **Bookmark / follow podcasts** — like saving a show in a podcast app. Starts with
-  no login (saved in the browser) so it works immediately. Note: once Channels exist,
-  **"My Bookmarks" is simply a personal channel** the user curates — same UI/player
-  as editorial channels (see Channels above).
+- **Bookmark / follow podcasts — login required (DECIDED).** Bookmarks are tied to a
+  user account, not the browser, so they survive cookie clearing and follow the person
+  across devices. (Browser-only storage was rejected: bookmarks become useless once
+  cookies reset.) ✅ _Built in PR #2 — Google sign-in + Supabase-backed bookmarks._
+  Note: once Channels exist, **"My Bookmarks" is simply a personal channel** the user
+  curates — same UI/player as editorial channels (see Channels above).
 - **"New from your bookmarks" feed** — shows the latest episodes from only the shows
-  a user follows. Reuses the existing live-RSS engine (`/api/spotlight`); bookmarks
-  just point that feed at the user's shows.
+  a user follows. ✅ _Built in PR #2 (`/api/bookmark-feed`)._
 - **Embedded audio player** — play episodes directly on the website (later). A clean,
   responsive in-browser player gets most of the way to the car use case, since a
   Tesla just runs a web browser — no app store needed.
 - **Cross-device / in-car ("Tesla") experience** — open the site in the car and your
-  bookmarks are right there, press play for the road trip. Requires sign-in +
-  cloud-synced bookmarks so they follow the *person* across devices — this piece is
-  gated on the user-accounts work below.
+  bookmarks are right there, press play for the road trip. Because bookmarks are
+  account-bound (above), they already follow the person across devices; remaining work
+  is the embedded player + a car-friendly responsive layout.
+
+**Infrastructure note:** accounts/bookmarks are powered by **Supabase** (hosted
+database + Google OAuth), added in PR #2. This is the project's first real
+user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 🔨 Now (actively working on / next up)
 
@@ -92,8 +97,6 @@ building toward a hands-free, in-car experience.
 
 - Home-page quick wins (see "Quick wins" above): Editor's/Andrei's Pick,
   Trending this week, Clinical pearl, Dynamic hero.
-- Bookmark/follow podcasts + "New from your bookmarks" feed (browser-based MVP;
-  see "Bookmarks & embedded player" above).
 - Refine the UI toward the magazine aesthetic (white background, strong typography,
   minimal decoration — away from anything spreadsheet/card-grid-like).
 - Build out dental software rankings as a dedicated pillar.
@@ -102,13 +105,17 @@ building toward a hands-free, in-car experience.
 
 - **Channels + personalized onboarding system** (see "The big idea" above) —
   tagging foundation → channels → onboarding quiz.
-- **Embedded audio player + cross-device/in-car ("Tesla") bookmarks** (see
-  "Bookmarks & embedded player" above) — the in-car piece depends on accounts below.
-- Implement a phased user account + voting system
-  (launch as aggregator → Google/Apple sign-in → NPI-verified voting).
+- **Embedded audio player + car-friendly layout** for the in-car ("Tesla") experience
+  (see "Bookmarks & embedded player" above). Bookmarks already sync across devices via
+  accounts; this is the remaining playback/layout work.
+- Extend the user-account system toward **voting**
+  (now built on Supabase/Google sign-in → add NPI-verified voting).
 - Bayesian vote confidence adjustment to prevent score gaming.
 
 ## ✅ Done
 
+- **Login-required bookmarks** (Google sign-in + Supabase) — bookmark resources,
+  Saved page, profile, and a "new from your bookmarks" episode feed. _(PR #2)_
+- **User accounts foundation** via Supabase + Google OAuth (with NPI badge hook). _(PR #2)_
 - Resource submission modal with Turnstile CAPTCHA and AI parsing.
 - Pediatric Dentistry specialty added across the site.
