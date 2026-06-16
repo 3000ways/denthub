@@ -91,7 +91,10 @@ export default function About() {
 
               {/* Andrei */}
               <div style={{ flex:'1 1 220px', minWidth:220, display:'flex', gap:14 }}>
-                <div style={{ width:52, height:52, borderRadius:'50%', background:GREEN, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:700, fontFamily:FONT_DISPLAY, flexShrink:0 }}>A</div>
+                <div style={{ width:52, height:52, borderRadius:'50%', background:GREEN, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:700, fontFamily:FONT_DISPLAY, flexShrink:0, overflow:'hidden', position:'relative' }}>
+                  A
+                  <img src="/andrei.png" alt="Dr. Andrei Ionescu" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} onError={e => { e.currentTarget.style.display='none'; }} />
+                </div>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:'#111' }}>Dr. Andrei Ionescu</div>
                   <div style={{ fontSize:11, color:GREEN, fontWeight:600, marginBottom:8, letterSpacing:0.2 }}>Founder &amp; Endodontist</div>
