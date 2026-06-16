@@ -24,9 +24,10 @@ The Dental Commute is a dentistry resource directory and ranking platform for de
 ## Tech Stack
 
 - **Frontend/Hosting:** Next.js deployed on Vercel
-- **Database/CMS:** Airtable (accessed via API route at `/api/airtable`)
+- **Database/CMS:** Airtable (resource/category content, accessed via API route at `/api/airtable`)
+- **Accounts & user data:** Supabase (Postgres + Google OAuth) — powers sign-in and bookmarks
 - **Source control:** GitHub (`3000ways/denthub`)
-- **Auth (planned):** Google/Apple sign-in → NPI-verified voting
+- **Auth:** Google sign-in live via Supabase (NPI-verified voting still planned)
 
 ---
 
@@ -39,6 +40,14 @@ The Dental Commute is a dentistry resource directory and ranking platform for de
 - Vercel env variable changes only take effect after a new deployment; push a GitHub commit to trigger redeploy
 - **Never use `{Visible}=1` boolean filter in Airtable** — it's unreliable; remove the filter entirely as a workaround
 - Airtable MCP tools require table IDs (`tblXXX`) and field IDs (`fldXXX`), not names
+
+### Supabase (accounts & bookmarks)
+- Two data backends coexist on purpose: **Airtable = resource/category content**, **Supabase = per-user data** (logins, bookmarks). Don't move resource content into Supabase or user data into Airtable.
+- Client lives at `lib/supabase.js`; auth state in `lib/auth-context.js`; bookmarks in `lib/bookmarks-context.js`.
+- Sign-in is **Google OAuth** via Supabase (`signInWithGoogle`). Added in PR #2.
+- Tables so far: `profiles` (one row per user, includes optional NPI for a verified badge) and `bookmarks` (`user_id` + `resource_id`).
+- Env vars (in Vercel): `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The anon key is public/browser-safe by design — but never commit any **service-role** key.
+- The phased voting system will build on this Supabase auth, not a new backend.
 
 ---
 
