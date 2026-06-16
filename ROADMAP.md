@@ -134,6 +134,13 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 📋 Next (planned, not started)
 
+- **About page — "Who's behind this" team section.** Two profiles: Andrei
+  (Founder / Endodontist) and **DMD Yodabot** 🤖, the project's AI teammate (playful
+  persona). Needs Andrei's bio copy. Code change → branch + PR.
+- **Google Analytics setup.** Add a GA4 tag to the Next.js app via the `Script`
+  component in `_app.js`, reading a `NEXT_PUBLIC_GA_ID` env var. Blocked on Andrei
+  creating a GA4 property and sharing the `G-XXXXXXXXXX` Measurement ID (public, not
+  a secret); then add the ID to Vercel env vars + redeploy. Code change → branch + PR.
 - Home-page quick wins (see "Quick wins" above): Editor's/Andrei's Pick,
   Trending this week, Clinical pearl, Dynamic hero.
 - Refine the UI toward the magazine aesthetic (white background, strong typography,
