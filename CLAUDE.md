@@ -112,6 +112,19 @@ Weighted composite score shown on each resource card with a hover tooltip:
 - Implement phased user account and voting system
 - Build out dental software rankings as a dedicated pillar
 
+See `ROADMAP.md` (on `main`) for the detailed, evolving feature wish list.
+
+---
+
+## Roadmap / Planning Workflow
+
+- The feature wish list lives in **`ROADMAP.md`** at the repo root. Read it at the
+  start of planning sessions.
+- **Roadmap / docs-only edits may be committed directly to `main`** (owner approved) —
+  no branch or pull request needed for these notes.
+- **Code/feature changes still go through a branch + pull request** so they can be
+  reviewed before going live.
+
 ---
 
 ## Owner
