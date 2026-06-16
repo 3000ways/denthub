@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Settings'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Settings'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Conference', 'Other'];
 
@@ -885,7 +885,120 @@ Return ONLY the JSON array, no other text.`;
 }
 
 // ══════════════════════════════════════════
-//  TAB 5 — Settings
+//  TAB 5 — Auto-Tag (AI-assisted Goals/Career tagging)
+// ══════════════════════════════════════════
+function AutoTag() {
+  const [remaining, setRemaining] = useState(null);
+  const [batchSize, setBatchSize] = useState(12);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+  const [results, setResults] = useState([]); // most-recent batch first
+  const [totalTagged, setTotalTagged] = useState(0);
+
+  async function loadRemaining() {
+    try {
+      const r = await fetch('/api/admin/suggest-tags');
+      const d = await r.json();
+      if (typeof d.remaining === 'number') setRemaining(d.remaining);
+    } catch { /* ignore */ }
+  }
+
+  useEffect(() => { loadRemaining(); }, []);
+
+  async function runBatch() {
+    setRunning(true); setError(''); setDone(false);
+    try {
+      const r = await fetch('/api/admin/suggest-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: batchSize }),
+      });
+      const d = await r.json();
+      if (d.status === 'no_ai_key') { setError(d.message); return; }
+      if (d.error) { setError(d.error); return; }
+      setResults(prev => [...(d.results || []), ...prev]);
+      setTotalTagged(t => t + (d.processed || 0));
+      if (typeof d.remaining === 'number') setRemaining(d.remaining);
+      if (d.done || d.processed === 0) setDone(true);
+    } catch (e) { setError(e.message); }
+    finally { setRunning(false); }
+  }
+
+  const Chips = ({ values, color, bg }) => (
+    !values || values.length === 0
+      ? <span style={{ fontSize: 11, color: '#bbb' }}>—</span>
+      : <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
+          {values.map(v => (
+            <span key={v} style={{ fontSize: 11, fontWeight: 600, color, background: bg, padding: '2px 8px', borderRadius: 10 }}>{v}</span>
+          ))}
+        </span>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>AI Auto-Tagger</h2>
+        <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, textDecoration: 'none', fontWeight: 500 }}>Check Perplexity credits ↗</a>
+      </div>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
+        Reads each resource's description and suggests <strong>Goals / Outcomes</strong> and <strong>Career Stage</strong> tags
+        (only from the fixed lists — no made-up tags). Suggestions are saved with <strong>Needs Tag Review</strong> turned on,
+        so nothing is final until you check it. Review in Airtable by filtering on <em>Needs Tag Review = checked</em>, fix the
+        chips, then uncheck the box.
+      </p>
+
+      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '18px 20px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ fontSize: 13, color: '#555' }}>
+            Untagged resources remaining:{' '}
+            <strong style={{ color: '#111' }}>{remaining == null ? '…' : remaining}</strong>
+            {totalTagged > 0 && <span style={{ color: '#999' }}> · tagged this session: {totalTagged}</span>}
+          </div>
+          <label style={{ fontSize: 12, color: '#555', display: 'flex', alignItems: 'center', gap: 6 }}>
+            Batch size
+            <input type="number" min={1} max={25} value={batchSize}
+              onChange={e => setBatchSize(Math.min(25, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+              style={{ ...inp(), width: 64, padding: '6px 8px' }} />
+          </label>
+        </div>
+      </div>
+
+      {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+      {done && remaining === 0 && <div style={{ marginBottom: 12, padding: '10px 14px', background: '#d1fae5', color: '#065f46', borderRadius: 6, fontSize: 13 }}>✓ All published resources have been tagged. Review them in Airtable.</div>}
+
+      <button onClick={runBatch} disabled={running || remaining === 0} style={{ width: '100%', padding: '13px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: (running || remaining === 0) ? 0.6 : 1 }}>
+        {running ? '🏷️ Tagging… (takes ~20–40s)' : `🏷️ Tag next ${batchSize}`}
+      </button>
+
+      {results.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 10 }}>Tagged this session ({results.length})</div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {results.map((r, i) => (
+              <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '12px 16px', background: '#fff' }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 8 }}>{r.name}</div>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', minWidth: 70 }}>Goals</span>
+                    <Chips values={r.goals} color="#065f46" bg="#d1fae5" />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', minWidth: 70 }}>Career</span>
+                    <Chips values={r.careerStages} color="#5b21b6" bg="#ede9fe" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  TAB 6 — Settings
 // ══════════════════════════════════════════
 function Settings() {
   const [current, setCurrent] = useState('');
@@ -1040,7 +1153,8 @@ export default function AdminPage() {
         {tab === 1 && <ReviewQueue />}
         {tab === 2 && <AllResources />}
         {tab === 3 && <RunResearch />}
-        {tab === 4 && <Settings />}
+        {tab === 4 && <AutoTag />}
+        {tab === 5 && <Settings />}
       </div>
     </div>
   );
