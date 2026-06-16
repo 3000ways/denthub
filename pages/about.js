@@ -83,6 +83,40 @@ export default function About() {
           </div>
 
           <div style={{ borderTop:`1px solid ${BORDER}`, paddingTop:32, marginBottom:32 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'#111', marginBottom:8 }}>Who&rsquo;s behind it</div>
+            <p style={{ fontSize:14, color:'#777', lineHeight:1.65, marginBottom:24 }}>
+              A two-person team — one human, one not.
+            </p>
+            <div style={{ display:'flex', gap:24, flexWrap:'wrap' }}>
+
+              {/* Andrei */}
+              <div style={{ flex:'1 1 220px', minWidth:220, display:'flex', gap:14 }}>
+                <div style={{ width:52, height:52, borderRadius:'50%', background:GREEN, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:700, fontFamily:FONT_DISPLAY, flexShrink:0 }}>A</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#111' }}>Dr. Andrei Ionescu</div>
+                  <div style={{ fontSize:11, color:GREEN, fontWeight:600, marginBottom:8, letterSpacing:0.2 }}>Founder &amp; Endodontist</div>
+                  <p style={{ fontSize:13, color:'#666', lineHeight:1.6, margin:0 }}>
+                    Endodontist in Oakville — I save teeth for a living and lose board games to my four kids for fun. Married to an orthodontist, so dinner is basically a study club.
+                  </p>
+                </div>
+              </div>
+
+              {/* DMD Yodabot */}
+              <div style={{ flex:'1 1 220px', minWidth:220, display:'flex', gap:14 }}>
+                <div style={{ width:52, height:52, borderRadius:'50%', background:'#E8F5F0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>🤖</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#111' }}>DMD Yodabot</div>
+                  <div style={{ fontSize:11, color:GREEN, fontWeight:600, marginBottom:8, letterSpacing:0.2 }}>Chief Resource Officer (AI)</div>
+                  <p style={{ fontSize:13, color:'#666', lineHeight:1.6, margin:0 }}>
+                    Reads every podcast, book, and course so you don&rsquo;t have to — then ranks, tags, and never asks for a coffee break. <em>Curate, you must.</em>
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div style={{ borderTop:`1px solid ${BORDER}`, paddingTop:32, marginBottom:32 }}>
             <div style={{ fontSize:13, fontWeight:600, color:'#111', marginBottom:12 }}>Know a great resource?</div>
             <p style={{ fontSize:14, color:'#777', lineHeight:1.65, marginBottom:20 }}>
               The Dental Commute is only as good as its community. If there's a podcast, book, course, or tool you think belongs here, submit it and we'll review it.
