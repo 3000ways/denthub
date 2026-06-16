@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { SignInModal, OnboardingModal } from '../components/AuthModal';
 import { BookmarkButton } from '../components/BookmarkButton';
+import { BookmarkFeed } from '../components/BookmarkFeed';
 import { CommunitySection } from '../components/Community';
 
 const CATEGORIES = [
@@ -718,6 +719,9 @@ export default function Home({ initialResources }) {
 
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
+
+            {/* New from your bookmarks — latest episodes from followed shows */}
+            {user && <BookmarkFeed isMobile={isMobile} limit={4} />}
 
             {/* Saved channel — only when signed in and the user has bookmarks */}
             {user && savedResources.length > 0 && (

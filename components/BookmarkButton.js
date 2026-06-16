@@ -20,12 +20,15 @@ function Ribbon({ saved, size }) {
 // Bookmark toggle. Login-required: when signed out, clicking opens the sign-in
 // modal via onSignInRequired (same flow as voting/commenting).
 //   variant="icon"    → bare icon button (for compact list rows)
-//   variant="labeled" → icon + "Save"/"Saved" pill (for detail pages)
-export function BookmarkButton({ resourceId, onSignInRequired, variant = 'icon', size = 18 }) {
+//   variant="labeled" → icon + label pill (for detail pages)
+//   kind="follow"     → labels read "Follow"/"Following" (for shows); else "Save"/"Saved"
+export function BookmarkButton({ resourceId, onSignInRequired, variant = 'icon', size = 18, kind = 'save' }) {
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const [busy, setBusy] = useState(false);
   const saved = isBookmarked(resourceId);
+  const onLabel  = kind === 'follow' ? 'Following' : 'Saved';
+  const offLabel = kind === 'follow' ? 'Follow' : 'Save';
 
   async function handleClick(e) {
     e.preventDefault();
@@ -39,7 +42,7 @@ export function BookmarkButton({ resourceId, onSignInRequired, variant = 'icon',
 
   if (variant === 'labeled') {
     return (
-      <button onClick={handleClick} disabled={busy} title={saved ? 'Remove from saved' : 'Save for later'}
+      <button onClick={handleClick} disabled={busy} title={saved ? `${onLabel} — tap to remove` : offLabel}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px',
           borderRadius: 6, border: `1px solid ${saved ? GREEN : BORDER}`,
@@ -48,7 +51,7 @@ export function BookmarkButton({ resourceId, onSignInRequired, variant = 'icon',
           fontFamily: FONT, transition: 'all 0.15s',
         }}>
         <Ribbon saved={saved} size={16} />
-        {saved ? 'Saved' : 'Save'}
+        {saved ? onLabel : offLabel}
       </button>
     );
   }

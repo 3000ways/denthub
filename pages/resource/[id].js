@@ -319,7 +319,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
                   RSS Feed
                 </a>
               )}
-              <BookmarkButton resourceId={record.id} variant="labeled" onSignInRequired={() => setShowSignIn(true)} />
+              <BookmarkButton resourceId={record.id} variant="labeled" kind={(isPodcast || isYouTube) ? 'follow' : 'save'} onSignInRequired={() => setShowSignIn(true)} />
             </div>
           </div>
 
