@@ -240,7 +240,6 @@ export default async function handler(req, res) {
           const mapped = typeMap[raw] || raw;
           return VALID.includes(mapped) ? mapped : 'Other';
         })(),
-        Tags: [category],
         ...(r.Author       ? { 'Host or Author': r.Author }       : {}),
         ...(r.RSSFeedURL   ? { 'RSS Feed URL':   r.RSSFeedURL }   : {}),
         ...(r.ImageURL     ? { 'Image URL':      r.ImageURL }     : {}),

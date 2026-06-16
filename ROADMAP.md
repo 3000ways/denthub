@@ -29,16 +29,26 @@ _Lower effort, mostly using content/data we already have._
 _Larger system. Build in the order below; the tagging step is the foundation everything
 else depends on._
 
-1. **Tagging foundation (do first).** Add a free-form **Tags** field in Airtable and
-   define a starter tag vocabulary, then tag existing resources. Tags span three kinds:
-   - _Specialty_ — Endodontics, Ortho, Perio…
-   - _Career stage_ — student, new grad, associate, owner, thinking-of-selling
-   - _Goals / outcomes_ — selling your practice, increasing EBITDA, hiring an associate,
-     finding a job/associate, investment advice, going digital (AI, CBCT, digital
-     workflows), clinical fundamentals… (this is also the "reasons to listen" taxonomy —
-     see the "Why should you listen?" theme below)
+1. **Tagging foundation (do first).** 🚧 _In progress (2026-06-16)._ Rather than one
+   free-form Tags field, we decided on **separate fields per dimension** (cleaner for
+   Channels + the quiz, where each quiz question maps to one field). Three dimensions:
+   - _Specialty_ — Endodontics, Ortho, Perio… **(field already exists, well populated)**
+   - _Career stage_ — Student, New Grad, Associate, Practice Owner, Thinking of Selling
+     **(new `Career Stage` field added; replaces the old lightly-used `Audience` field)**
+   - _Goals / outcomes_ — the "reasons to listen" taxonomy (selling your practice,
+     increasing EBITDA, introducing implants, going digital, beating burnout…)
+     **(new `Goals / Outcomes` field added with the ~18-outcome v1 list; see the
+     "Why should you listen?" theme below)**
+   - The old junk `Tags` field (a mashup that duplicated Specialty/Topic and was never
+     populated) is being **retired**; admin import paths no longer write to it.
    - Note: channels only feel good once enough resources are tagged — a channel with
-     2 items feels empty. This is the biggest content-work item.
+     2 items feels empty. This is the biggest content-work item. Approach: **AI-assisted
+     first pass** (suggest goal/career tags from each resource's description, drawn only
+     from the fixed vocabulary) **+ human review** before anything goes live.
+   - _Manual Airtable cleanup still pending (destructive, done by hand):_ delete the old
+     `Tags` field, delete the old `Audience` field, and remove the non-specialty values
+     that leaked into `Specialty` (Business & Leadership, Personal Finance, Health &
+     Wellness, All Specialties).
 
 2. **Channels** — curated, cross-category bundles ("playlists") sitting on top of the
    tags. Each channel = title + short blurb + cover + a set of tag/filter rules.

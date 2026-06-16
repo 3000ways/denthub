@@ -44,13 +44,15 @@ export default async function handler(req, res) {
   // POST — create new resource
   if (req.method === 'POST') {
     try {
+      // Category is accepted for backwards-compatibility but no longer stored —
+      // the junk "Tags" field it fed has been retired in favor of Specialty /
+      // Topic / Goals & Outcomes / Career Stage.
       const { Category, ...rest } = req.body;
       const fields = {
         ...rest,
         Status: 'Published',
         'Submission Status': 'Approved',
         Source: rest.Source || 'Manual',
-        ...(Category ? { Tags: [Category] } : {}),
       };
       const data = await airtableRequest('', {
         method: 'POST',
