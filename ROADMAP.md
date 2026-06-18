@@ -137,10 +137,6 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 - **About page — "Who's behind this" team section.** Two profiles: Andrei
   (Founder / Endodontist) and **DMD Yodabot** 🤖, the project's AI teammate (playful
   persona). Needs Andrei's bio copy. Code change → branch + PR.
-- **Google Analytics setup.** Add a GA4 tag to the Next.js app via the `Script`
-  component in `_app.js`, reading a `NEXT_PUBLIC_GA_ID` env var. Blocked on Andrei
-  creating a GA4 property and sharing the `G-XXXXXXXXXX` Measurement ID (public, not
-  a secret); then add the ID to Vercel env vars + redeploy. Code change → branch + PR.
 - Home-page quick wins (see "Quick wins" above): Editor's/Andrei's Pick,
   Trending this week, Clinical pearl, Dynamic hero.
 - Refine the UI toward the magazine aesthetic (white background, strong typography,
@@ -162,6 +158,8 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## ✅ Done
 
+- **Google Analytics 4** tracking (`G-NHEQGSKG9D`) wired into `_app.js` via
+  `next/script`. _(PR #5, merged)_
 - **Login-required bookmarks** (Google sign-in + Supabase) — bookmark resources,
   Saved page, profile, and a "new from your bookmarks" episode feed. _(PR #2)_
 - **User accounts foundation** via Supabase + Google OAuth (with NPI badge hook). _(PR #2)_
