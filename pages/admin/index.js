@@ -426,6 +426,7 @@ function QueueCard({ item, onRemove }) {
 function ReviewQueue() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [approving, setApproving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -436,6 +437,17 @@ function ReviewQueue() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function approveAll() {
+    if (!items.length) return;
+    setApproving(true);
+    try {
+      await Promise.all(items.map(item =>
+        fetch('/api/admin/submissions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id, action: 'approve' }) })
+      ));
+      setItems([]);
+    } finally { setApproving(false); }
+  }
 
   if (loading) return <div style={{ color: '#888', fontSize: 14 }}>Loading…</div>;
   if (!items.length) return (
@@ -448,9 +460,18 @@ function ReviewQueue() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>Review Queue</h2>
-        <span style={{ fontSize: 13, color: '#888' }}>{items.length} pending</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 13, color: '#888' }}>{items.length} pending</span>
+          <button onClick={approveAll} disabled={approving} style={{
+            padding: '7px 16px', background: approving ? '#a7f3d0' : '#059669', color: '#fff',
+            border: 'none', borderRadius: 7, cursor: approving ? 'default' : 'pointer',
+            fontSize: 13, fontWeight: 700, fontFamily: FONT,
+          }}>
+            {approving ? '…Publishing all' : `✓ Publish all (${items.length})`}
+          </button>
+        </div>
       </div>
       <div style={{ display: 'grid', gap: 12 }}>
         {items.map(item => (
