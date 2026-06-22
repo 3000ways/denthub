@@ -170,6 +170,13 @@ user-accounts backend — the phased auth/voting work below now builds on it.
   persona). Needs Andrei's bio copy. Code change → branch + PR.
 - Home-page quick wins (see "Quick wins" above): Editor's/Andrei's Pick,
   Trending this week, Clinical pearl, Dynamic hero.
+- **Manage Editor's Picks from the backend.** Add an "Editor's Pick" flag on resources
+  (Airtable field) + a toggle in the existing admin panel, so Andrei can promote/demote
+  picks anytime without code changes. Feeds the home-page Editor's/Andrei's Pick module.
+- **Admin "Members" view — know who your users are.** A backend view of registered/
+  signed-in members from Supabase (`profiles`): email, join date, NPI/verified status,
+  total count. Distinct from Google Analytics (anonymous traffic); this is *identified*
+  members. Code change → branch + PR.
 - Refine the UI toward the magazine aesthetic (white background, strong typography,
   minimal decoration — away from anything spreadsheet/card-grid-like).
 - Build out dental software rankings as a dedicated pillar.
