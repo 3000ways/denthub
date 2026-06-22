@@ -48,6 +48,7 @@ The Dental Commute is a dentistry resource directory and ranking platform for de
 - Tables so far: `profiles` (one row per user, includes optional NPI for a verified badge) and `bookmarks` (`user_id` + `resource_id`).
 - Env vars (in Vercel): `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The anon key is public/browser-safe by design — but never commit any **service-role** key.
 - The phased voting system will build on this Supabase auth, not a new backend.
+- **Episode Archive exception (`episodes` table) — content in Supabase on purpose.** Normally content lives in Airtable, but the episode archive is a thousands+-row, full-text-searchable cache of public RSS data, so it lives in Supabase/Postgres. Resources still live in Airtable; only episodes are the exception. The `episodes` table is **public-read**; writes go only through the **service-role key** (`SUPABASE_SERVICE_ROLE_KEY` — Vercel env, server-only, never exposed to the browser; client in `lib/supabase-admin.js`). A locked-down `harvest_state` table (service-role only) tracks per-show harvest progress and powers a coverage report. The harvester (`lib/harvester.js`) reads each podcast's RSS feed RSS-first (with pagination) and upserts episodes; it runs daily via Vercel Cron (`/api/cron/harvest-episodes`, guarded by `CRON_SECRET`) and is searched through `/api/episode-search`. Descriptions are capped at ~4 KB; full transcripts are a future (Phase C) concern, captured separately. (Phase A — added on branch `claude/episode-archive-phase-a`.)
 
 ---
 
