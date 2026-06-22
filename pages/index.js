@@ -214,44 +214,55 @@ function NewBadge() {
   return <span style={{ fontSize:9, fontWeight:700, color:'#fff', background:GREEN, padding:'2px 6px', borderRadius:10, letterSpacing:'0.06em', textTransform:'uppercase', marginLeft:8, verticalAlign:'middle' }}>New</span>;
 }
 
-// Andrei's hand-picked featured resource — the resource on the left, his personal
-// blurb as a pull quote on the right. Driven by the "Editor's Pick" checkbox and
-// "Editor's Pick Blurb" fields in Airtable.
-function EditorsPick({ r, isMobile, onOpen, onSignInRequired }) {
+// One Editor's Pick card — the resource on the left, Andrei's personal blurb as a
+// pull quote on the right.
+function EditorsPickCard({ r, isMobile, onOpen, onSignInRequired }) {
   const f = r.fields;
   const blurb = (f["Editor's Pick Blurb"] || '').trim();
   const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
   return (
+    <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 20 : 32, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:12, padding: isMobile ? '22px' : '28px 32px', boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+      {/* Left — the resource itself */}
+      <div onClick={() => onOpen(r.id)} style={{ flex: isMobile ? 'none' : '0 0 38%', cursor:'pointer', display:'flex', flexDirection:'column' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:16 }}>
+          <Logo url={f.URL} name={f.Name} size={72} imageUrl={f['Image URL']} />
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight:600, color:'#111', lineHeight:1.15, marginBottom:6, fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{f.Name}</div>
+            {f['Host or Author'] && <div style={{ fontSize:13, color:'#aaa' }}>{f['Host or Author']}</div>}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:'auto' }} onClick={e => e.stopPropagation()}>
+          <ScoreBadge score={score} fields={f} />
+          <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />
+        </div>
+      </div>
+
+      {/* Right — Andrei's personal note as a pull quote */}
+      <div style={{ flex:1, borderLeft: isMobile ? 'none' : `2px solid ${GREEN_LIGHT}`, borderTop: isMobile ? `2px solid ${GREEN_LIGHT}` : 'none', paddingLeft: isMobile ? 0 : 28, paddingTop: isMobile ? 18 : 0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
+        <div style={{ fontSize:34, lineHeight:0.6, color:GREEN, fontFamily:FONT_DISPLAY, marginBottom:10 }}>&ldquo;</div>
+        <div style={{ fontSize: isMobile ? 16 : 18, lineHeight:1.55, color:'#333', fontFamily:FONT_DISPLAY, fontStyle:'italic', marginBottom:16 }}>{blurb}</div>
+        <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>&mdash; Dr. Andrei Ionescu &middot; Endodontist</div>
+      </div>
+    </div>
+  );
+}
+
+// Editor's Pick section — header plus one or more hand-picked cards, ordered by the
+// "Editor's Pick Order" field. Driven by the "Editor's Pick" checkbox, "Editor's
+// Pick Blurb", and "Editor's Pick Order" fields in Airtable.
+function EditorsPick({ picks, isMobile, onOpen, onSignInRequired }) {
+  return (
     <div style={{ marginBottom:52 }}>
       {/* Section header rule — matches the other home-page sections */}
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'2px solid #111' }}>
-        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Editor&rsquo;s Pick</div>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Editor&rsquo;s Pick{picks.length > 1 ? 's' : ''}</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Hand-picked by Andrei</div>
       </div>
-
-      <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 20 : 32, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:12, padding: isMobile ? '22px' : '28px 32px', boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
-        {/* Left — the resource itself */}
-        <div onClick={() => onOpen(r.id)} style={{ flex: isMobile ? 'none' : '0 0 38%', cursor:'pointer', display:'flex', flexDirection:'column' }}>
-          <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:16 }}>
-            <Logo url={f.URL} name={f.Name} size={72} imageUrl={f['Image URL']} />
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
-              <div style={{ fontSize: isMobile ? 22 : 26, fontWeight:600, color:'#111', lineHeight:1.15, marginBottom:6, fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{f.Name}</div>
-              {f['Host or Author'] && <div style={{ fontSize:13, color:'#aaa' }}>{f['Host or Author']}</div>}
-            </div>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:'auto' }} onClick={e => e.stopPropagation()}>
-            <ScoreBadge score={score} fields={f} />
-            <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />
-          </div>
-        </div>
-
-        {/* Right — Andrei's personal note as a pull quote */}
-        <div style={{ flex:1, borderLeft: isMobile ? 'none' : `2px solid ${GREEN_LIGHT}`, borderTop: isMobile ? `2px solid ${GREEN_LIGHT}` : 'none', paddingLeft: isMobile ? 0 : 28, paddingTop: isMobile ? 18 : 0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-          <div style={{ fontSize:34, lineHeight:0.6, color:GREEN, fontFamily:FONT_DISPLAY, marginBottom:10 }}>&ldquo;</div>
-          <div style={{ fontSize: isMobile ? 16 : 18, lineHeight:1.55, color:'#333', fontFamily:FONT_DISPLAY, fontStyle:'italic', marginBottom:16 }}>{blurb}</div>
-          <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>&mdash; Dr. Andrei Ionescu &middot; Endodontist</div>
-        </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+        {picks.map(r => (
+          <EditorsPickCard key={r.id} r={r} isMobile={isMobile} onOpen={onOpen} onSignInRequired={onSignInRequired} />
+        ))}
       </div>
     </div>
   );
@@ -546,11 +557,18 @@ export default function Home({ initialResources }) {
     ? [...displayResources].filter(r => bookmarkIds.has(r.id))
     : [];
 
-  // Editor's Pick — Andrei's hand-picked feature. Needs both the checkbox and a
-  // blurb; if more than one is flagged, the highest-scored one wins.
-  const editorsPick = [...displayResources]
+  // Editor's Picks — Andrei's hand-picked features. Each needs the checkbox and a
+  // blurb. Ordered by the "Editor's Pick Order" field (lower shows first); picks
+  // without an order fall to the back, broken by Final Score.
+  const editorsPicks = [...displayResources]
     .filter(r => r.fields["Editor's Pick"] && (r.fields["Editor's Pick Blurb"] || '').trim())
-    .sort((a,b) => (b.fields['Final Score']||0) - (a.fields['Final Score']||0))[0] || null;
+    .sort((a, b) => {
+      const ao = a.fields["Editor's Pick Order"], bo = b.fields["Editor's Pick Order"];
+      if (ao != null && bo != null && ao !== bo) return ao - bo;
+      if (ao != null && bo == null) return -1;
+      if (ao == null && bo != null) return 1;
+      return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
+    });
 
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0,50);
@@ -769,10 +787,10 @@ export default function Home({ initialResources }) {
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
 
-            {/* Editor's Pick — Andrei's hand-picked featured resource */}
-            {editorsPick && (
+            {/* Editor's Picks — Andrei's hand-picked featured resources */}
+            {editorsPicks.length > 0 && (
               <EditorsPick
-                r={editorsPick}
+                picks={editorsPicks}
                 isMobile={isMobile}
                 onOpen={(id) => router.push(`/resource/${id}`)}
                 onSignInRequired={() => setShowSignIn(true)}
