@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Settings'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Settings'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Conference', 'Other'];
 
@@ -1019,7 +1019,159 @@ function AutoTag() {
 }
 
 // ══════════════════════════════════════════
-//  TAB 6 — Settings
+//  TAB 6 — Deduplication
+// ══════════════════════════════════════════
+function Deduplication() {
+  const [loading, setLoading] = useState(false);
+  const [groups, setGroups] = useState(null);
+  const [totalScanned, setTotalScanned] = useState(0);
+  const [dismissed, setDismissed] = useState(new Set());
+  const [busy, setBusy] = useState({});
+
+  const visibleGroups = groups ? groups.filter((_, i) => !dismissed.has(i)) : [];
+
+  async function scan() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/dedupes');
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setGroups(d.groups);
+      setTotalScanned(d.total);
+      setDismissed(new Set());
+    } catch (e) {
+      alert('Scan failed: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function archiveRecord(id, groupIdx) {
+    setBusy(b => ({ ...b, [id]: true }));
+    try {
+      const r = await fetch('/api/admin/resources', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, fields: { Status: 'Archived' } }),
+      });
+      if (!r.ok) throw new Error('Failed');
+      setGroups(gs => gs.map((g, i) => i !== groupIdx ? g : {
+        ...g,
+        records: g.records.map(rec => rec.id !== id ? rec : { ...rec, fields: { ...rec.fields, Status: 'Archived' } }),
+      }));
+    } catch (e) {
+      alert('Archive failed: ' + e.message);
+    } finally {
+      setBusy(b => { const n = { ...b }; delete n[id]; return n; });
+    }
+  }
+
+  async function deleteRecord(id, groupIdx) {
+    if (!confirm('Permanently delete this record from Airtable?')) return;
+    setBusy(b => ({ ...b, [id]: true }));
+    try {
+      const r = await fetch(`/api/admin/resources?id=${id}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error('Failed');
+      setGroups(gs => gs.map((g, i) => i !== groupIdx ? g : {
+        ...g,
+        records: g.records.filter(rec => rec.id !== id),
+      }).filter(g => g.records.length >= 2));
+    } catch (e) {
+      alert('Delete failed: ' + e.message);
+    } finally {
+      setBusy(b => { const n = { ...b }; delete n[id]; return n; });
+    }
+  }
+
+  const statusColor = s => s === 'Published' ? { bg: '#d1fae5', fg: '#065f46' } : s === 'Archived' ? { bg: '#f3f4f6', fg: '#6b7280' } : { bg: '#fef9c3', fg: '#92400e' };
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Deduplication</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>
+        Scan all resources for duplicate entries — matched by URL or name. Archive or delete the copy, or dismiss false positives.
+      </p>
+
+      <button onClick={scan} disabled={loading} style={{ padding: '10px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: loading ? 0.7 : 1, marginBottom: 24 }}>
+        {loading ? 'Scanning…' : groups === null ? 'Scan for Duplicates' : 'Rescan'}
+      </button>
+
+      {groups !== null && (
+        <div style={{ fontSize: 13, color: '#555', marginBottom: 20 }}>
+          Scanned <strong>{totalScanned}</strong> resources —{' '}
+          {visibleGroups.length === 0
+            ? <span style={{ color: '#065f46', fontWeight: 600 }}>no duplicates found</span>
+            : <span style={{ color: '#b45309', fontWeight: 600 }}>{visibleGroups.length} duplicate group{visibleGroups.length !== 1 ? 's' : ''} found</span>}
+          {dismissed.size > 0 && <span style={{ color: '#aaa' }}> ({dismissed.size} dismissed)</span>}
+        </div>
+      )}
+
+      {visibleGroups.map((group, gi) => {
+        const realIdx = groups.indexOf(group);
+        return (
+          <div key={realIdx} style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: 'hidden' }}>
+            <div style={{ background: '#fafafa', borderBottom: `1px solid ${BORDER}`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+                <span style={{ background: group.reason === 'Same URL' ? '#dbeafe' : '#fef9c3', color: group.reason === 'Same URL' ? '#1e40af' : '#92400e', padding: '2px 8px', borderRadius: 20, marginRight: 8 }}>
+                  {group.reason}
+                </span>
+                <span style={{ color: '#999', fontWeight: 400, fontFamily: 'monospace', fontSize: 11 }}>{group.matchValue}</span>
+              </div>
+              <button
+                onClick={() => setDismissed(d => new Set([...d, realIdx]))}
+                style={{ fontSize: 11, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+              >
+                Dismiss
+              </button>
+            </div>
+
+            {group.records.map(rec => {
+              const f = rec.fields;
+              const sc = statusColor(f['Status']);
+              const isBusy = busy[rec.id];
+              return (
+                <div key={rec.id} style={{ padding: '14px 16px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {f['Name'] || '(no name)'}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#888', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <a href={f['URL']} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>{f['URL']}</a>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {f['Type'] && <span style={{ fontSize: 11, color: '#555', background: '#f3f4f6', padding: '2px 7px', borderRadius: 20 }}>{f['Type']}</span>}
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: sc.bg, color: sc.fg }}>{f['Status'] || 'No status'}</span>
+                      {f['Final Score'] != null && <span style={{ fontSize: 11, color: '#888' }}>Score: {Number(f['Final Score']).toFixed(1)}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={() => archiveRecord(rec.id, realIdx)}
+                      disabled={isBusy || f['Status'] === 'Archived'}
+                      style={{ padding: '5px 12px', fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#555', fontFamily: FONT, opacity: (isBusy || f['Status'] === 'Archived') ? 0.5 : 1 }}
+                    >
+                      {isBusy ? '…' : f['Status'] === 'Archived' ? 'Archived' : 'Archive'}
+                    </button>
+                    <button
+                      onClick={() => deleteRecord(rec.id, realIdx)}
+                      disabled={isBusy}
+                      style={{ padding: '5px 12px', fontSize: 12, border: '1px solid #fca5a5', borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#dc2626', fontFamily: FONT, opacity: isBusy ? 0.5 : 1 }}
+                    >
+                      {isBusy ? '…' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  TAB 7 — Settings
 // ══════════════════════════════════════════
 function Settings() {
   const [current, setCurrent] = useState('');
@@ -1175,7 +1327,8 @@ export default function AdminPage() {
         {tab === 2 && <AllResources />}
         {tab === 3 && <RunResearch />}
         {tab === 4 && <AutoTag />}
-        {tab === 5 && <Settings />}
+        {tab === 5 && <Deduplication />}
+        {tab === 6 && <Settings />}
       </div>
     </div>
   );
