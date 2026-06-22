@@ -407,6 +407,9 @@ export default function Home({ initialResources }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(initialResources.length === 0);
   const [expandedId, setExpandedId] = useState(null);
+  // How many ranked rows to show. Starts at 50 and grows via "Show more".
+  const RANKED_PAGE = 50;
+  const [visibleCount, setVisibleCount] = useState(RANKED_PAGE);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -512,6 +515,10 @@ export default function Home({ initialResources }) {
     fetch('/api/book-stats').then(r => r.json()).then(data => setBookStats(data)).catch(() => {});
   }, []);
 
+  // Any time the active filter or search changes, collapse the ranked list
+  // back to the first page so "Show more" starts fresh for the new view.
+  useEffect(() => { setVisibleCount(RANKED_PAGE); }, [activeCategory, activeSpecialty, activeTopic, search]);
+
   function selectCategory(cat) { setActiveCategory(prev => prev === cat ? null : cat); setExpandedId(null); }
   function selectSpecialty(s) { setActiveSpecialty(prev => prev === s ? null : s); setExpandedId(null); }
   function selectTopic(t) { setActiveTopic(prev => prev === t ? null : t); setExpandedId(null); }
@@ -585,7 +592,7 @@ export default function Home({ initialResources }) {
     });
 
   const top2 = filtered.slice(0,2);
-  const ranked = filtered.slice(0,50);
+  const ranked = filtered.slice(0, visibleCount);
 
   const totalResources = displayResources.length;
   const totalCategories = CATEGORIES.length;
@@ -1169,6 +1176,14 @@ export default function Home({ initialResources }) {
                   );
                 })}
               </div>
+              {filtered.length > ranked.length && (
+                <div style={{ textAlign:'center', marginTop:20 }}>
+                  <button onClick={() => setVisibleCount(c => c + RANKED_PAGE)}
+                    style={{ fontSize:13, color:GREEN, fontWeight:500, border:`1px solid ${GREEN}`, padding:'9px 22px', borderRadius:4, fontFamily:FONT_BODY, background:'transparent', cursor:'pointer' }}>
+                    Show more ({filtered.length - ranked.length} more)
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
