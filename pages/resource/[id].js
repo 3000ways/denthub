@@ -35,7 +35,18 @@ function parseYtRss(xml, limit = 9) {
   return videos;
 }
 
-export async function getServerSideProps({ params }) {
+// No paths are pre-built at deploy time (zero Airtable calls then). With
+// fallback: 'blocking', the first visitor to a resource triggers a one-time
+// build of that page; afterward it's served from cache and refreshed at most
+// once every 5 minutes (ISR). New resources still render on first view.
+export async function getStaticPaths() {
+  return { paths: [], fallback: 'blocking' };
+}
+
+// Cached per-resource and refreshed at most once every 5 minutes (ISR), so a
+// busy resource page hits Airtable roughly once per 5-minute window instead of
+// once per visitor. Returned props are unchanged from the previous version.
+export async function getStaticProps({ params }) {
   try {
     const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
     const pat = process.env.AIRTABLE_PAT;
@@ -45,9 +56,9 @@ export async function getServerSideProps({ params }) {
     const r = await fetch(`https://api.airtable.com/v0/${base}/Resources/${params.id}`, {
       headers: { Authorization: `Bearer ${pat}` },
     });
-    if (!r.ok) return { notFound: true };
+    if (!r.ok) return { notFound: true, revalidate: 60 };
     const record = await r.json();
-    if (record.fields?.Status !== 'Published') return { notFound: true };
+    if (record.fields?.Status !== 'Published') return { notFound: true, revalidate: 60 };
 
     const type = record.fields?.Type;
 
@@ -102,9 +113,9 @@ export async function getServerSideProps({ params }) {
       } catch {}
     }
 
-    return { props: { record, related, ytData, bookData } };
+    return { props: { record, related, ytData, bookData }, revalidate: 300 };
   } catch {
-    return { notFound: true };
+    return { notFound: true, revalidate: 60 };
   }
 }
 
