@@ -442,9 +442,7 @@ function ReviewQueue() {
     if (!items.length) return;
     setApproving(true);
     try {
-      await Promise.all(items.map(item =>
-        fetch('/api/admin/submissions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id, action: 'approve' }) })
-      ));
+      await fetch('/api/admin/submissions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approveAll: true }) });
       setItems([]);
     } finally { setApproving(false); }
   }
