@@ -135,17 +135,21 @@ export default async function handler(req, res) {
     fetchAllFromAirtable('YouTube'),
   ]);
 
+  // Deduplicate by RSS URL so shared feeds don't produce duplicate episode cards
+  const uniquePodcastMeta = podcastMeta.filter((m, i, arr) => arr.findIndex(x => x.rssUrl === m.rssUrl) === i);
+  const uniqueVideoMeta   = videoMeta.filter((m, i, arr) => arr.findIndex(x => x.rssUrl === m.rssUrl) === i);
+
   // 2. Fetch every RSS feed in parallel (4s timeout per feed — stragglers are dropped)
   const [podcastResults, videoResults] = await Promise.all([
     Promise.all(
-      podcastMeta.map(meta =>
+      uniquePodcastMeta.map(meta =>
         fetchFeed(meta.rssUrl)
           .then(xml => parsePodcastFeed(xml, meta))
           .catch(() => null)
       )
     ),
     Promise.all(
-      videoMeta.map(meta =>
+      uniqueVideoMeta.map(meta =>
         fetchFeed(meta.rssUrl)
           .then(xml => parseYouTubeFeed(xml, meta))
           .catch(() => null)
