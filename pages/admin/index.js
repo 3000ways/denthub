@@ -1023,8 +1023,28 @@ function Deduplication() {
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState(null);
   const [totalScanned, setTotalScanned] = useState(0);
+  const [scannedAt, setScannedAt] = useState(null);
   const [dismissed, setDismissed] = useState(new Set());
   const [busy, setBusy] = useState({});
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('tdc_dedupes');
+      if (cached) {
+        const { groups, total, scannedAt, dismissed: dis } = JSON.parse(cached);
+        setGroups(groups);
+        setTotalScanned(total);
+        setScannedAt(scannedAt);
+        if (dis) setDismissed(new Set(dis));
+      }
+    } catch {}
+  }, []);
+
+  function saveCache(groups, total, scannedAt, dismissed) {
+    try {
+      localStorage.setItem('tdc_dedupes', JSON.stringify({ groups, total, scannedAt, dismissed: [...dismissed] }));
+    } catch {}
+  }
 
   const visibleGroups = groups ? groups.filter((_, i) => !dismissed.has(i)) : [];
 
@@ -1034,9 +1054,12 @@ function Deduplication() {
       const r = await fetch('/api/admin/dedupes');
       const d = await r.json();
       if (d.error) throw new Error(d.error);
+      const now = new Date().toISOString();
       setGroups(d.groups);
       setTotalScanned(d.total);
+      setScannedAt(now);
       setDismissed(new Set());
+      saveCache(d.groups, d.total, now, new Set());
     } catch (e) {
       alert('Scan failed: ' + e.message);
     } finally {
@@ -1053,10 +1076,14 @@ function Deduplication() {
         body: JSON.stringify({ id, fields: { Status: 'Archived' } }),
       });
       if (!r.ok) throw new Error('Failed');
-      setGroups(gs => gs.map((g, i) => i !== groupIdx ? g : {
-        ...g,
-        records: g.records.map(rec => rec.id !== id ? rec : { ...rec, fields: { ...rec.fields, Status: 'Archived' } }),
-      }));
+      setGroups(gs => {
+        const updated = gs.map((g, i) => i !== groupIdx ? g : {
+          ...g,
+          records: g.records.map(rec => rec.id !== id ? rec : { ...rec, fields: { ...rec.fields, Status: 'Archived' } }),
+        });
+        saveCache(updated, totalScanned, scannedAt, dismissed);
+        return updated;
+      });
     } catch (e) {
       alert('Archive failed: ' + e.message);
     } finally {
@@ -1070,10 +1097,14 @@ function Deduplication() {
     try {
       const r = await fetch(`/api/admin/resources?id=${id}`, { method: 'DELETE' });
       if (!r.ok) throw new Error('Failed');
-      setGroups(gs => gs.map((g, i) => i !== groupIdx ? g : {
-        ...g,
-        records: g.records.filter(rec => rec.id !== id),
-      }).filter(g => g.records.length >= 2));
+      setGroups(gs => {
+        const updated = gs.map((g, i) => i !== groupIdx ? g : {
+          ...g,
+          records: g.records.filter(rec => rec.id !== id),
+        }).filter(g => g.records.length >= 2);
+        saveCache(updated, totalScanned, scannedAt, dismissed);
+        return updated;
+      });
     } catch (e) {
       alert('Delete failed: ' + e.message);
     } finally {
@@ -1090,17 +1121,20 @@ function Deduplication() {
         Scan all resources for duplicate entries — matched by URL or name. Archive or delete the copy, or dismiss false positives.
       </p>
 
-      <button onClick={scan} disabled={loading} style={{ padding: '10px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: loading ? 0.7 : 1, marginBottom: 24 }}>
+      <button onClick={scan} disabled={loading} style={{ padding: '10px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: loading ? 0.7 : 1, marginBottom: 12 }}>
         {loading ? 'Scanning…' : groups === null ? 'Scan for Duplicates' : 'Rescan'}
       </button>
 
       {groups !== null && (
         <div style={{ fontSize: 13, color: '#555', marginBottom: 20 }}>
-          Scanned <strong>{totalScanned}</strong> resources —{' '}
-          {visibleGroups.length === 0
-            ? <span style={{ color: '#065f46', fontWeight: 600 }}>no duplicates found</span>
-            : <span style={{ color: '#b45309', fontWeight: 600 }}>{visibleGroups.length} duplicate group{visibleGroups.length !== 1 ? 's' : ''} found</span>}
-          {dismissed.size > 0 && <span style={{ color: '#aaa' }}> ({dismissed.size} dismissed)</span>}
+          <div>
+            Scanned <strong>{totalScanned}</strong> resources —{' '}
+            {visibleGroups.length === 0
+              ? <span style={{ color: '#065f46', fontWeight: 600 }}>no duplicates found</span>
+              : <span style={{ color: '#b45309', fontWeight: 600 }}>{visibleGroups.length} duplicate group{visibleGroups.length !== 1 ? 's' : ''} found</span>}
+            {dismissed.size > 0 && <span style={{ color: '#aaa' }}> ({dismissed.size} dismissed)</span>}
+          </div>
+          {scannedAt && <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>Last scanned {new Date(scannedAt).toLocaleString()}</div>}
         </div>
       )}
 
@@ -1116,7 +1150,11 @@ function Deduplication() {
                 <span style={{ color: '#999', fontWeight: 400, fontFamily: 'monospace', fontSize: 11 }}>{group.matchValue}</span>
               </div>
               <button
-                onClick={() => setDismissed(d => new Set([...d, realIdx]))}
+                onClick={() => setDismissed(d => {
+                  const next = new Set([...d, realIdx]);
+                  saveCache(groups, totalScanned, scannedAt, next);
+                  return next;
+                })}
                 style={{ fontSize: 11, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
               >
                 Dismiss
