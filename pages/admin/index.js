@@ -1040,13 +1040,15 @@ function Deduplication() {
     } catch {}
   }, []);
 
+  const groupKey = g => g.records.map(r => r.id).sort().join('|');
+
   function saveCache(groups, total, scannedAt, dismissed) {
     try {
       localStorage.setItem('tdc_dedupes', JSON.stringify({ groups, total, scannedAt, dismissed: [...dismissed] }));
     } catch {}
   }
 
-  const visibleGroups = groups ? groups.filter((_, i) => !dismissed.has(i)) : [];
+  const visibleGroups = groups ? groups.filter(g => !dismissed.has(groupKey(g))) : [];
 
   async function scan() {
     setLoading(true);
@@ -1058,8 +1060,8 @@ function Deduplication() {
       setGroups(d.groups);
       setTotalScanned(d.total);
       setScannedAt(now);
-      setDismissed(new Set());
-      saveCache(d.groups, d.total, now, new Set());
+      // keep existing dismissals — they stay dismissed across rescans
+      saveCache(d.groups, d.total, now, dismissed);
     } catch (e) {
       alert('Scan failed: ' + e.message);
     } finally {
@@ -1132,16 +1134,23 @@ function Deduplication() {
             {visibleGroups.length === 0
               ? <span style={{ color: '#065f46', fontWeight: 600 }}>no duplicates found</span>
               : <span style={{ color: '#b45309', fontWeight: 600 }}>{visibleGroups.length} duplicate group{visibleGroups.length !== 1 ? 's' : ''} found</span>}
-            {dismissed.size > 0 && <span style={{ color: '#aaa' }}> ({dismissed.size} dismissed)</span>}
+            {dismissed.size > 0 && (
+              <span style={{ color: '#aaa' }}>
+                {' '}({dismissed.size} dismissed —{' '}
+                <button onClick={() => { const empty = new Set(); setDismissed(empty); saveCache(groups, totalScanned, scannedAt, empty); }} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline' }}>show all</button>
+                )
+              </span>
+            )}
           </div>
           {scannedAt && <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>Last scanned {new Date(scannedAt).toLocaleString()}</div>}
         </div>
       )}
 
-      {visibleGroups.map((group, gi) => {
-        const realIdx = groups.indexOf(group);
+      {visibleGroups.map((group) => {
+        const gKey = groupKey(group);
+        const groupIdx = groups.indexOf(group);
         return (
-          <div key={realIdx} style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: 'hidden' }}>
+          <div key={gKey} style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: 'hidden' }}>
             <div style={{ background: '#fafafa', borderBottom: `1px solid ${BORDER}`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
                 <span style={{ background: group.reason === 'Same URL' ? '#dbeafe' : '#fef9c3', color: group.reason === 'Same URL' ? '#1e40af' : '#92400e', padding: '2px 8px', borderRadius: 20, marginRight: 8 }}>
@@ -1151,7 +1160,7 @@ function Deduplication() {
               </div>
               <button
                 onClick={() => setDismissed(d => {
-                  const next = new Set([...d, realIdx]);
+                  const next = new Set([...d, gKey]);
                   saveCache(groups, totalScanned, scannedAt, next);
                   return next;
                 })}
@@ -1189,14 +1198,14 @@ function Deduplication() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                     <button
-                      onClick={() => archiveRecord(rec.id, realIdx)}
+                      onClick={() => archiveRecord(rec.id, groupIdx)}
                       disabled={isBusy || f['Status'] === 'Archived'}
                       style={{ padding: '5px 12px', fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#555', fontFamily: FONT, opacity: (isBusy || f['Status'] === 'Archived') ? 0.5 : 1 }}
                     >
                       {isBusy ? '…' : f['Status'] === 'Archived' ? 'Archived' : 'Archive'}
                     </button>
                     <button
-                      onClick={() => deleteRecord(rec.id, realIdx)}
+                      onClick={() => deleteRecord(rec.id, groupIdx)}
                       disabled={isBusy}
                       style={{ padding: '5px 12px', fontSize: 12, border: '1px solid #fca5a5', borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#dc2626', fontFamily: FONT, opacity: isBusy ? 0.5 : 1 }}
                     >
