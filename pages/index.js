@@ -214,6 +214,49 @@ function NewBadge() {
   return <span style={{ fontSize:9, fontWeight:700, color:'#fff', background:GREEN, padding:'2px 6px', borderRadius:10, letterSpacing:'0.06em', textTransform:'uppercase', marginLeft:8, verticalAlign:'middle' }}>New</span>;
 }
 
+// Andrei's hand-picked featured resource — the resource on the left, his personal
+// blurb as a pull quote on the right. Driven by the "Editor's Pick" checkbox and
+// "Editor's Pick Blurb" fields in Airtable.
+function EditorsPick({ r, isMobile, onOpen, onSignInRequired }) {
+  const f = r.fields;
+  const blurb = (f["Editor's Pick Blurb"] || '').trim();
+  const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
+  return (
+    <div style={{ marginBottom:52 }}>
+      {/* Section header rule — matches the other home-page sections */}
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'2px solid #111' }}>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Editor&rsquo;s Pick</div>
+        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Hand-picked by Andrei</div>
+      </div>
+
+      <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 20 : 32, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:12, padding: isMobile ? '22px' : '28px 32px', boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+        {/* Left — the resource itself */}
+        <div onClick={() => onOpen(r.id)} style={{ flex: isMobile ? 'none' : '0 0 38%', cursor:'pointer', display:'flex', flexDirection:'column' }}>
+          <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:16 }}>
+            <Logo url={f.URL} name={f.Name} size={64} imageUrl={f['Image URL']} />
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
+              <div style={{ fontSize: isMobile ? 22 : 26, fontWeight:600, color:'#111', lineHeight:1.15, marginBottom:6, fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{f.Name}</div>
+              {f['Host or Author'] && <div style={{ fontSize:13, color:'#aaa' }}>{f['Host or Author']}</div>}
+            </div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:'auto' }} onClick={e => e.stopPropagation()}>
+            <ScoreBadge score={score} fields={f} />
+            <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />
+          </div>
+        </div>
+
+        {/* Right — Andrei's personal note as a pull quote */}
+        <div style={{ flex:1, borderLeft: isMobile ? 'none' : `2px solid ${GREEN_LIGHT}`, borderTop: isMobile ? `2px solid ${GREEN_LIGHT}` : 'none', paddingLeft: isMobile ? 0 : 28, paddingTop: isMobile ? 18 : 0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
+          <div style={{ fontSize:34, lineHeight:0.6, color:GREEN, fontFamily:FONT_DISPLAY, marginBottom:10 }}>&ldquo;</div>
+          <div style={{ fontSize: isMobile ? 16 : 18, lineHeight:1.55, color:'#333', fontFamily:FONT_DISPLAY, fontStyle:'italic', marginBottom:16 }}>{blurb}</div>
+          <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>&mdash; Andrei &middot; Founder &amp; Endodontist</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SpotlightCard({ item }) {
   const [imgErr, setImgErr] = useState(false);
   const isVideo = item.type === 'video';
@@ -507,6 +550,12 @@ export default function Home({ initialResources }) {
     ? [...displayResources].filter(r => bookmarkIds.has(r.id))
     : [];
 
+  // Editor's Pick — Andrei's hand-picked feature. Needs both the checkbox and a
+  // blurb; if more than one is flagged, the highest-scored one wins.
+  const editorsPick = [...displayResources]
+    .filter(r => r.fields["Editor's Pick"] && (r.fields["Editor's Pick Blurb"] || '').trim())
+    .sort((a,b) => (b.fields['Final Score']||0) - (a.fields['Final Score']||0))[0] || null;
+
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0,50);
 
@@ -723,6 +772,16 @@ export default function Home({ initialResources }) {
 
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
+
+            {/* Editor's Pick — Andrei's hand-picked featured resource */}
+            {editorsPick && (
+              <EditorsPick
+                r={editorsPick}
+                isMobile={isMobile}
+                onOpen={(id) => router.push(`/resource/${id}`)}
+                onSignInRequired={() => setShowSignIn(true)}
+              />
+            )}
 
             {/* New from your bookmarks — latest episodes from followed shows */}
             {user && <BookmarkFeed isMobile={isMobile} limit={4} />}
