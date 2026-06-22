@@ -240,7 +240,7 @@ function EditorsPickCard({ r, isMobile, onOpen, onSignInRequired }) {
 
       {/* Right — Andrei's personal note as a pull quote */}
       <div style={{ flex:1, borderLeft: isMobile ? 'none' : `2px solid ${GREEN_LIGHT}`, borderTop: isMobile ? `2px solid ${GREEN_LIGHT}` : 'none', paddingLeft: isMobile ? 0 : 28, paddingTop: isMobile ? 18 : 0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-        <div style={{ fontSize:34, lineHeight:0.6, color:GREEN, fontFamily:FONT_DISPLAY, marginBottom:10 }}>&ldquo;</div>
+        <div style={{ fontSize:42, lineHeight:0.5, color:GREEN, fontFamily:FONT_DISPLAY, marginBottom:-6 }}>&ldquo;</div>
         <div style={{ fontSize: isMobile ? 16 : 18, lineHeight:1.55, color:'#333', fontFamily:FONT_DISPLAY, fontStyle:'italic', marginBottom:16 }}>{blurb}</div>
         <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>&mdash; Dr. Andrei Ionescu &middot; Endodontist</div>
       </div>
