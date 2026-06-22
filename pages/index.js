@@ -373,16 +373,26 @@ export async function getStaticProps() {
     params.set('sort[0][field]', 'Final Score');
     params.set('sort[0][direction]', 'desc');
     params.set('pageSize', '100');
+<<<<<<< HEAD
     // Page through every published resource (Airtable caps pageSize at 100), so
     // curated picks and lower-ranked resources outside the top 100 are included.
     const url = `https://api.airtable.com/v0/${base}/Resources`;
+=======
+    // Airtable returns at most 100 records per page, so page through every
+    // result via the `offset` cursor. Without this loop the homepage only ever
+    // saw the top 100 by score, silently hiding all lower-ranked resources.
+>>>>>>> 5eda0b6fc959866e75c0e37baa2df18c5d828bf2
     const headers = { Authorization: `Bearer ${pat}` };
     let initialResources = [];
     let offset;
     do {
       if (offset) params.set('offset', offset); else params.delete('offset');
+<<<<<<< HEAD
       const r = await fetch(`${url}?${params}`, { headers });
       if (!r.ok) break;
+=======
+      const r = await fetch(`https://api.airtable.com/v0/${base}/Resources?${params}`, { headers });
+>>>>>>> 5eda0b6fc959866e75c0e37baa2df18c5d828bf2
       const data = await r.json();
       initialResources = initialResources.concat(data.records || []);
       offset = data.offset;
