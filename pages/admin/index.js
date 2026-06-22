@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Settings'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Settings'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Conference', 'Other'];
 
@@ -1293,6 +1293,160 @@ function Settings() {
 }
 
 // ══════════════════════════════════════════
+//  TAB 7 — Users
+// ══════════════════════════════════════════
+function Users() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('joined');
+  const [sortDir, setSortDir] = useState('desc');
+
+  useEffect(() => {
+    fetch('/api/admin/users')
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) setError(d.error);
+        else setUsers(d.users || []);
+      })
+      .catch(() => setError('Failed to load users'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function fmt(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function timeSince(iso) {
+    if (!iso) return 'Never';
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days}d ago`;
+    if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+    return `${Math.floor(days / 365)}y ago`;
+  }
+
+  function initials(name, email) {
+    if (name) {
+      const parts = name.trim().split(' ');
+      return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+    }
+    return (email || '?')[0].toUpperCase();
+  }
+
+  const lc = search.toLowerCase();
+  const filtered = users
+    .filter(u => !lc || (u.email || '').toLowerCase().includes(lc) || (u.full_name || '').toLowerCase().includes(lc) || (u.specialty || '').toLowerCase().includes(lc))
+    .sort((a, b) => {
+      let av, bv;
+      if (sortBy === 'joined') { av = a.created_at; bv = b.created_at; }
+      else if (sortBy === 'lastSeen') { av = a.last_sign_in_at || ''; bv = b.last_sign_in_at || ''; }
+      else if (sortBy === 'name') { av = (a.full_name || a.email || '').toLowerCase(); bv = (b.full_name || b.email || '').toLowerCase(); }
+      else if (sortBy === 'bookmarks') { av = a.bookmark_count; bv = b.bookmark_count; }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  function toggleSort(col) {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('desc'); }
+  }
+
+  const SortBtn = ({ col, label }) => (
+    <button onClick={() => toggleSort(col)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: sortBy === col ? '#111' : '#888', fontFamily: FONT, padding: 0, display: 'flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
+      {label} {sortBy === col ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+    </button>
+  );
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#aaa', fontSize: 14 }}>Loading users…</div>;
+
+  if (error) return (
+    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '16px 20px', color: '#dc2626', fontSize: 13 }}>
+      <strong>Error:</strong> {error}
+      {error.includes('SUPABASE_SERVICE_ROLE_KEY') && (
+        <div style={{ marginTop: 10, color: '#7f1d1d', lineHeight: 1.6 }}>
+          To fix this: go to <strong>Vercel → your project → Settings → Environment Variables</strong> and add <code>SUPABASE_SERVICE_ROLE_KEY</code>. You can find this key in <strong>Supabase → Project Settings → API → service_role secret</strong>. Then redeploy.
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>Registered Users</h2>
+        <span style={{ fontSize: 13, color: '#888' }}>{users.length} total</span>
+      </div>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Everyone who has signed in with Google.</p>
+
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search by name, email, or specialty…"
+        style={{ ...inp(), marginBottom: 16 }}
+      />
+
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#aaa', fontSize: 13 }}>No users match your search.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 60px', gap: 8, padding: '10px 14px', background: '#f9fafb', borderBottom: `1px solid ${BORDER}`, alignItems: 'center' }}>
+            <SortBtn col="name" label="Name / Email" />
+            <SortBtn col="joined" label="Joined" />
+            <SortBtn col="lastSeen" label="Last seen" />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>Specialty</span>
+            <SortBtn col="bookmarks" label="Saves" />
+          </div>
+
+          {/* Rows */}
+          {filtered.map((u, i) => (
+            <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 60px', gap: 8, padding: '12px 14px', background: i % 2 === 0 ? '#fff' : '#fafafa', borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : 'none', alignItems: 'center' }}>
+              {/* Name + email */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: GREEN, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                  {u.avatar_url
+                    ? <img src={u.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                    : initials(u.full_name, u.email)}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {u.full_name || <span style={{ color: '#aaa', fontWeight: 400 }}>No name set</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                </div>
+              </div>
+
+              {/* Joined */}
+              <div style={{ fontSize: 12, color: '#555' }}>{fmt(u.created_at)}</div>
+
+              {/* Last seen */}
+              <div style={{ fontSize: 12, color: '#555' }}>{timeSince(u.last_sign_in_at)}</div>
+
+              {/* Specialty */}
+              <div style={{ fontSize: 11, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {u.specialty || <span style={{ color: '#ccc' }}>—</span>}
+              </div>
+
+              {/* Bookmarks */}
+              <div style={{ fontSize: 12, color: u.bookmark_count > 0 ? '#111' : '#ccc', fontWeight: u.bookmark_count > 0 ? 600 : 400, textAlign: 'center' }}>
+                {u.bookmark_count > 0 ? `♥ ${u.bookmark_count}` : '—'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
 //  LOGIN SCREEN
 // ══════════════════════════════════════════
 function Login({ onLogin }) {
@@ -1380,7 +1534,8 @@ export default function AdminPage() {
         {tab === 3 && <RunResearch />}
         {tab === 4 && <AutoTag />}
         {tab === 5 && <Deduplication />}
-        {tab === 6 && <Settings />}
+        {tab === 6 && <Users />}
+        {tab === 7 && <Settings />}
       </div>
     </div>
   );
