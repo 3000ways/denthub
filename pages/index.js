@@ -370,11 +370,21 @@ export async function getServerSideProps() {
     params.set('sort[0][field]', 'Final Score');
     params.set('sort[0][direction]', 'desc');
     params.set('pageSize', '100');
-    const r = await fetch(`https://api.airtable.com/v0/${base}/Resources?${params}`, {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-    const data = await r.json();
-    return { props: { initialResources: data.records || [] } };
+    // Page through every published resource (Airtable caps pageSize at 100), so
+    // curated picks and lower-ranked resources outside the top 100 are included.
+    const url = `https://api.airtable.com/v0/${base}/Resources`;
+    const headers = { Authorization: `Bearer ${pat}` };
+    let initialResources = [];
+    let offset;
+    do {
+      if (offset) params.set('offset', offset); else params.delete('offset');
+      const r = await fetch(`${url}?${params}`, { headers });
+      if (!r.ok) break;
+      const data = await r.json();
+      initialResources = initialResources.concat(data.records || []);
+      offset = data.offset;
+    } while (offset);
+    return { props: { initialResources } };
   } catch {
     return { props: { initialResources: [] } };
   }
