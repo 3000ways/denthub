@@ -51,9 +51,9 @@ export default function About() {
           <div style={{ display:'flex', gap:28, padding:'20px 0', borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, marginBottom:32 }}>
             {[
               { value:'800+', label:'resources indexed' },
-              { value:'49', label:'categories' },
-              { value:'8', label:'themes' },
-              { value:'9+', label:'specialties covered' },
+              { value:'48', label:'categories' },
+              { value:'9', label:'themes' },
+              { value:'9', label:'specialties covered' },
             ].map(({ value, label }) => (
               <div key={label}>
                 <div style={{ fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>{value}</div>
