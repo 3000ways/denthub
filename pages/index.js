@@ -268,6 +268,47 @@ function EditorsPick({ picks, isMobile, onOpen, onSignInRequired }) {
   );
 }
 
+function EssentialsSection({ items, isMobile, onOpen, onSignInRequired }) {
+  return (
+    <div style={{ marginBottom:52 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'2px solid #111' }}>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>The Essentials</div>
+        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Start here</div>
+      </div>
+      <div style={{ borderTop:`1px solid ${BORDER}` }}>
+        {items.map((r, i) => {
+          const f = r.fields;
+          const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
+          return (
+            <div key={r.id}
+              onClick={() => onOpen(r.id)}
+              style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+              onMouseLeave={e => e.currentTarget.style.background='transparent'}
+            >
+              <div style={{ fontSize:13, fontWeight:600, color:'#ddd', fontFamily:FONT_DISPLAY, width:24, flexShrink:0, textAlign:'right' }}>
+                {String(i + 1).padStart(2, '0')}
+              </div>
+              <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:15, fontWeight:600, color:'#111', marginBottom:3, fontFamily:FONT_DISPLAY, letterSpacing:-0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
+                <div style={{ fontSize:11, color:'#bbb', display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
+                  {f['Host or Author'] && <><span>&middot;</span><span>{f['Host or Author']}</span></>}
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+                <ScoreBadge score={score} fields={f} />
+                {!isMobile && <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SpotlightCard({ item }) {
   const [imgErr, setImgErr] = useState(false);
   const isVideo = item.type === 'video';
@@ -584,6 +625,16 @@ export default function Home({ initialResources }) {
       return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
     });
 
+  const essentials = [...displayResources]
+    .filter(r => r.fields['Essential'])
+    .sort((a, b) => {
+      const ao = a.fields['Essential Order'], bo = b.fields['Essential Order'];
+      if (ao != null && bo != null && ao !== bo) return ao - bo;
+      if (ao != null && bo == null) return -1;
+      if (ao == null && bo != null) return 1;
+      return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
+    });
+
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0,50);
 
@@ -805,6 +856,16 @@ export default function Home({ initialResources }) {
             {editorsPicks.length > 0 && (
               <EditorsPick
                 picks={editorsPicks}
+                isMobile={isMobile}
+                onOpen={(id) => router.push(`/resource/${id}`)}
+                onSignInRequired={() => setShowSignIn(true)}
+              />
+            )}
+
+            {/* The Essentials — curated foundational resources, ordered by "Essential Order" */}
+            {essentials.length > 0 && (
+              <EssentialsSection
+                items={essentials}
                 isMobile={isMobile}
                 onOpen={(id) => router.push(`/resource/${id}`)}
                 onSignInRequired={() => setShowSignIn(true)}
