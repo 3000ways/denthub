@@ -361,7 +361,10 @@ function EpisodeCard({ ep }) {
   );
 }
 
-export async function getServerSideProps() {
+// Cached at build time and refreshed at most once every 5 minutes (ISR),
+// so Airtable is hit roughly once per 5-minute window regardless of traffic
+// instead of once per visitor. The `initialResources` prop shape is unchanged.
+export async function getStaticProps() {
   try {
     const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
     const pat = process.env.AIRTABLE_PAT;
@@ -384,9 +387,10 @@ export async function getServerSideProps() {
       initialResources = initialResources.concat(data.records || []);
       offset = data.offset;
     } while (offset);
-    return { props: { initialResources } };
+    return { props: { initialResources }, revalidate: 300 };
   } catch {
-    return { props: { initialResources: [] } };
+    // On a transient Airtable error, retry sooner than the normal 5-min window.
+    return { props: { initialResources: [] }, revalidate: 60 };
   }
 }
 

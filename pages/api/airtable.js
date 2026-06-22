@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       allRecords = allRecords.concat(data.records || []);
       offset = data.offset;
     } while (offset);
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
     return res.status(200).json({ records: allRecords });
   } catch (err) {
     return res.status(500).json({ error: err.message });

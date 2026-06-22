@@ -103,6 +103,37 @@ tags, written as benefits.
   sell your practice, build wealth outside the chair / tackle student debt.
 - _Wellbeing:_ beat burnout & find balance.
 
+## 🗄️ Big Theme: Episode Archive — a searchable database of every episode
+
+Today episodes are fetched **live** (PodcastIndex / RSS) at query time — recent-only,
+dependent on an outside API, and nothing is stored. This theme flips that: **harvest
+every episode (title, description, date, link, show) from every podcast on the site and
+store it**, kept fresh on a schedule. Owning the data (vs borrowing it live) is what
+unlocks search, recommendations, and AI.
+
+**Where it lives — a deliberate exception to our usual rule.** Normally content →
+Airtable. But this archive is **thousands–tens of thousands of rows** and needs
+full-text search, so it goes in **Supabase (Postgres)**, not Airtable. (Resources stay
+in Airtable; only the episode archive is the exception.) Document this in CLAUDE.md when
+built.
+
+**Goal: all three of the below matter — build in this order (each builds on the last):**
+
+1. **(A) Foundation — fast, complete search.** A `episodes` table in Supabase + a
+   harvester that reads each podcast's full feed and upserts episodes, refreshed on a
+   schedule (Vercel Cron). Replaces today's live search with instant search across a
+   show's *entire* back-catalog, with no dependency on an outside API at query time.
+2. **(B) Recommendations.** Tag/match episodes to the goals/outcomes taxonomy so we can
+   surface "5 specific episodes that help you introduce implants" — episode-level fuel
+   for the "Why should you listen?" and Channels features.
+3. **(C) AI-powered discovery.** Semantic search ("find the episode about the cracked
+   tooth that won't stop hurting"), auto-tagging episodes by topic/goal, and summaries —
+   built on the stored text from (A).
+
+**Honest notes:** it's a real build (harvester + scheduled refresh + search endpoint),
+not a toggle; some RSS feeds only expose recent episodes, so full back-catalogs lean on
+PodcastIndex; needs the scheduled refresh to stay current.
+
 ## 🎧 Big Theme: Bookmarks & embedded player ("podcast app" experience)
 
 Let dentists follow shows and listen, the way they would in any podcast app —
@@ -145,6 +176,9 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 💡 Later / Ideas (someday, unprioritized)
 
+- **Episode Archive — searchable episode database** (see theme above) —
+  phased: (A) Supabase archive + harvester + fast search → (B) goal-based episode
+  recommendations → (C) AI/semantic discovery. Foundation for episode-level features.
 - **Channels + personalized onboarding system** (see "The big idea" above) —
   tagging foundation → channels → onboarding quiz.
 - **"Why should you listen?" outcome-driven recommendations** (see theme above) —
