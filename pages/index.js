@@ -233,7 +233,7 @@ function EditorsPick({ r, isMobile, onOpen, onSignInRequired }) {
         {/* Left — the resource itself */}
         <div onClick={() => onOpen(r.id)} style={{ flex: isMobile ? 'none' : '0 0 38%', cursor:'pointer', display:'flex', flexDirection:'column' }}>
           <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:16 }}>
-            <Logo url={f.URL} name={f.Name} size={64} imageUrl={f['Image URL']} />
+            <Logo url={f.URL} name={f.Name} size={72} imageUrl={f['Image URL']} />
             <div style={{ minWidth:0 }}>
               <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
               <div style={{ fontSize: isMobile ? 22 : 26, fontWeight:600, color:'#111', lineHeight:1.15, marginBottom:6, fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{f.Name}</div>
@@ -250,7 +250,7 @@ function EditorsPick({ r, isMobile, onOpen, onSignInRequired }) {
         <div style={{ flex:1, borderLeft: isMobile ? 'none' : `2px solid ${GREEN_LIGHT}`, borderTop: isMobile ? `2px solid ${GREEN_LIGHT}` : 'none', paddingLeft: isMobile ? 0 : 28, paddingTop: isMobile ? 18 : 0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
           <div style={{ fontSize:34, lineHeight:0.6, color:GREEN, fontFamily:FONT_DISPLAY, marginBottom:10 }}>&ldquo;</div>
           <div style={{ fontSize: isMobile ? 16 : 18, lineHeight:1.55, color:'#333', fontFamily:FONT_DISPLAY, fontStyle:'italic', marginBottom:16 }}>{blurb}</div>
-          <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>&mdash; Andrei &middot; Founder &amp; Endodontist</div>
+          <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>&mdash; Dr. Andrei Ionescu &middot; Endodontist</div>
         </div>
       </div>
     </div>
