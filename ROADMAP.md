@@ -177,6 +177,12 @@ user-accounts backend — the phased auth/voting work below now builds on it.
   signed-in members from Supabase (`profiles`): email, join date, NPI/verified status,
   total count. Distinct from Google Analytics (anonymous traffic); this is *identified*
   members. Code change → branch + PR.
+- **"Approve all" button on the review queue.** Bulk-approve every pending submission at
+  once on the admin submissions/review page, instead of one at a time.
+- **"Remove duplicates" feature in the admin portal.** Detect and remove duplicate
+  resources (e.g. same URL/title) from the admin panel.
+- **Fix the change-password option** (BUG). The admin change-password feature
+  (`pages/api/admin/change-password.js`) currently doesn't work — needs diagnosis + fix.
 - Refine the UI toward the magazine aesthetic (white background, strong typography,
   minimal decoration — away from anything spreadsheet/card-grid-like).
 - Build out dental software rankings as a dedicated pillar.
