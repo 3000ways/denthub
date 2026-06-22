@@ -6,7 +6,32 @@ const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 
-export default function About() {
+export async function getStaticProps() {
+  try {
+    const PAT = process.env.AIRTABLE_PAT;
+    const BASE = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
+    const params = new URLSearchParams();
+    params.set('filterByFormula', "{Status}='Published'");
+    params.set('fields[]', 'Name');
+    params.set('pageSize', '100');
+
+    const r = await fetch(
+      `https://api.airtable.com/v0/${BASE}/Resources?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${PAT}` } }
+    );
+    if (!r.ok) throw new Error(`Airtable ${r.status}`);
+    const data = await r.json();
+    const count = (data.records || []).length;
+    const hasMore = !!data.offset;
+
+    return { props: { resourceCount: count, resourceCountHasMore: hasMore }, revalidate: 604800 };
+  } catch {
+    return { props: { resourceCount: null, resourceCountHasMore: false }, revalidate: 604800 };
+  }
+}
+
+export default function About({ resourceCount, resourceCountHasMore }) {
+  const resourceLabel = resourceCount != null ? `${resourceCount}${resourceCountHasMore ? '+' : ''}` : '300+';
   return (
     <>
     <Head>
@@ -50,7 +75,7 @@ export default function About() {
           {/* Stats bar */}
           <div style={{ display:'flex', gap:28, padding:'20px 0', borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, marginBottom:32 }}>
             {[
-              { value:'300+', label:'resources indexed' },
+              { value: resourceLabel, label:'resources indexed' },
               { value:'49', label:'categories' },
               { value:'8', label:'themes' },
               { value:'9+', label:'specialties covered' },
