@@ -650,29 +650,33 @@ export default function Home({ initialResources }) {
           <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
             <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
           </a>
-          <div style={{ display:'flex', alignItems:'center', gap:20 }}>
-            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500 }}>About</a>
+          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20, minWidth:0 }}>
+            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>
             {user && (
-              <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5 }}>
+              <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                Saved{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
+                {isMobile ? (bookmarkCount > 0 ? bookmarkCount : '') : `Saved${bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}`}
               </Link>
             )}
             {user ? (
-              <a href="/profile" style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8 }}>
+              <a href="/profile" title={profile?.full_name || user.email} style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8, minWidth:0, flexShrink:1 }}>
                 {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
-                  <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}` }} />
+                  <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}`, flexShrink:0 }} />
                 )}
-                {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
-                {profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600 }}>✓ Verified</span>}
+                {!isMobile && (
+                  <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
+                  </span>
+                )}
+                {!isMobile && profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span>}
               </a>
             ) : (
-              <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600 }}>
+              <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, flexShrink:0 }}>
                 Sign in
               </button>
             )}
-            <button onClick={openSubmitModal} style={{ fontSize:12, padding:'7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
-              Submit a resource
+            <button onClick={openSubmitModal} style={{ fontSize:12, padding: isMobile ? '7px 12px' : '7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
+              {isMobile ? 'Submit' : 'Submit a resource'}
             </button>
           </div>
         </div>
