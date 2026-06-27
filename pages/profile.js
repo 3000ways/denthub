@@ -79,13 +79,13 @@ export default function ProfilePage() {
         <div style={{ maxWidth:720, margin:'0 auto', padding:'0 28px 100px' }}>
 
           {/* Header */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:60 }}>
-            <Link href="/">
-              <img src="/logo.png" alt="The Dental Commute" style={{ height:281, width:'auto', display:'block' }} />
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'20px 0 18px', borderBottom:`1px solid ${BORDER}`, marginBottom:60 }}>
+            <Link href="/" style={{ flexShrink:0 }}>
+              <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto', display:'block' }} />
             </Link>
-            <div style={{ display:'flex', alignItems:'center', gap:24 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:16, flexShrink:0 }}>
               <Link href="/about" style={{ fontSize:13, color:'#111', textDecoration:'none', fontWeight:500 }}>About</Link>
-              <Link href="/?submit=1" style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', textDecoration:'none', fontWeight:500, letterSpacing:0.2 }}>
+              <Link href="/?submit=1" style={{ fontSize:12, padding:'6px 16px', borderRadius:3, background:GREEN, color:'#fff', textDecoration:'none', fontWeight:500, letterSpacing:0.2, whiteSpace:'nowrap' }}>
                 Submit a resource
               </Link>
             </div>
