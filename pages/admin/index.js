@@ -1252,7 +1252,16 @@ function EpisodeArchive() {
     setRunning(true); setError(''); setLastRun(null);
     try {
       const r = await fetch('/api/cron/harvest-episodes?run=1', { method: 'POST' });
-      const d = await r.json();
+      const text = await r.text();
+      let d = null;
+      try { d = JSON.parse(text); } catch { /* non-JSON = a platform timeout page */ }
+      if (!r.ok || !d) {
+        // A heavy run was cut off by the time limit. Progress is saved per show
+        // as it goes, so just continue.
+        setError('That run took too long and was cut off — the shows it finished are saved. Click “Refresh now” again to continue.');
+        await loadCoverage();
+        return;
+      }
       if (d.error) { setError(d.error); return; }
       setLastRun(d);
       await loadCoverage();
@@ -1264,7 +1273,14 @@ function EpisodeArchive() {
     setFixing(true); setError(''); setFixResult(null);
     try {
       const r = await fetch('/api/admin/fix-feeds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 6 }) });
-      const d = await r.json();
+      const text = await r.text();
+      let d = null;
+      try { d = JSON.parse(text); } catch { /* non-JSON = a platform timeout page */ }
+      if (!r.ok || !d) {
+        setError('That batch took too long and was cut off — any feeds it fixed are saved. Click “Fix broken feeds” again to continue.');
+        await loadCoverage();
+        return;
+      }
       if (d.status === 'no_ai_key') { setError(d.message); return; }
       if (d.error) { setError(d.error); return; }
       setFixResult(d);
