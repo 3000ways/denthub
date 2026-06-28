@@ -1288,9 +1288,15 @@ function EpisodeArchive() {
       {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
       {lastRun && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: '#d1fae5', color: '#065f46', borderRadius: 6, fontSize: 13 }}>
-          ✓ Harvested {lastRun.processed} of {lastRun.totalShows} show{lastRun.totalShows === 1 ? '' : 's'} this run
+          ✓ Harvested {lastRun.processed} of {lastRun.canonicalShows || lastRun.totalShows} show{(lastRun.canonicalShows || lastRun.totalShows) === 1 ? '' : 's'} this run
           {' '}({Math.round((lastRun.elapsedMs || 0) / 1000)}s). Shows are processed least-recently-refreshed first, so
           {' '}repeat <strong>Refresh now</strong> until every show shows a recent time below.
+          {(lastRun.duplicatesMarked > 0 || lastRun.dupEpisodesDeleted > 0 || lastRun.orphanEpisodesDeleted > 0) && (
+            <div style={{ marginTop: 6, fontSize: 12, color: '#047857' }}>
+              🧹 Cleanup: merged {lastRun.duplicatesMarked || 0} duplicate show{lastRun.duplicatesMarked === 1 ? '' : 's'}
+              {' '}and removed {((lastRun.dupEpisodesDeleted || 0) + (lastRun.orphanEpisodesDeleted || 0)).toLocaleString()} duplicate/stale episodes.
+            </div>
+          )}
         </div>
       )}
 
@@ -1303,14 +1309,15 @@ function EpisodeArchive() {
       ) : (
         <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
           {rows.map((s, i) => {
-            const problem = (s.episode_count || 0) === 0 || s.last_status === 'error';
+            const isDup = s.last_status === 'duplicate';
+            const problem = !isDup && ((s.episode_count || 0) === 0 || s.last_status === 'error');
             return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: problem ? '#fff8f8' : '#fff', borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: problem ? '#fff8f8' : isDup ? '#fafafa' : '#fff', borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, opacity: isDup ? 0.7 : 1 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.show_name || '(unnamed show)'}</div>
                   <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>Last refreshed: {fmt(s.last_harvested_at)}</div>
-                  {s.last_status === 'error' && s.last_error && (
-                    <div style={{ fontSize: 11, color: '#dc2626', marginTop: 3 }}>⚠ {s.last_error}</div>
+                  {s.last_error && (
+                    <div style={{ fontSize: 11, color: isDup ? '#999' : '#dc2626', marginTop: 3 }}>{isDup ? '↪' : '⚠'} {s.last_error}</div>
                   )}
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
