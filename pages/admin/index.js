@@ -1232,6 +1232,8 @@ function EpisodeArchive() {
   const [error, setError] = useState('');
   const [lastRun, setLastRun] = useState(null);
   const [stats, setStats] = useState(null);
+  const [fixing, setFixing] = useState(false);
+  const [fixResult, setFixResult] = useState(null);
 
   async function loadCoverage() {
     setLoading(true); setError('');
@@ -1258,6 +1260,19 @@ function EpisodeArchive() {
     finally { setRunning(false); }
   }
 
+  async function runFixFeeds() {
+    setFixing(true); setError(''); setFixResult(null);
+    try {
+      const r = await fetch('/api/admin/fix-feeds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 6 }) });
+      const d = await r.json();
+      if (d.status === 'no_ai_key') { setError(d.message); return; }
+      if (d.error) { setError(d.error); return; }
+      setFixResult(d);
+      await loadCoverage();
+    } catch (e) { setError(e.message || 'Fix failed'); }
+    finally { setFixing(false); }
+  }
+
   const rows = coverage || [];
   const totalEpisodes = rows.reduce((sum, s) => sum + (s.episode_count || 0), 0);
   const fmt = iso => iso
@@ -1273,6 +1288,7 @@ function EpisodeArchive() {
   const pct = totalCanon ? Math.round((harvestedCount / totalCanon) * 100) : 0;
   const perRun = (lastRun && lastRun.processed) || 50; // estimate from the last run
   const clicksLeft = Math.max(1, Math.ceil(remainingCount / perRun));
+  const brokenShowsCount = canonicalRows.filter(s => (s.episode_count || 0) === 0).length;
 
   return (
     <div>
@@ -1341,6 +1357,46 @@ function EpisodeArchive() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {brokenShowsCount > 0 && (
+        <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ fontSize: 13, color: '#555', maxWidth: 460 }}>
+              <strong style={{ color: '#dc2626' }}>{brokenShowsCount}</strong> show{brokenShowsCount === 1 ? '' : 's'} have no episodes (dead or mislinked feed).
+              {' '}<strong>Fix broken feeds</strong> uses AI to find each show's real RSS feed, verifies it actually has episodes, and updates Airtable — a few at a time.
+            </div>
+            <button onClick={runFixFeeds} disabled={fixing} style={{ padding: '10px 18px', background: '#b45309', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: fixing ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+              {fixing ? '🔧 Fixing… (~30s)' : '🔧 Fix broken feeds'}
+            </button>
+          </div>
+
+          {fixResult && (
+            <div style={{ marginTop: 14, fontSize: 13 }}>
+              {fixResult.fixed?.length > 0 && (
+                <div style={{ background: '#d1fae5', color: '#065f46', borderRadius: 6, padding: '10px 12px', marginBottom: 8 }}>
+                  ✓ Fixed {fixResult.fixed.length} feed{fixResult.fixed.length === 1 ? '' : 's'} — click <strong>Refresh now</strong> above to pull their episodes in.
+                  <div style={{ marginTop: 6, fontSize: 12 }}>
+                    {fixResult.fixed.map((f, i) => <div key={i} style={{ color: '#047857' }}>• {f.show}</div>)}
+                  </div>
+                </div>
+              )}
+              {fixResult.failed?.length > 0 && (
+                <div style={{ background: '#fef3c7', color: '#92400e', borderRadius: 6, padding: '10px 12px' }}>
+                  Couldn't auto-fix {fixResult.failed.length} (no working feed found — these may be defunct or need a manual URL):
+                  <div style={{ marginTop: 6, fontSize: 12 }}>
+                    {fixResult.failed.map((f, i) => <div key={i}>• {f.show} <span style={{ color: '#b45309' }}>({f.reason})</span></div>)}
+                  </div>
+                </div>
+              )}
+              {fixResult.remaining > 0 && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
+                  {fixResult.remaining} still to check — press <strong>Fix broken feeds</strong> again for the next batch.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
