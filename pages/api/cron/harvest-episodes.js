@@ -10,6 +10,7 @@
 // many episodes are stored per show without kicking off a harvest.
 
 import { harvestBatch, getCoverage } from '../../../lib/harvester';
+import { isAdminAuthenticated } from '../../../lib/admin-auth';
 
 // Give the harvester room to work. Vercel caps this at the plan limit
 // (60s on Hobby), so the harvester also self-limits via its time budget.
@@ -17,10 +18,10 @@ export const config = { maxDuration: 60 };
 
 function authorized(req) {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
   const header = req.headers.authorization || '';
-  if (header === `Bearer ${secret}`) return true;          // Vercel Cron
-  if ((req.query.secret || '') === secret) return true;    // manual trigger
+  if (secret && header === `Bearer ${secret}`) return true;      // Vercel Cron
+  if (secret && (req.query.secret || '') === secret) return true; // manual URL trigger
+  if (isAdminAuthenticated(req)) return true;                     // admin panel (logged-in)
   return false;
 }
 
