@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 75, 200);
-    const summary = await harvestBatch({ limit, timeBudgetMs: 45000 });
+    const summary = await harvestBatch({ limit, timeBudgetMs: 40000 });
     return res.status(200).json({ ok: true, ...summary });
   } catch (err) {
     console.error('[harvest-episodes] error:', err.message);
