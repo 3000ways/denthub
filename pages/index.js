@@ -430,6 +430,7 @@ export default function Home({ initialResources }) {
   const [episodes, setEpisodes] = useState([]);
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [episodeSearched, setEpisodeSearched] = useState(false);
+  const [episodeCount, setEpisodeCount] = useState(0);
 
   const [submitOpen, setSubmitOpen] = useState(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('submit') === '1');
   const [submitUrl, setSubmitUrl] = useState('');
@@ -513,6 +514,8 @@ export default function Home({ initialResources }) {
     fetch('/api/youtube-stats').then(r => r.json()).then(data => setYtStats(data)).catch(() => {});
     fetch('/api/podcast-stats').then(r => r.json()).then(data => setPodStats(data)).catch(() => {});
     fetch('/api/book-stats').then(r => r.json()).then(data => setBookStats(data)).catch(() => {});
+    // Cached site stats (episode count) for the hero stat band
+    fetch('/api/stats').then(r => r.json()).then(data => setEpisodeCount(data.episodes || 0)).catch(() => {});
   }, []);
 
   // Any time the active filter or search changes, collapse the ranked list
@@ -699,9 +702,32 @@ export default function Home({ initialResources }) {
             <h1 style={{ fontSize: isMobile ? 30 : 48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing: isMobile ? -0.8 : -1.8, fontFamily:FONT_DISPLAY }}>
               Everything dentistry,<br/>ranked and curated
             </h1>
-            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, maxWidth:580, margin:'0 0 20px', fontWeight:400 }}>
+            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, maxWidth:580, margin:'0 0 24px', fontWeight:400 }}>
               The dental professional's guide to learning on the go — the best podcasts, books, CE, coaching, and communities scored by dentists, for dentists.
             </p>
+
+            {/* Stat band — the scale of what we've indexed */}
+            {(() => {
+              const byType = t => resources.filter(r => r.fields?.Type === t).length;
+              const stats = [
+                { n: episodeCount,        label: 'Episodes indexed' },
+                { n: byType('Podcast'),   label: 'Podcasts' },
+                { n: byType('YouTube'),   label: 'YouTube channels' },
+                { n: byType('Book'),      label: 'Books' },
+                { n: resources.length,    label: 'Total resources' },
+              ].filter(s => s.n > 0);
+              if (!stats.length) return null;
+              return (
+                <div style={{ display:'flex', flexWrap:'wrap', gap: isMobile ? '18px 28px' : 0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding: isMobile ? '18px 0' : '22px 0' }}>
+                  {stats.map((s, i) => (
+                    <div key={s.label} style={{ flex: isMobile ? '0 0 auto' : 1, paddingLeft: !isMobile && i > 0 ? 28 : 0, borderLeft: !isMobile && i > 0 ? `1px solid ${BORDER}` : 'none' }}>
+                      <div style={{ fontSize: isMobile ? 24 : 34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{s.n.toLocaleString()}</div>
+                      <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
 
