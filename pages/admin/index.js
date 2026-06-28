@@ -1263,6 +1263,16 @@ function EpisodeArchive() {
     ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
     : 'never';
 
+  // Seeding progress: how many real (non-duplicate) shows have been harvested at
+  // least once, so you know how many more "Refresh now" clicks are left.
+  const canonicalRows = rows.filter(s => s.last_status !== 'duplicate');
+  const totalCanon = canonicalRows.length;
+  const harvestedCount = canonicalRows.filter(s => s.last_harvested_at).length;
+  const remainingCount = totalCanon - harvestedCount;
+  const pct = totalCanon ? Math.round((harvestedCount / totalCanon) * 100) : 0;
+  const perRun = (lastRun && lastRun.processed) || 50; // estimate from the last run
+  const clicksLeft = Math.max(1, Math.ceil(remainingCount / perRun));
+
   return (
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Episode Archive</h2>
@@ -1283,6 +1293,27 @@ function EpisodeArchive() {
             {running ? 'Refreshing… (up to a minute)' : '↻ Refresh now'}
           </button>
         </div>
+
+        {totalCanon > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, color: '#555', marginBottom: 6 }}>
+              <span>{harvestedCount} of {totalCanon} shows harvested</span>
+              <span style={{ fontWeight: 600, color: remainingCount === 0 ? GREEN : '#555' }}>
+                {remainingCount === 0
+                  ? '✓ Complete'
+                  : `${remainingCount} to go · ~${clicksLeft} more ${clicksLeft === 1 ? 'click' : 'clicks'}`}
+              </span>
+            </div>
+            <div style={{ height: 8, background: '#eee', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: GREEN, transition: 'width 0.3s' }} />
+            </div>
+            {remainingCount === 0 && (
+              <div style={{ marginTop: 10, fontSize: 12, color: '#065f46', background: '#d1fae5', padding: '8px 12px', borderRadius: 6 }}>
+                ✓ Every show has been harvested. The nightly auto-refresh keeps it current from here — you don't need to keep pressing Refresh.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
