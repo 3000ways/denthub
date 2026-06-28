@@ -1231,6 +1231,7 @@ function EpisodeArchive() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const [lastRun, setLastRun] = useState(null);
+  const [stats, setStats] = useState(null);
 
   async function loadCoverage() {
     setLoading(true); setError('');
@@ -1238,7 +1239,7 @@ function EpisodeArchive() {
       const r = await fetch('/api/cron/harvest-episodes');
       const d = await r.json();
       if (d.error) { setError(d.error); setCoverage([]); }
-      else setCoverage(d.coverage || []);
+      else { setCoverage(d.coverage || []); setStats(d.stats || null); }
     } catch (e) { setError('Could not load coverage'); setCoverage([]); }
     finally { setLoading(false); }
   }
@@ -1315,6 +1316,33 @@ function EpisodeArchive() {
           </div>
         )}
       </div>
+
+      {stats && (
+        <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+            Automatic updates
+          </div>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 14 }}>
+            Last refresh activity: <strong style={{ color: '#555' }}>{stats.lastHarvestAt ? fmt(stats.lastHarvestAt) : 'never'}</strong>
+            {' '}· runs automatically every night
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12 }}>
+            {[
+              { label: 'New episodes · 24h', value: stats.added24h, green: stats.added24h > 0 },
+              { label: 'New episodes · 7 days', value: stats.added7d, green: stats.added7d > 0 },
+              { label: 'Shows refreshed · 24h', value: stats.showsRefreshed24h },
+              { label: 'Feeds erroring', value: stats.errors, red: stats.errors > 0 },
+            ].map(m => (
+              <div key={m.label} style={{ background: '#fafafa', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: m.red ? '#dc2626' : m.green ? GREEN : '#111' }}>
+                  {(m.value || 0).toLocaleString()}
+                </div>
+                <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{m.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
       {lastRun && (
