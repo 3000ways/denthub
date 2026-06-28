@@ -529,9 +529,17 @@ export default function Home({ initialResources }) {
     setEpisodeSearched(true);
     setEpisodes([]);
     try {
-      const res = await fetch(`/api/episodes-search?q=${encodeURIComponent(q)}&max=20`);
+      // Search our own Supabase episode archive first (instant, full back-catalog).
+      const res = await fetch(`/api/episode-search?q=${encodeURIComponent(q)}&max=20`);
       const data = await res.json();
-      setEpisodes(data.episodes || []);
+      let results = data.episodes || [];
+      // Graceful fallback to the legacy live search if the archive has nothing
+      // for this query yet (e.g. during initial seeding).
+      if (results.length === 0) {
+        const legacy = await fetch(`/api/episodes-search?q=${encodeURIComponent(q)}&max=20`);
+        results = (await legacy.json()).episodes || [];
+      }
+      setEpisodes(results);
     } catch { setEpisodes([]); }
     finally { setEpisodeLoading(false); }
   }

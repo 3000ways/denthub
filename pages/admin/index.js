@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Settings'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Settings'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Conference', 'Other'];
 
@@ -1223,6 +1223,110 @@ function Deduplication() {
 }
 
 // ══════════════════════════════════════════
+//  TAB — Episode Archive
+// ══════════════════════════════════════════
+function EpisodeArchive() {
+  const [coverage, setCoverage] = useState(null); // null = not loaded yet
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState('');
+  const [lastRun, setLastRun] = useState(null);
+
+  async function loadCoverage() {
+    setLoading(true); setError('');
+    try {
+      const r = await fetch('/api/cron/harvest-episodes');
+      const d = await r.json();
+      if (d.error) { setError(d.error); setCoverage([]); }
+      else setCoverage(d.coverage || []);
+    } catch (e) { setError('Could not load coverage'); setCoverage([]); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadCoverage(); }, []);
+
+  async function runHarvest() {
+    setRunning(true); setError(''); setLastRun(null);
+    try {
+      const r = await fetch('/api/cron/harvest-episodes?run=1', { method: 'POST' });
+      const d = await r.json();
+      if (d.error) { setError(d.error); return; }
+      setLastRun(d);
+      await loadCoverage();
+    } catch (e) { setError(e.message || 'Harvest failed'); }
+    finally { setRunning(false); }
+  }
+
+  const rows = coverage || [];
+  const totalEpisodes = rows.reduce((sum, s) => sum + (s.episode_count || 0), 0);
+  const fmt = iso => iso
+    ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : 'never';
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Episode Archive</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
+        Every podcast's episodes are harvested from its RSS feed and stored for instant search.
+        This runs <strong>automatically every night</strong> — use <strong>Refresh now</strong> only to seed
+        the archive for the first time or pull in a newly-added show right away. Rows with <strong>0 episodes</strong>
+        {' '}or an error are worth a look (their feed may be truncated or unreachable).
+      </p>
+
+      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '18px 20px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ fontSize: 13, color: '#555' }}>
+            Shows tracked: <strong style={{ color: '#111' }}>{rows.length}</strong>
+            {' · '}Episodes stored: <strong style={{ color: '#111' }}>{totalEpisodes.toLocaleString()}</strong>
+          </div>
+          <button onClick={runHarvest} disabled={running} style={{ padding: '10px 18px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: running ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+            {running ? 'Refreshing… (up to a minute)' : '↻ Refresh now'}
+          </button>
+        </div>
+      </div>
+
+      {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+      {lastRun && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', background: '#d1fae5', color: '#065f46', borderRadius: 6, fontSize: 13 }}>
+          ✓ Harvested {lastRun.processed} of {lastRun.totalShows} show{lastRun.totalShows === 1 ? '' : 's'} this run
+          {' '}({Math.round((lastRun.elapsedMs || 0) / 1000)}s). Shows are processed least-recently-refreshed first, so
+          {' '}repeat <strong>Refresh now</strong> until every show shows a recent time below.
+        </div>
+      )}
+
+      {loading && coverage === null ? (
+        <div style={{ color: '#888', fontSize: 14 }}>Loading…</div>
+      ) : rows.length === 0 ? (
+        <div style={{ padding: '16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 13, color: '#92400e' }}>
+          No shows tracked yet. Click <strong>Refresh now</strong> to run the first harvest.
+        </div>
+      ) : (
+        <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
+          {rows.map((s, i) => {
+            const problem = (s.episode_count || 0) === 0 || s.last_status === 'error';
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: problem ? '#fff8f8' : '#fff', borderTop: i === 0 ? 'none' : `1px solid ${BORDER}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.show_name || '(unnamed show)'}</div>
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>Last refreshed: {fmt(s.last_harvested_at)}</div>
+                  {s.last_status === 'error' && s.last_error && (
+                    <div style={{ fontSize: 11, color: '#dc2626', marginTop: 3 }}>⚠ {s.last_error}</div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: problem ? '#dc2626' : GREEN }}>{(s.episode_count || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: 10, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>episodes</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
 //  TAB 7 — Settings
 // ══════════════════════════════════════════
 function Settings() {
@@ -1535,7 +1639,8 @@ export default function AdminPage() {
         {tab === 4 && <AutoTag />}
         {tab === 5 && <Deduplication />}
         {tab === 6 && <Users />}
-        {tab === 7 && <Settings />}
+        {tab === 7 && <EpisodeArchive />}
+        {tab === 8 && <Settings />}
       </div>
     </div>
   );
