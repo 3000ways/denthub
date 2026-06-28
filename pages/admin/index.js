@@ -1288,7 +1288,8 @@ function EpisodeArchive() {
   const pct = totalCanon ? Math.round((harvestedCount / totalCanon) * 100) : 0;
   const perRun = (lastRun && lastRun.processed) || 50; // estimate from the last run
   const clicksLeft = Math.max(1, Math.ceil(remainingCount / perRun));
-  const brokenShowsCount = canonicalRows.filter(s => (s.episode_count || 0) === 0).length;
+  const brokenShowsCount = canonicalRows.filter(s => (s.episode_count || 0) === 0 && s.last_status !== 'pending').length;
+  const pendingFixCount = canonicalRows.filter(s => (s.episode_count || 0) === 0 && s.last_status === 'pending').length;
 
   return (
     <div>
@@ -1360,14 +1361,19 @@ function EpisodeArchive() {
         </div>
       )}
 
-      {brokenShowsCount > 0 && (
+      {(brokenShowsCount > 0 || pendingFixCount > 0) && (
         <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ fontSize: 13, color: '#555', maxWidth: 460 }}>
-              <strong style={{ color: '#dc2626' }}>{brokenShowsCount}</strong> show{brokenShowsCount === 1 ? '' : 's'} have no episodes (dead or mislinked feed).
+              <strong style={{ color: brokenShowsCount ? '#dc2626' : GREEN }}>{brokenShowsCount}</strong> show{brokenShowsCount === 1 ? '' : 's'} still need a feed (dead or mislinked).
               {' '}<strong>Fix broken feeds</strong> uses AI to find each show's real RSS feed, verifies it actually has episodes, and updates Airtable — a few at a time.
+              {pendingFixCount > 0 && (
+                <div style={{ marginTop: 6, color: GREEN, fontWeight: 600 }}>
+                  ↻ {pendingFixCount} feed{pendingFixCount === 1 ? '' : 's'} fixed and waiting — click <strong>Refresh now</strong> above to pull their episodes in.
+                </div>
+              )}
             </div>
-            <button onClick={runFixFeeds} disabled={fixing} style={{ padding: '10px 18px', background: '#b45309', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: fixing ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+            <button onClick={runFixFeeds} disabled={fixing || brokenShowsCount === 0} style={{ padding: '10px 18px', background: '#b45309', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: (fixing || brokenShowsCount === 0) ? 0.6 : 1, whiteSpace: 'nowrap' }}>
               {fixing ? '🔧 Fixing… (~30s)' : '🔧 Fix broken feeds'}
             </button>
           </div>
@@ -1425,13 +1431,16 @@ function EpisodeArchive() {
         <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
           {rows.map((s, i) => {
             const isDup = s.last_status === 'duplicate';
-            const problem = !isDup && ((s.episode_count || 0) === 0 || s.last_status === 'error');
+            const isPending = s.last_status === 'pending'; // fixed, awaiting next harvest
+            const problem = !isDup && !isPending && ((s.episode_count || 0) === 0 || s.last_status === 'error');
             return (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: problem ? '#fff8f8' : isDup ? '#fafafa' : '#fff', borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, opacity: isDup ? 0.7 : 1 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.show_name || '(unnamed show)'}</div>
                   <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>Last refreshed: {fmt(s.last_harvested_at)}</div>
-                  {s.last_error && (
+                  {isPending ? (
+                    <div style={{ fontSize: 11, color: GREEN, marginTop: 3 }}>↻ Feed fixed — Refresh to load episodes</div>
+                  ) : s.last_error && (
                     <div style={{ fontSize: 11, color: isDup ? '#999' : '#dc2626', marginTop: 3 }}>{isDup ? '↪' : '⚠'} {s.last_error}</div>
                   )}
                 </div>

@@ -120,10 +120,12 @@ async function applyFix(admin, show, url) {
   }).eq('show_resource_id', show.show_resource_id);
 }
 
+// Still needs a feed found: 0 episodes, not a duplicate, and not already fixed
+// this session (status 'pending' = fixed, awaiting the next harvest).
 async function brokenCount(admin) {
   const { count } = await admin.from('harvest_state')
     .select('show_resource_id', { count: 'exact', head: true })
-    .eq('episode_count', 0).neq('last_status', 'duplicate');
+    .eq('episode_count', 0).neq('last_status', 'duplicate').neq('last_status', 'pending');
   return count || 0;
 }
 
@@ -136,7 +138,7 @@ export default async function handler(req, res) {
     const limit = Math.min(parseInt(req.body?.limit, 10) || 6, 10);
     const { data: shows } = await admin.from('harvest_state')
       .select('show_resource_id, show_name, feed_url')
-      .eq('episode_count', 0).neq('last_status', 'duplicate')
+      .eq('episode_count', 0).neq('last_status', 'duplicate').neq('last_status', 'pending')
       .order('last_harvested_at', { ascending: true, nullsFirst: true })
       .limit(limit);
 
@@ -178,7 +180,7 @@ export default async function handler(req, res) {
       needAI.forEach(s => failed.push({ show: s.show_name, reason: 'not on Apple; AI fallback unavailable' }));
     }
 
-    const remaining = Math.max(0, (await brokenCount(admin)) - fixed.length);
+    const remaining = await brokenCount(admin); // already excludes the just-fixed (now 'pending')
     return res.status(200).json({ status: 'ok', fixed, failed, remaining, done: remaining === 0 });
   } catch (e) {
     return res.status(500).json({ error: String(e.message || e) });
