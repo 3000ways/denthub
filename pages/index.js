@@ -214,6 +214,60 @@ function NewBadge() {
   return <span style={{ fontSize:9, fontWeight:700, color:'#fff', background:GREEN, padding:'2px 6px', borderRadius:10, letterSpacing:'0.06em', textTransform:'uppercase', marginLeft:8, verticalAlign:'middle' }}>New</span>;
 }
 
+// One Editor's Pick card — the resource on the left, Andrei's personal blurb as a
+// pull quote on the right.
+function EditorsPickCard({ r, isMobile, onOpen, onSignInRequired }) {
+  const f = r.fields;
+  const blurb = (f["Editor's Pick Blurb"] || '').trim();
+  const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
+  return (
+    <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 20 : 32, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:12, padding: isMobile ? '22px' : '28px 32px', boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+      {/* Left — the resource itself */}
+      <div onClick={() => onOpen(r.id)} style={{ flex: isMobile ? 'none' : '0 0 38%', cursor:'pointer', display:'flex', flexDirection:'column' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:16 }}>
+          <Logo url={f.URL} name={f.Name} size={72} imageUrl={f['Image URL']} />
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight:600, color:'#111', lineHeight:1.15, marginBottom:6, fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{f.Name}</div>
+            {f['Host or Author'] && <div style={{ fontSize:13, color:'#aaa' }}>{f['Host or Author']}</div>}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:'auto' }} onClick={e => e.stopPropagation()}>
+          <ScoreBadge score={score} fields={f} />
+          <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />
+        </div>
+      </div>
+
+      {/* Right — Andrei's personal note as a pull quote */}
+      <div style={{ flex:1, borderLeft: isMobile ? 'none' : `2px solid ${GREEN_LIGHT}`, borderTop: isMobile ? `2px solid ${GREEN_LIGHT}` : 'none', paddingLeft: isMobile ? 0 : 28, paddingTop: isMobile ? 18 : 0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
+        <div style={{ fontSize:42, lineHeight:0.5, color:GREEN, fontFamily:FONT_DISPLAY, marginBottom:-6 }}>&ldquo;</div>
+        <div style={{ fontSize: isMobile ? 16 : 18, lineHeight:1.55, color:'#333', fontFamily:FONT_DISPLAY, fontStyle:'italic', marginBottom:16 }}>{blurb}</div>
+        <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>&mdash; Dr. Andrei Ionescu &middot; Endodontist</div>
+      </div>
+    </div>
+  );
+}
+
+// Editor's Pick section — header plus one or more hand-picked cards, ordered by the
+// "Editor's Pick Order" field. Driven by the "Editor's Pick" checkbox, "Editor's
+// Pick Blurb", and "Editor's Pick Order" fields in Airtable.
+function EditorsPick({ picks, isMobile, onOpen, onSignInRequired }) {
+  return (
+    <div style={{ marginBottom:52 }}>
+      {/* Section header rule — matches the other home-page sections */}
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'2px solid #111' }}>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Editor&rsquo;s Pick{picks.length > 1 ? 's' : ''}</div>
+        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Hand-picked by Andrei</div>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+        {picks.map(r => (
+          <EditorsPickCard key={r.id} r={r} isMobile={isMobile} onOpen={onOpen} onSignInRequired={onSignInRequired} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SpotlightCard({ item }) {
   const [imgErr, setImgErr] = useState(false);
   const isVideo = item.type === 'video';
@@ -307,7 +361,10 @@ function EpisodeCard({ ep }) {
   );
 }
 
-export async function getServerSideProps() {
+// Cached at build time and refreshed at most once every 5 minutes (ISR),
+// so Airtable is hit roughly once per 5-minute window regardless of traffic
+// instead of once per visitor. The `initialResources` prop shape is unchanged.
+export async function getStaticProps() {
   try {
     const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
     const pat = process.env.AIRTABLE_PAT;
@@ -316,13 +373,24 @@ export async function getServerSideProps() {
     params.set('sort[0][field]', 'Final Score');
     params.set('sort[0][direction]', 'desc');
     params.set('pageSize', '100');
-    const r = await fetch(`https://api.airtable.com/v0/${base}/Resources?${params}`, {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-    const data = await r.json();
-    return { props: { initialResources: data.records || [] } };
+    // Page through every published resource (Airtable caps pageSize at 100), so
+    // curated picks and lower-ranked resources outside the top 100 are included.
+    const url = `https://api.airtable.com/v0/${base}/Resources`;
+    const headers = { Authorization: `Bearer ${pat}` };
+    let initialResources = [];
+    let offset;
+    do {
+      if (offset) params.set('offset', offset); else params.delete('offset');
+      const r = await fetch(`${url}?${params}`, { headers });
+      if (!r.ok) break;
+      const data = await r.json();
+      initialResources = initialResources.concat(data.records || []);
+      offset = data.offset;
+    } while (offset);
+    return { props: { initialResources }, revalidate: 300 };
   } catch {
-    return { props: { initialResources: [] } };
+    // On a transient Airtable error, retry sooner than the normal 5-min window.
+    return { props: { initialResources: [] }, revalidate: 60 };
   }
 }
 
@@ -339,6 +407,9 @@ export default function Home({ initialResources }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(initialResources.length === 0);
   const [expandedId, setExpandedId] = useState(null);
+  // How many ranked rows to show. Starts at 50 and grows via "Show more".
+  const RANKED_PAGE = 50;
+  const [visibleCount, setVisibleCount] = useState(RANKED_PAGE);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -444,6 +515,10 @@ export default function Home({ initialResources }) {
     fetch('/api/book-stats').then(r => r.json()).then(data => setBookStats(data)).catch(() => {});
   }, []);
 
+  // Any time the active filter or search changes, collapse the ranked list
+  // back to the first page so "Show more" starts fresh for the new view.
+  useEffect(() => { setVisibleCount(RANKED_PAGE); }, [activeCategory, activeSpecialty, activeTopic, search]);
+
   function selectCategory(cat) { setActiveCategory(prev => prev === cat ? null : cat); setExpandedId(null); }
   function selectSpecialty(s) { setActiveSpecialty(prev => prev === s ? null : s); setExpandedId(null); }
   function selectTopic(t) { setActiveTopic(prev => prev === t ? null : t); setExpandedId(null); }
@@ -511,8 +586,21 @@ export default function Home({ initialResources }) {
     ? [...displayResources].filter(r => bookmarkIds.has(r.id))
     : [];
 
+  // Editor's Picks — Andrei's hand-picked features. Each needs the checkbox and a
+  // blurb. Ordered by the "Editor's Pick Order" field (lower shows first); picks
+  // without an order fall to the back, broken by Final Score.
+  const editorsPicks = [...displayResources]
+    .filter(r => r.fields["Editor's Pick"] && (r.fields["Editor's Pick Blurb"] || '').trim())
+    .sort((a, b) => {
+      const ao = a.fields["Editor's Pick Order"], bo = b.fields["Editor's Pick Order"];
+      if (ao != null && bo != null && ao !== bo) return ao - bo;
+      if (ao != null && bo == null) return -1;
+      if (ao == null && bo != null) return 1;
+      return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
+    });
+
   const top2 = filtered.slice(0,2);
-  const ranked = filtered.slice(0,50);
+  const ranked = filtered.slice(0, visibleCount);
 
   const totalResources = displayResources.length;
   const totalCategories = CATEGORIES.length;
@@ -570,29 +658,33 @@ export default function Home({ initialResources }) {
           <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
             <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
           </a>
-          <div style={{ display:'flex', alignItems:'center', gap:20 }}>
-            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500 }}>About</a>
+          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20, minWidth:0 }}>
+            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>
             {user && (
-              <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5 }}>
+              <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                Saved{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
+                {isMobile ? (bookmarkCount > 0 ? bookmarkCount : '') : `Saved${bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}`}
               </Link>
             )}
             {user ? (
-              <a href="/profile" style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8 }}>
+              <a href="/profile" title={profile?.full_name || user.email} style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8, minWidth:0, flexShrink:1 }}>
                 {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
-                  <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}` }} />
+                  <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}`, flexShrink:0 }} />
                 )}
-                {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
-                {profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600 }}>✓ Verified</span>}
+                {!isMobile && (
+                  <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
+                  </span>
+                )}
+                {!isMobile && profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span>}
               </a>
             ) : (
-              <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600 }}>
+              <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, flexShrink:0 }}>
                 Sign in
               </button>
             )}
-            <button onClick={openSubmitModal} style={{ fontSize:12, padding:'7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)' }}>
-              Submit a resource
+            <button onClick={openSubmitModal} style={{ fontSize:12, padding: isMobile ? '7px 12px' : '7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
+              {isMobile ? 'Submit' : 'Submit a resource'}
             </button>
           </div>
         </div>
@@ -727,6 +819,16 @@ export default function Home({ initialResources }) {
 
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
+
+            {/* Editor's Picks — Andrei's hand-picked featured resources */}
+            {editorsPicks.length > 0 && (
+              <EditorsPick
+                picks={editorsPicks}
+                isMobile={isMobile}
+                onOpen={(id) => router.push(`/resource/${id}`)}
+                onSignInRequired={() => setShowSignIn(true)}
+              />
+            )}
 
             {/* New from your bookmarks — latest episodes from followed shows */}
             {user && <BookmarkFeed isMobile={isMobile} limit={4} />}
@@ -1086,6 +1188,14 @@ export default function Home({ initialResources }) {
                   );
                 })}
               </div>
+              {filtered.length > ranked.length && (
+                <div style={{ textAlign:'center', marginTop:20 }}>
+                  <button onClick={() => setVisibleCount(c => c + RANKED_PAGE)}
+                    style={{ fontSize:13, color:GREEN, fontWeight:500, border:`1px solid ${GREEN}`, padding:'9px 22px', borderRadius:4, fontFamily:FONT_BODY, background:'transparent', cursor:'pointer' }}>
+                    Show more ({filtered.length - ranked.length} more)
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

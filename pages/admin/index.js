@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Episode Archive', 'Settings'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Settings'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Conference', 'Other'];
 
@@ -426,6 +426,7 @@ function QueueCard({ item, onRemove }) {
 function ReviewQueue() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [approving, setApproving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -436,6 +437,15 @@ function ReviewQueue() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function approveAll() {
+    if (!items.length) return;
+    setApproving(true);
+    try {
+      await fetch('/api/admin/submissions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approveAll: true }) });
+      setItems([]);
+    } finally { setApproving(false); }
+  }
 
   if (loading) return <div style={{ color: '#888', fontSize: 14 }}>Loading…</div>;
   if (!items.length) return (
@@ -448,9 +458,18 @@ function ReviewQueue() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>Review Queue</h2>
-        <span style={{ fontSize: 13, color: '#888' }}>{items.length} pending</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 13, color: '#888' }}>{items.length} pending</span>
+          <button onClick={approveAll} disabled={approving} style={{
+            padding: '7px 16px', background: approving ? '#a7f3d0' : '#059669', color: '#fff',
+            border: 'none', borderRadius: 7, cursor: approving ? 'default' : 'pointer',
+            fontSize: 13, fontWeight: 700, fontFamily: FONT,
+          }}>
+            {approving ? '…Publishing all' : `✓ Publish all (${items.length})`}
+          </button>
+        </div>
       </div>
       <div style={{ display: 'grid', gap: 12 }}>
         {items.map(item => (
@@ -998,6 +1017,212 @@ function AutoTag() {
 }
 
 // ══════════════════════════════════════════
+//  TAB 6 — Deduplication
+// ══════════════════════════════════════════
+function Deduplication() {
+  const [loading, setLoading] = useState(false);
+  const [groups, setGroups] = useState(null);
+  const [totalScanned, setTotalScanned] = useState(0);
+  const [scannedAt, setScannedAt] = useState(null);
+  const [dismissed, setDismissed] = useState(new Set());
+  const [busy, setBusy] = useState({});
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('tdc_dedupes');
+      if (cached) {
+        const { groups, total, scannedAt, dismissed: dis } = JSON.parse(cached);
+        setGroups(groups);
+        setTotalScanned(total);
+        setScannedAt(scannedAt);
+        if (dis) setDismissed(new Set(dis));
+      }
+    } catch {}
+  }, []);
+
+  const groupKey = g => g.records.map(r => r.id).sort().join('|');
+
+  function saveCache(groups, total, scannedAt, dismissed) {
+    try {
+      localStorage.setItem('tdc_dedupes', JSON.stringify({ groups, total, scannedAt, dismissed: [...dismissed] }));
+    } catch {}
+  }
+
+  const visibleGroups = groups ? groups.filter(g => !dismissed.has(groupKey(g))) : [];
+
+  async function scan() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/dedupes');
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const now = new Date().toISOString();
+      setGroups(d.groups);
+      setTotalScanned(d.total);
+      setScannedAt(now);
+      // keep existing dismissals — they stay dismissed across rescans
+      saveCache(d.groups, d.total, now, dismissed);
+    } catch (e) {
+      alert('Scan failed: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function archiveRecord(id, groupIdx) {
+    setBusy(b => ({ ...b, [id]: true }));
+    try {
+      const r = await fetch('/api/admin/resources', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, fields: { Status: 'Archived' } }),
+      });
+      if (!r.ok) throw new Error('Failed');
+      setGroups(gs => {
+        const updated = gs.map((g, i) => i !== groupIdx ? g : {
+          ...g,
+          records: g.records.map(rec => rec.id !== id ? rec : { ...rec, fields: { ...rec.fields, Status: 'Archived' } }),
+        });
+        saveCache(updated, totalScanned, scannedAt, dismissed);
+        return updated;
+      });
+    } catch (e) {
+      alert('Archive failed: ' + e.message);
+    } finally {
+      setBusy(b => { const n = { ...b }; delete n[id]; return n; });
+    }
+  }
+
+  async function deleteRecord(id, groupIdx) {
+    if (!confirm('Permanently delete this record from Airtable?')) return;
+    setBusy(b => ({ ...b, [id]: true }));
+    try {
+      const r = await fetch(`/api/admin/resources?id=${id}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error('Failed');
+      setGroups(gs => {
+        const updated = gs.map((g, i) => i !== groupIdx ? g : {
+          ...g,
+          records: g.records.filter(rec => rec.id !== id),
+        }).filter(g => g.records.length >= 2);
+        saveCache(updated, totalScanned, scannedAt, dismissed);
+        return updated;
+      });
+    } catch (e) {
+      alert('Delete failed: ' + e.message);
+    } finally {
+      setBusy(b => { const n = { ...b }; delete n[id]; return n; });
+    }
+  }
+
+  const statusColor = s => s === 'Published' ? { bg: '#d1fae5', fg: '#065f46' } : s === 'Archived' ? { bg: '#f3f4f6', fg: '#6b7280' } : { bg: '#fef9c3', fg: '#92400e' };
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Deduplication</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>
+        Scan all resources for duplicate entries — matched by URL or name. Archive or delete the copy, or dismiss false positives.
+      </p>
+
+      <button onClick={scan} disabled={loading} style={{ padding: '10px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: loading ? 0.7 : 1, marginBottom: 12 }}>
+        {loading ? 'Scanning…' : groups === null ? 'Scan for Duplicates' : 'Rescan'}
+      </button>
+
+      {groups !== null && (
+        <div style={{ fontSize: 13, color: '#555', marginBottom: 20 }}>
+          <div>
+            Scanned <strong>{totalScanned}</strong> resources —{' '}
+            {visibleGroups.length === 0
+              ? <span style={{ color: '#065f46', fontWeight: 600 }}>no duplicates found</span>
+              : <span style={{ color: '#b45309', fontWeight: 600 }}>{visibleGroups.length} duplicate group{visibleGroups.length !== 1 ? 's' : ''} found</span>}
+            {dismissed.size > 0 && (
+              <span style={{ color: '#aaa' }}>
+                {' '}({dismissed.size} dismissed —{' '}
+                <button onClick={() => { const empty = new Set(); setDismissed(empty); saveCache(groups, totalScanned, scannedAt, empty); }} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline' }}>show all</button>
+                )
+              </span>
+            )}
+          </div>
+          {scannedAt && <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>Last scanned {new Date(scannedAt).toLocaleString()}</div>}
+        </div>
+      )}
+
+      {visibleGroups.map((group) => {
+        const gKey = groupKey(group);
+        const groupIdx = groups.indexOf(group);
+        return (
+          <div key={gKey} style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: 'hidden' }}>
+            <div style={{ background: '#fafafa', borderBottom: `1px solid ${BORDER}`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
+                <span style={{ background: group.reason === 'Same URL' ? '#dbeafe' : '#fef9c3', color: group.reason === 'Same URL' ? '#1e40af' : '#92400e', padding: '2px 8px', borderRadius: 20, marginRight: 8 }}>
+                  {group.reason}
+                </span>
+                <span style={{ color: '#999', fontWeight: 400, fontFamily: 'monospace', fontSize: 11 }}>{group.matchValue}</span>
+              </div>
+              <button
+                onClick={() => setDismissed(d => {
+                  const next = new Set([...d, gKey]);
+                  saveCache(groups, totalScanned, scannedAt, next);
+                  return next;
+                })}
+                style={{ fontSize: 11, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+              >
+                Dismiss
+              </button>
+            </div>
+
+            {group.records.map(rec => {
+              const f = rec.fields;
+              const sc = statusColor(f['Status']);
+              const isBusy = busy[rec.id];
+              return (
+                <div key={rec.id} style={{ padding: '14px 16px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {f['Name'] || '(no name)'}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#888', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <a href={f['URL']} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>{f['URL']}</a>
+                    </div>
+                    {f['Description'] && (
+                      <div style={{ fontSize: 12, color: '#555', marginBottom: 8, lineHeight: 1.5 }}>
+                        {f['Description']}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {f['Type'] && <span style={{ fontSize: 11, color: '#555', background: '#f3f4f6', padding: '2px 7px', borderRadius: 20 }}>{f['Type']}</span>}
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: sc.bg, color: sc.fg }}>{f['Status'] || 'No status'}</span>
+                      {f['Final Score'] != null && <span style={{ fontSize: 11, color: '#888' }}>Score: {Number(f['Final Score']).toFixed(1)}</span>}
+                      {f['Host or Author'] && <span style={{ fontSize: 11, color: '#888' }}>by {f['Host or Author']}</span>}
+                      {f['Source'] && <SourceBadge source={f['Source']} />}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={() => archiveRecord(rec.id, groupIdx)}
+                      disabled={isBusy || f['Status'] === 'Archived'}
+                      style={{ padding: '5px 12px', fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#555', fontFamily: FONT, opacity: (isBusy || f['Status'] === 'Archived') ? 0.5 : 1 }}
+                    >
+                      {isBusy ? '…' : f['Status'] === 'Archived' ? 'Archived' : 'Archive'}
+                    </button>
+                    <button
+                      onClick={() => deleteRecord(rec.id, groupIdx)}
+                      disabled={isBusy}
+                      style={{ padding: '5px 12px', fontSize: 12, border: '1px solid #fca5a5', borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#dc2626', fontFamily: FONT, opacity: isBusy ? 0.5 : 1 }}
+                    >
+                      {isBusy ? '…' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
 //  TAB — Episode Archive
 // ══════════════════════════════════════════
 function EpisodeArchive() {
@@ -1102,7 +1327,7 @@ function EpisodeArchive() {
 }
 
 // ══════════════════════════════════════════
-//  TAB 6 — Settings
+//  TAB 7 — Settings
 // ══════════════════════════════════════════
 function Settings() {
   const [current, setCurrent] = useState('');
@@ -1167,6 +1392,160 @@ function Settings() {
       <div style={{ marginTop: 16, padding: '14px 16px', background: '#f9fafb', border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: '#888', lineHeight: 1.6 }}>
         After changing your password, a redeploy is triggered automatically. The new password will be active in ~1 minute.
       </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  TAB 7 — Users
+// ══════════════════════════════════════════
+function Users() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('joined');
+  const [sortDir, setSortDir] = useState('desc');
+
+  useEffect(() => {
+    fetch('/api/admin/users')
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) setError(d.error);
+        else setUsers(d.users || []);
+      })
+      .catch(() => setError('Failed to load users'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function fmt(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function timeSince(iso) {
+    if (!iso) return 'Never';
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days}d ago`;
+    if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+    return `${Math.floor(days / 365)}y ago`;
+  }
+
+  function initials(name, email) {
+    if (name) {
+      const parts = name.trim().split(' ');
+      return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+    }
+    return (email || '?')[0].toUpperCase();
+  }
+
+  const lc = search.toLowerCase();
+  const filtered = users
+    .filter(u => !lc || (u.email || '').toLowerCase().includes(lc) || (u.full_name || '').toLowerCase().includes(lc) || (u.specialty || '').toLowerCase().includes(lc))
+    .sort((a, b) => {
+      let av, bv;
+      if (sortBy === 'joined') { av = a.created_at; bv = b.created_at; }
+      else if (sortBy === 'lastSeen') { av = a.last_sign_in_at || ''; bv = b.last_sign_in_at || ''; }
+      else if (sortBy === 'name') { av = (a.full_name || a.email || '').toLowerCase(); bv = (b.full_name || b.email || '').toLowerCase(); }
+      else if (sortBy === 'bookmarks') { av = a.bookmark_count; bv = b.bookmark_count; }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  function toggleSort(col) {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('desc'); }
+  }
+
+  const SortBtn = ({ col, label }) => (
+    <button onClick={() => toggleSort(col)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: sortBy === col ? '#111' : '#888', fontFamily: FONT, padding: 0, display: 'flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
+      {label} {sortBy === col ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+    </button>
+  );
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#aaa', fontSize: 14 }}>Loading users…</div>;
+
+  if (error) return (
+    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '16px 20px', color: '#dc2626', fontSize: 13 }}>
+      <strong>Error:</strong> {error}
+      {error.includes('SUPABASE_SERVICE_ROLE_KEY') && (
+        <div style={{ marginTop: 10, color: '#7f1d1d', lineHeight: 1.6 }}>
+          To fix this: go to <strong>Vercel → your project → Settings → Environment Variables</strong> and add <code>SUPABASE_SERVICE_ROLE_KEY</code>. You can find this key in <strong>Supabase → Project Settings → API → service_role secret</strong>. Then redeploy.
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>Registered Users</h2>
+        <span style={{ fontSize: 13, color: '#888' }}>{users.length} total</span>
+      </div>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Everyone who has signed in with Google.</p>
+
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search by name, email, or specialty…"
+        style={{ ...inp(), marginBottom: 16 }}
+      />
+
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#aaa', fontSize: 13 }}>No users match your search.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 60px', gap: 8, padding: '10px 14px', background: '#f9fafb', borderBottom: `1px solid ${BORDER}`, alignItems: 'center' }}>
+            <SortBtn col="name" label="Name / Email" />
+            <SortBtn col="joined" label="Joined" />
+            <SortBtn col="lastSeen" label="Last seen" />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>Specialty</span>
+            <SortBtn col="bookmarks" label="Saves" />
+          </div>
+
+          {/* Rows */}
+          {filtered.map((u, i) => (
+            <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 60px', gap: 8, padding: '12px 14px', background: i % 2 === 0 ? '#fff' : '#fafafa', borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : 'none', alignItems: 'center' }}>
+              {/* Name + email */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: GREEN, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                  {u.avatar_url
+                    ? <img src={u.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                    : initials(u.full_name, u.email)}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {u.full_name || <span style={{ color: '#aaa', fontWeight: 400 }}>No name set</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                </div>
+              </div>
+
+              {/* Joined */}
+              <div style={{ fontSize: 12, color: '#555' }}>{fmt(u.created_at)}</div>
+
+              {/* Last seen */}
+              <div style={{ fontSize: 12, color: '#555' }}>{timeSince(u.last_sign_in_at)}</div>
+
+              {/* Specialty */}
+              <div style={{ fontSize: 11, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {u.specialty || <span style={{ color: '#ccc' }}>—</span>}
+              </div>
+
+              {/* Bookmarks */}
+              <div style={{ fontSize: 12, color: u.bookmark_count > 0 ? '#111' : '#ccc', fontWeight: u.bookmark_count > 0 ? 600 : 400, textAlign: 'center' }}>
+                {u.bookmark_count > 0 ? `♥ ${u.bookmark_count}` : '—'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1258,8 +1637,10 @@ export default function AdminPage() {
         {tab === 2 && <AllResources />}
         {tab === 3 && <RunResearch />}
         {tab === 4 && <AutoTag />}
-        {tab === 5 && <EpisodeArchive />}
-        {tab === 6 && <Settings />}
+        {tab === 5 && <Deduplication />}
+        {tab === 6 && <Users />}
+        {tab === 7 && <EpisodeArchive />}
+        {tab === 8 && <Settings />}
       </div>
     </div>
   );

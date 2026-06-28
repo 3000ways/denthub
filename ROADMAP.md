@@ -170,6 +170,24 @@ user-accounts backend — the phased auth/voting work below now builds on it.
   persona). Needs Andrei's bio copy. Code change → branch + PR.
 - Home-page quick wins (see "Quick wins" above): Editor's/Andrei's Pick,
   Trending this week, Clinical pearl, Dynamic hero.
+- **Manage Editor's Picks from the backend.** Add an "Editor's Pick" flag on resources
+  (Airtable field) + a toggle in the existing admin panel, so Andrei can promote/demote
+  picks anytime without code changes. Feeds the home-page Editor's/Andrei's Pick module.
+- **Admin "Members" view — know who your users are.** A backend view of registered/
+  signed-in members from Supabase (`profiles`): email, join date, NPI/verified status,
+  total count. Distinct from Google Analytics (anonymous traffic); this is *identified*
+  members. Code change → branch + PR.
+- **"Approve all" button on the review queue.** Bulk-approve every pending submission at
+  once on the admin submissions/review page, instead of one at a time.
+- **"Remove duplicates" feature in the admin portal.** Detect and remove duplicate
+  resources (e.g. same URL/title) from the admin panel.
+- **Fix the change-password option** (BUG). The admin change-password feature
+  (`pages/api/admin/change-password.js`) currently doesn't work — needs diagnosis + fix.
+- **Share button on resources.** A share control on each resource — uses the phone's
+  native share sheet on mobile (texts, X, LinkedIn, WhatsApp, etc.) with a "copy link"
+  fallback on desktop. Links should point to the per-resource page
+  (`pages/resource/[id].js`) with Open Graph meta tags so shared links show the
+  resource's name/logo when pasted into social or messages. Good for organic growth.
 - Refine the UI toward the magazine aesthetic (white background, strong typography,
   minimal decoration — away from anything spreadsheet/card-grid-like).
 - Build out dental software rankings as a dedicated pillar.

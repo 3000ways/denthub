@@ -135,17 +135,21 @@ export default async function handler(req, res) {
     fetchAllFromAirtable('YouTube'),
   ]);
 
+  // Deduplicate by RSS URL so shared feeds don't produce duplicate episode cards
+  const uniquePodcastMeta = podcastMeta.filter((m, i, arr) => arr.findIndex(x => x.rssUrl === m.rssUrl) === i);
+  const uniqueVideoMeta   = videoMeta.filter((m, i, arr) => arr.findIndex(x => x.rssUrl === m.rssUrl) === i);
+
   // 2. Fetch every RSS feed in parallel (4s timeout per feed — stragglers are dropped)
   const [podcastResults, videoResults] = await Promise.all([
     Promise.all(
-      podcastMeta.map(meta =>
+      uniquePodcastMeta.map(meta =>
         fetchFeed(meta.rssUrl)
           .then(xml => parsePodcastFeed(xml, meta))
           .catch(() => null)
       )
     ),
     Promise.all(
-      videoMeta.map(meta =>
+      uniqueVideoMeta.map(meta =>
         fetchFeed(meta.rssUrl)
           .then(xml => parseYouTubeFeed(xml, meta))
           .catch(() => null)
@@ -153,15 +157,19 @@ export default async function handler(req, res) {
     ),
   ]);
 
-  // 3. Sort each type by publish date descending, take the freshest DISPLAY_COUNT
+  // 3. Sort each type by publish date descending, dedupe by title, take the freshest DISPLAY_COUNT
+  const seenTitles = new Set();
   const podcasts = podcastResults
     .filter(Boolean)
     .sort((a, b) => b.sortDate - a.sortDate)
+    .filter(ep => { const key = ep.title.toLowerCase(); if (seenTitles.has(key)) return false; seenTitles.add(key); return true; })
     .slice(0, DISPLAY_COUNT);
 
+  const seenVideoTitles = new Set();
   const videos = videoResults
     .filter(Boolean)
     .sort((a, b) => b.sortDate - a.sortDate)
+    .filter(ep => { const key = ep.title.toLowerCase(); if (seenVideoTitles.has(key)) return false; seenVideoTitles.add(key); return true; })
     .slice(0, DISPLAY_COUNT);
 
   const data = {
