@@ -9,7 +9,7 @@
 // GET without `run` returns the coverage report (after auth) so you can see how
 // many episodes are stored per show without kicking off a harvest.
 
-import { harvestBatch, getCoverage } from '../../../lib/harvester';
+import { harvestBatch, getCoverage, getStats } from '../../../lib/harvester';
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 
 // Give the harvester room to work. Vercel caps this at the plan limit
@@ -34,7 +34,8 @@ export default async function handler(req, res) {
   const isCron = (req.headers.authorization || '').startsWith('Bearer ');
   if (req.method === 'GET' && !isCron && req.query.run !== '1') {
     try {
-      return res.status(200).json({ coverage: await getCoverage() });
+      const [coverage, stats] = await Promise.all([getCoverage(), getStats()]);
+      return res.status(200).json({ coverage, stats });
     } catch (err) {
       return res.status(500).json({ error: String(err.message || err) });
     }
