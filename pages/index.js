@@ -337,7 +337,7 @@ function SpotlightCard({ item }) {
       </div>
 
       {/* Text */}
-      <div style={{ padding:'12px 14px 14px' }}>
+      <div style={{ padding:'10px 10px 12px' }}>
         <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
         <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
           display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
@@ -984,7 +984,7 @@ export default function Home({ initialResources }) {
 
             {/* Spotlight: Latest Episodes & Videos */}
             {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
-              <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+              <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 16px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
                 <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
                   <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>What&rsquo;s New</div>
                   <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
@@ -1262,7 +1262,7 @@ export default function Home({ initialResources }) {
 
           {/* Ranked list — shown when any filter active */}
           {anyFilterActive && ranked.length > 0 && (
-            <div style={{ marginBottom:44, background:'rgba(255,255,255,0.35)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div style={{ marginBottom:44, background:'rgba(255,255,255,0.35)', borderRadius:12, padding: isMobile ? '16px 10px 16px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
                 {filtered.length} {activeCategory ? `${activeCategory}` : 'resources'}{activeSpecialty ? ` · ${activeSpecialty}` : ''}{activeTopic ? ` · ${activeTopic}` : ''} — ranked
               </div>
