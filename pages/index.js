@@ -264,6 +264,47 @@ function EditorsPick({ picks, onOpen, onSignInRequired }) {
   );
 }
 
+function EssentialsSection({ items, isMobile, onOpen, onSignInRequired }) {
+  return (
+    <div style={{ marginBottom:52 }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'2px solid #111' }}>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>The Essentials</div>
+        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Start here</div>
+      </div>
+      <div style={{ borderTop:`1px solid ${BORDER}` }}>
+        {items.map((r, i) => {
+          const f = r.fields;
+          const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
+          return (
+            <div key={r.id}
+              onClick={() => onOpen(r.id)}
+              style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+              onMouseLeave={e => e.currentTarget.style.background='transparent'}
+            >
+              <div style={{ fontSize:13, fontWeight:600, color:'#ddd', fontFamily:FONT_DISPLAY, width:24, flexShrink:0, textAlign:'right' }}>
+                {String(i + 1).padStart(2, '0')}
+              </div>
+              <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:15, fontWeight:600, color:'#111', marginBottom:3, fontFamily:FONT_DISPLAY, letterSpacing:-0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
+                <div style={{ fontSize:11, color:'#bbb', display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
+                  {f['Host or Author'] && <><span>&middot;</span><span>{f['Host or Author']}</span></>}
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+                <ScoreBadge score={score} fields={f} />
+                {!isMobile && <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SpotlightCard({ item }) {
   const [imgErr, setImgErr] = useState(false);
   const isVideo = item.type === 'video';
@@ -392,7 +433,8 @@ export async function getStaticProps() {
 
 export default function Home({ initialResources }) {
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -598,6 +640,16 @@ export default function Home({ initialResources }) {
       return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
     });
 
+  const essentials = [...displayResources]
+    .filter(r => r.fields['Essential'])
+    .sort((a, b) => {
+      const ao = a.fields['Essential Order'], bo = b.fields['Essential Order'];
+      if (ao != null && bo != null && ao !== bo) return ao - bo;
+      if (ao != null && bo == null) return -1;
+      if (ao == null && bo != null) return 1;
+      return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
+    });
+
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0, visibleCount);
 
@@ -666,17 +718,41 @@ export default function Home({ initialResources }) {
               </Link>
             )}
             {user ? (
-              <a href="/profile" title={profile?.full_name || user.email} style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8, minWidth:0, flexShrink:1 }}>
-                {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
-                  <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}`, flexShrink:0 }} />
+              <div style={{ position:'relative', minWidth:0, flexShrink:1 }}>
+                <button
+                  title={profile?.full_name || user.email}
+                  onClick={() => setShowUserMenu(v => !v)}
+                  onBlur={() => setTimeout(() => setShowUserMenu(false), 150)}
+                  style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:0, minWidth:0 }}
+                >
+                  {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
+                    <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}`, flexShrink:0 }} />
+                  )}
+                  {!isMobile && (
+                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
+                    </span>
+                  )}
+                  {!isMobile && profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span>}
+                  <span style={{ fontSize:10, color:'#ccc', marginLeft:2, flexShrink:0 }}>▾</span>
+                </button>
+                {showUserMenu && (
+                  <div style={{ position:'absolute', top:'calc(100% + 10px)', right:0, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, boxShadow:'0 4px 20px rgba(0,0,0,0.08)', minWidth:150, zIndex:200, overflow:'hidden' }}>
+                    <a href="/profile" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
+                      onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+                      onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+                      Profile settings
+                    </a>
+                    <button
+                      onClick={async () => { setShowUserMenu(false); await signOut(); router.push('/'); }}
+                      style={{ display:'block', width:'100%', textAlign:'left', padding:'11px 16px', fontSize:13, color:'#c0392b', background:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY }}
+                      onMouseEnter={e => e.currentTarget.style.background='#fff5f5'}
+                      onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+                      Sign out
+                    </button>
+                  </div>
                 )}
-                {!isMobile && (
-                  <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
-                  </span>
-                )}
-                {!isMobile && profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span>}
-              </a>
+              </div>
             ) : (
               <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, flexShrink:0 }}>
                 Sign in
@@ -841,6 +917,17 @@ export default function Home({ initialResources }) {
 
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
+
+            {/* The Essentials — curated foundational resources, ordered by "Essential Order" */}
+            {essentials.length > 0 && (
+              <EssentialsSection
+                items={essentials}
+                isMobile={isMobile}
+                onOpen={(id) => router.push(`/resource/${id}`)}
+                onSignInRequired={() => setShowSignIn(true)}
+              />
+            )}
+
 
             {/* New from your bookmarks — latest episodes from followed shows */}
             {user && <BookmarkFeed isMobile={isMobile} limit={4} />}
