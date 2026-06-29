@@ -705,9 +705,9 @@ export default function Home({ initialResources }) {
       {/* Sticky nav bar */}
       <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}` }}>
         <div style={{ height:3, background:GREEN }} />
-        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:72 }}>
+        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:isMobile ? 72 : 100 }}>
           <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height:64, width:'auto', mixBlendMode:'multiply' }} />
+            <img src="/logo.png" alt="The Dental Commute" style={{ height: isMobile ? 52 : 88, width:'auto' }} />
           </a>
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20, minWidth:0 }}>
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>
