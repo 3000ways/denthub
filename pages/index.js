@@ -767,7 +767,7 @@ export default function Home({ initialResources }) {
         </div>
       </div>
 
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px 60px' : '0 36px 100px' }}>
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 10px 60px' : '0 36px 100px' }}>
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
@@ -998,7 +998,7 @@ export default function Home({ initialResources }) {
                 {spotlight.podcasts.length > 0 && (
                   <div style={{ marginBottom:28 }}>
                     <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
-                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap:12 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
                       {spotlight.podcasts.slice(0,4).map((ep, i) => (
                         <SpotlightCard key={i} item={ep} />
                       ))}
@@ -1010,7 +1010,7 @@ export default function Home({ initialResources }) {
                 {spotlight.videos.length > 0 && (
                   <div>
                     <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
-                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap:12 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
                       {spotlight.videos.slice(0,4).map((vid, i) => (
                         <SpotlightCard key={i} item={vid} />
                       ))}
