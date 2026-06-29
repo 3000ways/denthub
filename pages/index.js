@@ -703,13 +703,15 @@ export default function Home({ initialResources }) {
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
       {/* Sticky nav bar */}
-      <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}` }}>
+      <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
         <div style={{ height:3, background:GREEN }} />
-        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:isMobile ? 64 : 130 }}>
-          <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
-            <img src="/logo.jpg" alt="The Dental Commute" style={{ height: isMobile ? 44 : 120, width:'auto' }} />
+        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', position:'relative', height: isMobile ? 60 : 72 }}>
+          {/* Logo — absolutely positioned so it can break out below the nav bar */}
+          <a href="/" style={{ position:'absolute', top:0, left: isMobile ? 16 : 36, zIndex:110, textDecoration:'none' }}>
+            <img src="/logo.png" alt="The Dental Commute" style={{ height: isMobile ? 60 : 190, width:'auto' }} />
           </a>
-          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20, minWidth:0 }}>
+          {/* Right-side nav links — stay within the 72px bar */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', height: isMobile ? 60 : 72, gap: isMobile ? 12 : 20 }}>
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>
             {user && (
               <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
@@ -769,12 +771,14 @@ export default function Home({ initialResources }) {
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
-          <div style={{ marginBottom:44, paddingTop:36 }}>
+          <div style={{ marginBottom:44, paddingTop: isMobile ? 24 : 130 }}>
+            {/* On desktop: right-justify text to sit alongside the logo that breaks out of the nav */}
+            <div style={{ marginLeft: isMobile ? 0 : '38%', textAlign: isMobile ? 'left' : 'right' }}>
             <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aaa', marginBottom:16, fontWeight:600 }}>The dentistry resource index</div>
             <h1 style={{ fontSize: isMobile ? 30 : 48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing: isMobile ? -0.8 : -1.8, fontFamily:FONT_DISPLAY }}>
               Everything dentistry,<br/>ranked and curated
             </h1>
-            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, maxWidth:580, margin:'0 0 24px', fontWeight:400 }}>
+            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, margin:'0 0 24px', fontWeight:400 }}>
               The dental professional's guide to learning on the go — the best podcasts, books, CE, coaching, and communities scored by dentists, for dentists.
             </p>
 
@@ -800,6 +804,7 @@ export default function Home({ initialResources }) {
                 </div>
               );
             })()}
+            </div>{/* end right-justified text wrapper */}
           </div>
         )}
 
