@@ -151,6 +151,15 @@ editorial content must stay strictly separated:
   scoring data. Visually distinguish "From the creator" sections from editorial scoring.
 - **Score stays fully visible on claimed pages (DECIDED).** Transparency is the brand;
   revisit only if a creator pushes back.
+- **Claiming does NOT directly raise the score (DECIDED).** Coupling the score to the
+  owner's action would let the ranked influence their own rank — the exact thing that
+  breaks trust. Instead, reward the engagement legitimately:
+  - a **"Claimed / Active Creator" badge** (recognition + recency signal, no score change);
+  - **presentation perks** — richer card / featured styling / tie-breaker (never rank);
+  - **real recency via actual output** — the score's existing 15% Recency component should
+    reflect genuine publishing cadence (new episodes/videos), not the act of claiming.
+    Podcast cadence comes from the Episode Archive; **YouTube has no equivalent yet (gap —
+    see below).**
 
 **Claiming & moderation (DECIDED):**
 - **Andrei manually approves every claim.** Comfortable at low volume, keeps quality high —
@@ -239,8 +248,14 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 ## 💡 Later / Ideas (someday, unprioritized)
 
 - **Episode Archive — searchable episode database** (see theme above) —
-  phased: (A) Supabase archive + harvester + fast search → (B) goal-based episode
-  recommendations → (C) AI/semantic discovery. Foundation for episode-level features.
+  phased: (A) Supabase archive + harvester + fast search ✅ _done for podcasts_ →
+  (B) goal-based episode recommendations → (C) AI/semantic discovery. Foundation for
+  episode-level features.
+- **YouTube recency feed (parallel to the Episode Archive).** Episode Archive covers
+  podcasts only; YouTube creators have no equivalent recency data. Build a parallel feed
+  of each channel's recent uploads/dates (YouTube Data API; `pages/api/youtube-stats.js`
+  already exists) so the Recency Score works fairly for video creators too. Needed for the
+  "active creators rise on real output" approach in Claim Your Profile.
 - **Channels + personalized onboarding system** (see "The big idea" above) —
   tagging foundation → channels → onboarding quiz.
 - **"Why should you listen?" outcome-driven recommendations** (see theme above) —
