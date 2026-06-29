@@ -433,7 +433,8 @@ export async function getStaticProps() {
 
 export default function Home({ initialResources }) {
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -717,17 +718,41 @@ export default function Home({ initialResources }) {
               </Link>
             )}
             {user ? (
-              <a href="/profile" title={profile?.full_name || user.email} style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, textDecoration:'none', display:'flex', alignItems:'center', gap:8, minWidth:0, flexShrink:1 }}>
-                {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
-                  <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}`, flexShrink:0 }} />
+              <div style={{ position:'relative', minWidth:0, flexShrink:1 }}>
+                <button
+                  title={profile?.full_name || user.email}
+                  onClick={() => setShowUserMenu(v => !v)}
+                  onBlur={() => setTimeout(() => setShowUserMenu(false), 150)}
+                  style={{ fontSize:13, color:'#555', fontFamily:FONT_BODY, background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:0, minWidth:0 }}
+                >
+                  {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
+                    <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}`, flexShrink:0 }} />
+                  )}
+                  {!isMobile && (
+                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
+                    </span>
+                  )}
+                  {!isMobile && profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span>}
+                  <span style={{ fontSize:10, color:'#ccc', marginLeft:2, flexShrink:0 }}>▾</span>
+                </button>
+                {showUserMenu && (
+                  <div style={{ position:'absolute', top:'calc(100% + 10px)', right:0, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, boxShadow:'0 4px 20px rgba(0,0,0,0.08)', minWidth:150, zIndex:200, overflow:'hidden' }}>
+                    <a href="/profile" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
+                      onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+                      onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+                      Profile settings
+                    </a>
+                    <button
+                      onClick={async () => { setShowUserMenu(false); await signOut(); router.push('/'); }}
+                      style={{ display:'block', width:'100%', textAlign:'left', padding:'11px 16px', fontSize:13, color:'#c0392b', background:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY }}
+                      onMouseEnter={e => e.currentTarget.style.background='#fff5f5'}
+                      onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+                      Sign out
+                    </button>
+                  </div>
                 )}
-                {!isMobile && (
-                  <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
-                  </span>
-                )}
-                {!isMobile && profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span>}
-              </a>
+              </div>
             ) : (
               <button onClick={() => setShowSignIn(true)} style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:'#fff', color:'#555', border:`1px solid ${BORDER}`, cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, flexShrink:0 }}>
                 Sign in

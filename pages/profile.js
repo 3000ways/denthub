@@ -22,7 +22,7 @@ const ROLES = ['Dentist', 'Dental Student', 'Dental Hygienist', 'Dental Assistan
 function getDomain(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return null; } }
 
 export default function ProfilePage() {
-  const { user, profile, loading, updateProfile } = useAuth();
+  const { user, profile, loading, updateProfile, signOut } = useAuth();
   const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const router = useRouter();
 
@@ -204,9 +204,15 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Back link */}
-          <div style={{ marginTop:48, paddingTop:28, borderTop:`1px solid ${BORDER}` }}>
+          {/* Back link + sign out */}
+          <div style={{ marginTop:48, paddingTop:28, borderTop:`1px solid ${BORDER}`, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
             <Link href="/" style={{ fontSize:13, color:'#888', textDecoration:'none' }}>← Back to directory</Link>
+            <button
+              onClick={async () => { await signOut(); router.push('/'); }}
+              style={{ fontSize:13, padding:'8px 20px', borderRadius:4, background:'#fff', color:'#c0392b', border:'1px solid #f5c6c2', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500 }}
+            >
+              Sign out
+            </button>
           </div>
         </div>
       </div>
