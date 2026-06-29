@@ -644,7 +644,7 @@ export default function Home({ initialResources }) {
         <div style={{ height:3, background:GREEN }} />
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:64 }}>
           <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
+            <img src="/logo.png" alt="The Dental Commute" style={{ height:58, width:'auto' }} />
           </a>
           <div style={{ display:'flex', alignItems:'center', gap:20 }}>
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500 }}>About</a>
