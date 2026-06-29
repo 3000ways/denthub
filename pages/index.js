@@ -780,7 +780,12 @@ export default function Home({ initialResources }) {
             )}
             {/* Hero text — right-justified alongside the logo */}
             <div style={{ marginLeft: isMobile ? 0 : '44%', textAlign: isMobile ? 'left' : 'right' }}>
-            <div style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, marginTop:32, fontWeight:600 }}>The home of dental education on the go</div>
+            {isMobile && (
+              <a href="/" style={{ display:'block', marginBottom:20, textDecoration:'none' }}>
+                <img src="/logo.png" alt="The Dental Commute" style={{ height:120, width:'auto' }} />
+              </a>
+            )}
+            <div style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, marginTop: isMobile ? 0 : 32, fontWeight:600 }}>The home of dental education on the go</div>
             <h1 style={{ fontSize: isMobile ? 32 : 54, fontWeight:900, color:'#111', lineHeight:1.05, margin:'0 0 20px', letterSpacing: isMobile ? -1 : -2.2, fontFamily:FONT_DISPLAY }}>
               Turn every commute<br/>into a <em style={{ color:GREEN, fontStyle:'italic' }}>masterclass.</em>
             </h1>
@@ -800,9 +805,9 @@ export default function Home({ initialResources }) {
               ].filter(s => s.n > 0);
               if (!stats.length) return null;
               return (
-                <div style={{ display:'flex', flexWrap:'wrap', gap: isMobile ? '18px 28px' : 0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding: isMobile ? '18px 0' : '22px 0' }}>
+                <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? '1fr 1fr' : undefined, gap: isMobile ? '18px 24px' : 0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding: isMobile ? '18px 0' : '22px 0' }}>
                   {stats.map((s, i) => (
-                    <div key={s.label} style={{ flex: isMobile ? '0 0 auto' : 1, paddingLeft: !isMobile && i > 0 ? 28 : 0, borderLeft: !isMobile && i > 0 ? `1px solid ${BORDER}` : 'none' }}>
+                    <div key={s.label} style={{ flex: isMobile ? undefined : 1, paddingLeft: !isMobile && i > 0 ? 28 : 0, borderLeft: !isMobile && i > 0 ? `1px solid ${BORDER}` : 'none' }}>
                       <div style={{ fontSize: isMobile ? 24 : 34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{s.n.toLocaleString()}</div>
                       <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{s.label}</div>
                     </div>
