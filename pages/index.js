@@ -834,7 +834,7 @@ export default function Home({ initialResources }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…"
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${filtered.length} resources…`}
                 style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
               {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
             </div>
@@ -846,7 +846,7 @@ export default function Home({ initialResources }) {
               </svg>
               <input value={episodeQuery} onChange={e => setEpisodeQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && searchEpisodes(episodeQuery)}
-                placeholder="Search episodes… e.g. implant complications, cracked tooth, burnout"
+                placeholder={`Search ${episodeCount.toLocaleString()} episodes… try "tax strategies" or "hiring an associate"`}
                 style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }}
                 autoFocus />
               {episodeQuery && <button onClick={() => { setEpisodeQuery(''); setEpisodes([]); setEpisodeSearched(false); }} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
