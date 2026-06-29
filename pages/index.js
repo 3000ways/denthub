@@ -338,18 +338,18 @@ function SpotlightCard({ item }) {
 
       {/* Text */}
       <div style={{ padding:'12px 14px 14px' }}>
-        <div style={{ fontSize:10, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
-        <div style={{ fontSize:13, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
+        <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
+        <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
           display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
           {item.title}
         </div>
         {item.description && (
-          <div style={{ fontSize:11, color:'#999', lineHeight:1.55,
+          <div style={{ fontSize:12, color:'#999', lineHeight:1.55,
             display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>
             {item.description}
           </div>
         )}
-        <div style={{ fontSize:10, color:'#ccc' }}>{item.date}</div>
+        <div style={{ fontSize:11, color:'#ccc' }}>{item.date}</div>
       </div>
     </a>
   );
@@ -767,7 +767,7 @@ export default function Home({ initialResources }) {
         </div>
       </div>
 
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 10px 60px' : '0 36px 100px' }}>
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 6px 60px' : '0 36px 100px' }}>
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
@@ -997,7 +997,7 @@ export default function Home({ initialResources }) {
                 {/* Podcast episodes row */}
                 {spotlight.podcasts.length > 0 && (
                   <div style={{ marginBottom:28 }}>
-                    <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
+                    <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
                     <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
                       {spotlight.podcasts.slice(0,4).map((ep, i) => (
                         <SpotlightCard key={i} item={ep} />
@@ -1009,7 +1009,7 @@ export default function Home({ initialResources }) {
                 {/* YouTube row */}
                 {spotlight.videos.length > 0 && (
                   <div>
-                    <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
+                    <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
                     <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
                       {spotlight.videos.slice(0,4).map((vid, i) => (
                         <SpotlightCard key={i} item={vid} />
