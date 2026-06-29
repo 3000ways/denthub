@@ -807,7 +807,7 @@ export default function Home({ initialResources }) {
               return (
                 <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? '1fr 1fr' : undefined, gap: isMobile ? '18px 24px' : 0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding: isMobile ? '18px 0' : '22px 0' }}>
                   {stats.map((s, i) => (
-                    <div key={s.label} style={{ flex: isMobile ? undefined : 1, paddingLeft: !isMobile && i > 0 ? 28 : 0, borderLeft: !isMobile && i > 0 ? `1px solid ${BORDER}` : 'none' }}>
+                    <div key={s.label} style={{ flex: isMobile ? undefined : 1, paddingLeft: !isMobile && i > 0 ? 28 : 0, borderLeft: !isMobile && i > 0 ? `1px solid ${BORDER}` : 'none', gridColumn: isMobile && i === stats.length - 1 && stats.length % 2 !== 0 ? 'span 2' : undefined }}>
                       <div style={{ fontSize: isMobile ? 24 : 34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{s.n.toLocaleString()}</div>
                       <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{s.label}</div>
                     </div>
@@ -825,7 +825,7 @@ export default function Home({ initialResources }) {
             const isActive = activeCategory === key;
             return (
               <button key={label} onClick={() => selectCategory(key)}
-                style={{ fontSize:13, padding:'0 0 14px', marginRight:30, background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
+                style={{ fontSize: isMobile ? 14 : 13, padding: isMobile ? '10px 0 14px' : '0 0 14px', marginRight: isMobile ? 22 : 30, background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
                 {label}
               </button>
             );
@@ -861,8 +861,8 @@ export default function Home({ initialResources }) {
               </button>
             </div>
           )}
-          {/* Mode toggle — right of search bar on desktop, full-width row on mobile */}
-          <div style={{ display:'flex', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', flexShrink:0, width:'100%', maxWidth:'fit-content' }}>
+          {/* Mode toggle — right of search bar always */}
+          <div style={{ display:'flex', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', flexShrink:0, maxWidth:'fit-content' }}>
             <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
               style={{ fontSize:12, padding:'10px 16px', border:'none', background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
               Resources
@@ -875,7 +875,7 @@ export default function Home({ initialResources }) {
         </div>
 
         {/* Specialty filter pills */}
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'10px 0 8px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'8px 0 6px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
           {SPECIALTIES.map(s => ({label:s.label, key:s.value})).map(({label, key}) => {
             const isActive = activeSpecialty === key;
             return (
@@ -888,7 +888,7 @@ export default function Home({ initialResources }) {
         </div>
 
         {/* Topic filter pills */}
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'8px 0 20px', borderBottom:`1px solid ${BORDER}`, marginBottom:40 }}>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'6px 0 12px', borderBottom:`1px solid ${BORDER}`, marginBottom: isMobile ? 20 : 40 }}>
           {TOPICS.map(t => ({label:t, key:t})).map(({label, key}) => {
             const isActive = activeTopic === key;
             return (
