@@ -780,12 +780,12 @@ export default function Home({ initialResources }) {
             )}
             {/* Hero text — right-justified alongside the logo */}
             <div style={{ marginLeft: isMobile ? 0 : '44%', textAlign: isMobile ? 'left' : 'right' }}>
-            <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aaa', marginBottom:16, fontWeight:600 }}>The dentistry resource index</div>
+            <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aaa', marginBottom:16, fontWeight:600 }}>The home of dental education on the go</div>
             <h1 style={{ fontSize: isMobile ? 30 : 48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing: isMobile ? -0.8 : -1.8, fontFamily:FONT_DISPLAY }}>
-              Everything dentistry,<br/>ranked and curated
+              Turn every commute<br/>into a masterclass.
             </h1>
             <p style={{ fontSize:17, color:'#666', lineHeight:1.7, margin:'0 0 24px', fontWeight:400 }}>
-              The dental professional's guide to learning on the go — the best podcasts, books, CE, coaching, and communities scored by dentists, for dentists.
+              Discover the best podcasts, YouTube channels, books, CE courses, coaching, and communities — all curated for dentists.
             </p>
 
             {/* Stat band — the scale of what we've indexed */}
