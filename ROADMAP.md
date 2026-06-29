@@ -134,6 +134,50 @@ built.
 not a toggle; some RSS feeds only expose recent episodes, so full back-catalogs lean on
 PodcastIndex; needs the scheduled refresh to stay current.
 
+## 🪪 Big Theme: Claim Your Profile — owner-curated resource pages
+
+Let resource/channel owners (podcasters, creators, course makers) **claim their listing**
+and enrich it into a real profile — photos, featured episodes, notes from the creator,
+their vision for dentistry. The "Spotify artist page" layer on top of the directory.
+
+**⚠️ First-class principle — the editorial-integrity firewall.** The site's value is being
+a *trusted, independent ranking* (the Wirecutter half of the brand). So owner content and
+editorial content must stay strictly separated:
+- **Owner's layer (they control):** bio, photos, featured episodes, creator note, vision —
+  subjective/promotional, clearly labeled *"From the creator."*
+- **Editorial layer (owners can NEVER touch):** the score, ranking, and any TDC review.
+- Enforced by architecture, not just discipline: **owner content lives in Supabase**
+  (theirs), the **objective record stays in Airtable** (yours) — owners never write to the
+  scoring data. Visually distinguish "From the creator" sections from editorial scoring.
+- **Score stays fully visible on claimed pages (DECIDED).** Transparency is the brand;
+  revisit only if a creator pushes back.
+
+**Claiming & moderation (DECIDED):**
+- **Andrei manually approves every claim.** Comfortable at low volume, keeps quality high —
+  and the personal interaction with creators is a feature, not a chore: it builds
+  relationships with the most influential people in dental education (advocates + a direct
+  line to the creators being ranked).
+- Owner-submitted content (photos, free text) goes through a **review/approval step** before
+  going live — same idea as the resource-submission queue.
+
+**Fits what already exists:** per-resource pages (`pages/resource/[id].js`) become the
+profile pages; Supabase accounts + Google sign-in already exist (claim = link owner account
+to a resource); photos → Supabase Storage. Likely tables: `resource_claims`
+(user_id + resource_id + status) and owner profile content.
+
+**Phasing:**
+1. **Claim + basics** — owner verifies (manual approval), can edit description/links. Proves
+   the plumbing, low risk.
+2. **Rich profile** — photos, featured episodes, creator note + "vision for dentistry." The
+   magazine payoff.
+3. **Creator value loop** — show owners simple stats ("dentists viewed your profile") to
+   drive adoption; *much* later, optional premium/enhanced profile — with the iron rule that
+   **paying never affects ranking, only presentation.**
+
+**Adoption note:** usefulness scales with traffic — seed a few flagship profiles yourself and
+personally invite marquee creators first; the Google Analytics now live gives the "X dentists
+viewed your profile" hook that makes claiming worth a creator's time.
+
 ## 🎧 Big Theme: Bookmarks & embedded player ("podcast app" experience)
 
 Let dentists follow shows and listen, the way they would in any podcast app —
@@ -201,6 +245,9 @@ user-accounts backend — the phased auth/voting work below now builds on it.
   tagging foundation → channels → onboarding quiz.
 - **"Why should you listen?" outcome-driven recommendations** (see theme above) —
   builds on the same tagging foundation; brainstorm/finalize the reasons taxonomy.
+- **Claim Your Profile — owner-curated resource pages** (see theme above) — manual
+  approval by Andrei; strict editorial-integrity firewall (owner content in Supabase,
+  scoring stays in Airtable). Phased: claim+basics → rich profile → creator value loop.
 - **Embedded audio player + car-friendly layout** for the in-car ("Tesla") experience
   (see "Bookmarks & embedded player" above). Bookmarks already sync across devices via
   accounts; this is the remaining playback/layout work.
