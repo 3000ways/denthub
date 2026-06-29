@@ -187,6 +187,50 @@ to a resource); photos → Supabase Storage. Likely tables: `resource_claims`
 personally invite marquee creators first; the Google Analytics now live gives the "X dentists
 viewed your profile" hook that makes claiming worth a creator's time.
 
+## 🎓 Big Theme: CE Tracking & Certificates (podcast listening → documented CE)
+
+Turn listening dentists are *already doing* into documented Continuing Education. Track
+which episodes a user has listened to, mark an episode "listened" at **≥80% played**, and
+let them generate a **PDF report** (dates/times/durations) and a **CE certificate**. CE is
+mandatory and recurring for every licensed dentist, so this is a strong sign-up + retention
+driver and a real differentiator.
+
+**⚠️ Hard dependency — the embedded player.** You can only measure "80% listened" if
+playback happens **on the site**. So this is gated on the **embedded audio player** (see
+Bookmarks theme). Listening on Apple/Spotify gives zero visibility. Sequence:
+**embedded player → listening tracking → CE report/certificate.** Also uses accounts
+(Supabase, exists) for per-user listening and episode durations (Episode Archive) to compute
+the 80% threshold and CE *hours* (~60 min ≈ 1 CE hour).
+
+**⚠️ Compliance reality — two tiers; start with #1:**
+1. **Self-study CE documentation tool (DO FIRST, safe).** Most boards allow self-directed/
+   self-study CE that the dentist self-reports and keeps records for. TDC = the best
+   record-keeper: track listening, log dates/hours, produce a clean PDF + certificate the
+   dentist files themselves. Requires **honest framing + a disclaimer** ("self-study CE
+   tracking — verify acceptance with your licensing board"), NOT implying pre-accredited credit.
+2. **Accredited CE provider (much bigger, future).** Automatically-recognized credit would
+   require formal accreditation (US: AGD PACE / ADA CERP; Canada: provincial-body
+   equivalents) — a real regulatory undertaking. Possible future ambition, not v1.
+
+**Credibility booster (optional but recommended):** a short **quiz/assessment per episode**
+(pass to earn the certificate) — proves comprehension, reduces gaming, makes it feel like
+real CE, and can draw questions from the Episode Archive text.
+
+**Integrity:** the on-site 80%-played measurement is the anti-gaming mechanism (vs. someone
+just claiming they listened).
+
+**Deliverables:** a "My CE" dashboard/log; PDF report (date/time/title/duration); CE
+certificate (learner name, episode, date, CE hours, provider line + disclaimer).
+
+**Phasing:** (1) listening tracking [needs player] → (2) "My CE" log + PDF report →
+(3) certificate → (4) optional quiz / accreditation exploration.
+
+**Open decisions (to confirm with Andrei):**
+- Position as **self-study documentation tool** (recommended) vs pursue **accreditation**.
+- Confirm what **"Core 3 CE event"** means + which board/jurisdiction (e.g. Ontario/RCDSO,
+  a US state, or general) so the regulatory wording is accurate.
+- Per-episode vs batch certificates; include the quiz or not.
+
 ## 🎧 Big Theme: Bookmarks & embedded player ("podcast app" experience)
 
 Let dentists follow shows and listen, the way they would in any podcast app —
@@ -266,6 +310,9 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 - **Embedded audio player + car-friendly layout** for the in-car ("Tesla") experience
   (see "Bookmarks & embedded player" above). Bookmarks already sync across devices via
   accounts; this is the remaining playback/layout work.
+- **CE Tracking & Certificates** (see theme above) — listening tracking (≥80% = listened)
+  → "My CE" log + PDF report → CE certificate. Gated on the embedded player; start as a
+  self-study documentation tool (not accredited credit). High-value differentiator.
 - Extend the user-account system toward **voting**
   (now built on Supabase/Google sign-in → add NPI-verified voting).
 - Bayesian vote confidence adjustment to prevent score gaming.
