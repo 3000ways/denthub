@@ -187,6 +187,37 @@ to a resource); photos → Supabase Storage. Likely tables: `resource_claims`
 personally invite marquee creators first; the Google Analytics now live gives the "X dentists
 viewed your profile" hook that makes claiming worth a creator's time.
 
+## 📱 Big Theme: Native mobile apps (iOS + Android) with CarPlay / Android Auto
+
+The flagship "Dental Commute" experience: install on your phone, listen to & track your
+favorite podcasts, and **collect CE on your commute** — with proper in-car playback.
+
+**Reality check — what "CarPlay app" actually means.** CarPlay and Android Auto are NOT
+standalone app platforms; they're projections of a **phone app**. So this means building a
+**native iOS app** (CarPlay support) and a **native Android app** (Android Auto support).
+Audio/podcast apps are a first-class, well-supported use case on both (ready-made templates).
+
+**Honest scope — the biggest bet on the roadmap.** Everything today is a website (Next.js);
+native apps are a different stack, require Apple Developer ($99/yr) + Google Play ($25)
+accounts, app-store review, and two more surfaces to maintain. Almost a "second product" —
+best sequenced AFTER the web foundations (player, CE tracking) prove the concept.
+
+**What makes it tractable:**
+- **Backend reuse:** the app is a new front-end on the **same Supabase backend** — accounts,
+  bookmarks, Episode Archive, and CE-tracking logic all carry over. Web work isn't wasted.
+- **Cross-platform:** build with **React Native / Expo** (one codebase → both iOS + Android);
+  skills transfer from the existing JS/React web app, ~halving the effort vs. native-twice.
+- **Supercharges CE:** a native app is the ideal place to precisely measure ≥80%-listened
+  (even in-car / offline) and sync CE to the account — the app and CE feature reinforce each
+  other.
+
+**Relationship to the "Tesla"/web-player route (complementary, not the same):**
+- _Web/Tesla route_ — responsive web player works only in cars with a full browser (Teslas,
+  a few others); cheap, no app store; NOT CarPlay/Android Auto. A cheap beachhead.
+- _Native app route (this)_ — reaches the mainstream car fleet (most modern cars have
+  CarPlay/Android Auto), with steering-wheel/lock-screen controls, background audio, offline
+  downloads. The full "real podcast app" experience.
+
 ## 🎓 Big Theme: CE Tracking & Certificates (podcast listening → documented CE)
 
 Turn listening dentists are *already doing* into documented Continuing Education. Track
@@ -313,6 +344,9 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 - **CE Tracking & Certificates** (see theme above) — listening tracking (≥80% = listened)
   → "My CE" log + PDF report → CE certificate. Gated on the embedded player; start as a
   self-study documentation tool (not accredited credit). High-value differentiator.
+- **Native mobile apps (iOS + Android) with CarPlay / Android Auto** (see theme above) —
+  the flagship in-car listen-and-earn-CE experience. Biggest bet on the roadmap; reuses the
+  Supabase backend; build cross-platform (React Native/Expo); sequence after web foundations.
 - Extend the user-account system toward **voting**
   (now built on Supabase/Google sign-in → add NPI-verified voting).
 - Bayesian vote confidence adjustment to prevent score gaming.
