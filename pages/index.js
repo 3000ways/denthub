@@ -782,7 +782,7 @@ export default function Home({ initialResources }) {
             <div style={{ marginLeft: isMobile ? 0 : '44%', textAlign: isMobile ? 'left' : 'right' }}>
             <div style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, marginTop:32, fontWeight:600 }}>The home of dental education on the go</div>
             <h1 style={{ fontSize: isMobile ? 30 : 48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing: isMobile ? -0.8 : -1.8, fontFamily:FONT_DISPLAY }}>
-              Turn every commute<br/>into a masterclass.
+              Turn every commute<br/>into a <em style={{ color:GREEN, fontStyle:'italic' }}>masterclass.</em>
             </h1>
             <p style={{ fontSize:17, color:'#666', lineHeight:1.7, margin:'0 0 24px', fontWeight:400 }}>
               Discover the best podcasts, YouTube channels, books, CE courses, coaching, and communities — ranked and curated for dentists.
