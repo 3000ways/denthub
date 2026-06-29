@@ -707,7 +707,7 @@ export default function Home({ initialResources }) {
         <div style={{ height:3, background:GREEN }} />
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:isMobile ? 72 : 188 }}>
           <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height: isMobile ? 52 : 176, width:'auto' }} />
+            <img src="/logo.jpg" alt="The Dental Commute" style={{ height: isMobile ? 52 : 176, width:'auto' }} />
           </a>
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20, minWidth:0 }}>
             <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>
