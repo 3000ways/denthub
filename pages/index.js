@@ -708,7 +708,7 @@ export default function Home({ initialResources }) {
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', position:'relative', height: isMobile ? 60 : 72 }}>
           {/* Logo — absolutely positioned so it can break out below the nav bar */}
           <a href="/" style={{ position:'absolute', top:0, left: isMobile ? 16 : 36, zIndex:110, textDecoration:'none' }}>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height: isMobile ? 60 : 380, width:'auto' }} />
+            <img src="/logo.png" alt="The Dental Commute" style={{ height: isMobile ? 60 : 437, width:'auto' }} />
           </a>
           {/* Right-side nav links — stay within the 72px bar */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', height: isMobile ? 60 : 72, gap: isMobile ? 12 : 20 }}>
@@ -771,9 +771,9 @@ export default function Home({ initialResources }) {
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
-          <div style={{ marginBottom:44, paddingTop: isMobile ? 24 : 320 }}>
+          <div style={{ marginBottom:44, paddingTop: isMobile ? 24 : 20 }}>
             {/* On desktop: right-justify text to sit alongside the logo that breaks out of the nav */}
-            <div style={{ marginLeft: isMobile ? 0 : '38%', textAlign: isMobile ? 'left' : 'right' }}>
+            <div style={{ marginLeft: isMobile ? 0 : '44%', textAlign: isMobile ? 'left' : 'right' }}>
             <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'#aaa', marginBottom:16, fontWeight:600 }}>The dentistry resource index</div>
             <h1 style={{ fontSize: isMobile ? 30 : 48, fontWeight:700, color:'#111', lineHeight:1.08, margin:'0 0 20px', letterSpacing: isMobile ? -0.8 : -1.8, fontFamily:FONT_DISPLAY }}>
               Everything dentistry,<br/>ranked and curated
