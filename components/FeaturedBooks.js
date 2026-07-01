@@ -21,8 +21,8 @@ function BookCard({ record, isMobile }) {
         onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
 
-        {/* Cover image area */}
-        <div style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f5f2eb', overflow:'hidden' }}>
+        {/* Cover image area — 2:3 (book-shaped) so portrait covers aren't cropped top/bottom */}
+        <div style={{ position:'relative', width:'100%', aspectRatio:'2 / 3', background:'#f5f2eb', overflow:'hidden' }}>
           {!imgErr ? (
             <img
               src={coverSrc}
