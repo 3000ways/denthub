@@ -119,7 +119,7 @@ export default function PlayerBar() {
           </button>
 
           {showId && <RateButton resourceId={showId} onSignInRequired={() => setShowSignIn(true)} />}
-          {showId && <ShareButton resourceId={showId} name={showName} type="Podcast" context={currentEpisode.title} />}
+          {(currentEpisode.id || showId) && <ShareButton resourceId={showId} episodeId={currentEpisode.id} episodeTitle={currentEpisode.title} name={showName} type="Podcast" />}
 
           <button
             onClick={() => markListened(currentEpisode)}
@@ -227,7 +227,7 @@ export default function PlayerBar() {
       {showId && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <RateButton resourceId={showId} variant="labeled" onSignInRequired={() => setShowSignIn(true)} />
-          <ShareButton resourceId={showId} name={showName} type="Podcast" context={currentEpisode.title} />
+          <ShareButton resourceId={showId} episodeId={currentEpisode.id} episodeTitle={currentEpisode.title} name={showName} type="Podcast" />
         </div>
       )}
 
