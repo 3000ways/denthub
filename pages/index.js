@@ -861,16 +861,14 @@ export default function Home({ initialResources }) {
     </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
-      {/* Sticky nav bar — slim, logo bursts downward out of bar */}
-      <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
+      {/* Sticky nav bar — slim, small logo + links only */}
+      <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}` }}>
         <div style={{ height:3, background:GREEN }} />
-        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:56, position:'relative', overflow:'visible' }}>
-          {/* Logo — bursts out of nav downward */}
-          <a href="/" style={{ display:'flex', alignItems:'flex-start', textDecoration:'none', flexShrink:0, position:'absolute', top:0, left: isMobile ? 16 : 36, zIndex:101 }}>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height: isMobile ? 120 : 250, width:'auto' }} />
+        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:56 }}>
+          {/* Small logo — always visible as home link */}
+          <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
+            <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
           </a>
-          {/* Spacer so nav links don't overlap logo */}
-          <div style={{ width: isMobile ? 100 : 220, flexShrink:0 }} />
           {/* Right-side nav links */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20 }}>
             {!isMobile && <Link href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</Link>}
@@ -937,10 +935,21 @@ export default function Home({ initialResources }) {
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
-          <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 'auto', marginBottom:44, paddingTop: isMobile ? 200 : 220 }}>
-            {/* Hero text — left margin reserved for nav logo overflow on desktop */}
-            <div style={{ marginLeft: isMobile ? 0 : '26%', textAlign: isMobile ? 'left' : 'left' }}>
-            <div style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, marginTop:0, fontWeight:600 }}>The home of dental education on the go</div>
+          <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 460, marginBottom:44, paddingTop: isMobile ? 24 : 16 }}>
+            {/* Large logo — in page flow, scrolls away with content */}
+            {!isMobile && (
+              <a href="/" style={{ position:'absolute', top:0, left:0, zIndex:10, textDecoration:'none' }}>
+                <img src="/logo.png" alt="The Dental Commute" style={{ height:437, width:'auto' }} />
+              </a>
+            )}
+            {/* Hero text — right-justified alongside the logo */}
+            <div style={{ marginLeft: isMobile ? 0 : '44%', textAlign: isMobile ? 'left' : 'right' }}>
+            {isMobile && (
+              <a href="/" style={{ display:'block', marginBottom:20, textDecoration:'none' }}>
+                <img src="/logo.png" alt="The Dental Commute" style={{ height:120, width:'auto' }} />
+              </a>
+            )}
+            <div style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, marginTop: isMobile ? 0 : 32, fontWeight:600 }}>The home of dental education on the go</div>
             <h1 style={{ fontSize: isMobile ? 32 : 54, fontWeight:900, color:'#111', lineHeight:1.05, margin:'0 0 20px', letterSpacing: isMobile ? -1 : -2.2, fontFamily:FONT_DISPLAY }}>
               Turn every commute<br/>into a <em style={{ color:GREEN, fontStyle:'italic' }}>masterclass.</em>
             </h1>
