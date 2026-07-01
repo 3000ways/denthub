@@ -79,9 +79,15 @@ export function FeaturedBooks({ isMobile = false }) {
     <div style={{ marginBottom:28, background:'rgba(255,255,255,0.55)', borderRadius:12,
       padding: isMobile ? '16px 10px 16px' : '28px 28px 24px',
       border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)', fontFamily:FONT_BODY }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
-        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Featured Books</div>
-        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Editor&rsquo;s picks</div>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:12 }}>
+          <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Featured Books</div>
+          <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Editor&rsquo;s picks</div>
+        </div>
+        <Link href="/?category=Books"
+          style={{ fontSize:12, fontWeight:600, color:GREEN, textDecoration:'none', letterSpacing:'0.04em', whiteSpace:'nowrap', flexShrink:0 }}>
+          See all →
+        </Link>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : Math.min(display.length, 6)}, minmax(0, 1fr))`, gap: isMobile ? 8 : 12 }}>
         {display.map(r => <BookCard key={r.id} record={r} isMobile={isMobile} />)}
