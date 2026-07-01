@@ -45,11 +45,13 @@ export default function PlayerBar() {
         fontFamily: FONT_BODY,
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
-        {/* Scrubber — full width at top of bar */}
+        {/* Scrubber — tall tap target, thin visual line */}
         <div
           onClick={handleScrub}
-          style={{ width: '100%', height: 3, background: '#e8e8e8', cursor: 'pointer', position: 'relative' }}>
-          <div style={{ width: `${Math.min(100, percent * 100)}%`, height: '100%', background: GREEN }} />
+          style={{ width: '100%', height: 28, display: 'flex', alignItems: 'center', cursor: 'pointer', background: 'transparent' }}>
+          <div style={{ width: '100%', height: 3, background: '#e8e8e8', position: 'relative' }}>
+            <div style={{ width: `${Math.min(100, percent * 100)}%`, height: '100%', background: GREEN }} />
+          </div>
         </div>
 
         {/* Top row: artwork + episode info + timestamps */}
@@ -117,7 +119,7 @@ export default function PlayerBar() {
               fontSize: 11, fontWeight: 600, color: isListened ? GREEN : '#333',
               display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
             }}>
-            {isListened ? '✓ Listened' : '✓ Mark'}
+            {isListened ? '✓ Listened' : '✓ Mark Listened'}
           </button>
         </div>
       </div>
