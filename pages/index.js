@@ -10,6 +10,7 @@ import { BookmarkButton } from '../components/BookmarkButton';
 import { BookmarkFeed } from '../components/BookmarkFeed';
 import { RecentlyListened } from '../components/RecentlyListened';
 import { FeaturedBooks } from '../components/FeaturedBooks';
+import { FeaturedCards } from '../components/FeaturedCards';
 import { CommunitySection } from '../components/Community';
 
 const CATEGORIES = [
@@ -1159,8 +1160,14 @@ export default function Home({ initialResources }) {
               </div>
             )}
 
-            {/* Featured Books */}
+            {/* Featured sections — one per resource category */}
+            <FeaturedCards section="Podcasts"    title="Top Podcasts"       subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedBooks isMobile={isMobile} />
+            <FeaturedCards section="YouTube"     title="Top YouTube Channels" subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="CE Courses"  title="Top CE Courses"     subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="Coaching"    title="Top Coaching Programs" subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="Communities" title="Top Communities"    subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="Conferences" title="Top Conferences"    subtitle="Editor's picks" isMobile={isMobile} />
 
             {/* New this week */}
             {recentlyAdded.length > 0 && (
