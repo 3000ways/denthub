@@ -11,7 +11,8 @@ function fmt(secs) {
 }
 
 export default function PlayerBar() {
-  const { currentEpisode, isPlaying, position, duration, percent, pause, resume, seek } = usePlayer();
+  const { currentEpisode, isPlaying, position, duration, percent, pause, resume, seek, markListened, completedIds } = usePlayer();
+  const isListened = completedIds?.has(currentEpisode?.id);
 
   if (!currentEpisode) return null;
 
@@ -91,6 +92,19 @@ export default function PlayerBar() {
           15↻
         </button>
       </div>
+
+      {/* Mark as Listened */}
+      <button
+        onClick={() => markListened(currentEpisode)}
+        title={isListened ? 'Already marked as listened' : 'Mark as listened'}
+        style={{
+          flexShrink: 0, background: 'none', border: `1px solid ${isListened ? GREEN : '#ddd'}`,
+          borderRadius: 6, padding: '5px 10px', cursor: isListened ? 'default' : 'pointer',
+          fontSize: 11, fontWeight: 600, color: isListened ? GREEN : '#aaa',
+          display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
+        }}>
+        {isListened ? '✓ Listened' : '✓ Mark listened'}
+      </button>
 
       {/* Scrubber + timestamps */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: 220, flexShrink: 0 }}>
