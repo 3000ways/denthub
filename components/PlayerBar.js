@@ -10,6 +10,9 @@ function fmt(secs) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+const ART_SIZE = 112; // pops above the 72px bar by 40px
+const BAR_HEIGHT = 72;
+
 export default function PlayerBar() {
   const { currentEpisode, isPlaying, position, duration, percent, pause, resume, seek, markListened, completedIds } = usePlayer();
   const isListened = completedIds?.has(currentEpisode?.id);
@@ -27,28 +30,43 @@ export default function PlayerBar() {
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
       background: '#fff',
       borderTop: '1px solid #e8e8e8',
-      boxShadow: '0 -2px 16px rgba(0,0,0,0.07)',
-      height: 72,
+      boxShadow: '0 -2px 20px rgba(0,0,0,0.09)',
+      height: BAR_HEIGHT,
       display: 'flex',
       alignItems: 'center',
       gap: 16,
-      padding: '0 24px',
+      // Leave room on the left for the floating artwork
+      paddingLeft: ART_SIZE + 32,
+      paddingRight: 24,
       fontFamily: FONT_BODY,
+      overflow: 'visible',
     }}>
 
-      {/* Artwork */}
-      {currentEpisode.image ? (
-        <img
-          src={currentEpisode.image}
-          alt=""
-          style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
-        />
-      ) : (
-        <div style={{ width: 44, height: 44, borderRadius: 6, background: '#f0ede8', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#ccc' }}>
-          🎙
-        </div>
-      )}
+      {/* Artwork — floats above the bar */}
+      <div style={{
+        position: 'absolute',
+        left: 20,
+        bottom: 0,           // anchored to the bottom of the bar
+        width: ART_SIZE,
+        height: ART_SIZE,    // extends upward beyond the bar height
+        borderRadius: 10,
+        overflow: 'hidden',
+        flexShrink: 0,
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10)',
+      }}>
+        {currentEpisode.image ? (
+          <img
+            src={currentEpisode.image}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: '#f0ede8',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, color: '#ccc' }}>
+            🎙
+          </div>
+        )}
+      </div>
 
       {/* Episode info */}
       <div style={{ flex: 1, minWidth: 0 }}>
