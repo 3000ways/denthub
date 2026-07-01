@@ -1,7 +1,10 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import { useState } from 'react';
 import SiteNav from '../../components/SiteNav';
 import { ShareButton } from '../../components/ShareButton';
+import { EpisodeBookmarkButton } from '../../components/EpisodeBookmarkButton';
+import { SignInModal } from '../../components/AuthModal';
 import { usePlayer } from '../../lib/player-context';
 import { supabase } from '../../lib/supabase';
 
@@ -101,6 +104,7 @@ function PlayButton({ ep }) {
 export default function EpisodePage({ ep, more }) {
   const date = fmtDate(ep.published_at);
   const dur = fmtDur(ep.duration_seconds);
+  const [showSignIn, setShowSignIn] = useState(false);
   const title = `${ep.title} — ${ep.show_name || 'The Dental Commute'}`;
   const description = ep.descriptionText
     ? ep.descriptionText.slice(0, 200)
@@ -159,6 +163,7 @@ export default function EpisodePage({ ep, more }) {
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <PlayButton ep={ep} />
+                  <EpisodeBookmarkButton episodeId={ep.id} variant="labeled" onSignInRequired={() => setShowSignIn(true)} />
                   <ShareButton episodeId={ep.id} episodeTitle={ep.title} name={ep.show_name} type="Podcast" variant="labeled" />
                   {ep.link && (
                     <a href={ep.link} target="_blank" rel="noopener noreferrer"
@@ -213,6 +218,8 @@ export default function EpisodePage({ ep, more }) {
           </div>
         </div>
       </div>
+
+      {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
     </>
   );
 }
