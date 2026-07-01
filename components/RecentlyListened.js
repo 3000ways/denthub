@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth-context';
 import { usePlayer } from '../lib/player-context';
@@ -48,16 +49,15 @@ function RecentCard({ ep }) {
     : 0;
 
   return (
-    <div onClick={handlePlay}
-      style={{ display:'block', background: isActive ? '#f0faf6' : '#fff',
+    <div style={{ display:'block', background: isActive ? '#f0faf6' : '#fff',
         border:`1px solid ${isActive ? GREEN : BORDER}`,
-        borderRadius:8, overflow:'hidden', cursor:'pointer',
+        borderRadius:8, overflow:'hidden',
         transition:'box-shadow 0.15s, transform 0.15s' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
 
-      {/* Square artwork */}
-      <div style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden' }}>
+      {/* Square artwork — clicking plays */}
+      <div onClick={handlePlay} style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden', cursor:'pointer' }}>
         {ep.image && !imgErr
           ? <img src={ep.image} alt={ep.title} onError={() => setImgErr(true)}
               style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
@@ -65,9 +65,7 @@ function RecentCard({ ep }) {
               <span style={{ fontSize:28, color:'#ccc' }}>🎙</span>
             </div>
         }
-        {/* Podcast badge */}
         <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:GREEN, padding:'3px 7px', borderRadius:3 }}>Podcast</div>
-        {/* Play/pause overlay */}
         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
           background: isActive ? 'rgba(15,110,86,0.35)' : 'rgba(0,0,0,0.25)',
           opacity: isActive ? 1 : 0, transition:'opacity 0.15s' }}
@@ -79,7 +77,6 @@ function RecentCard({ ep }) {
             </span>
           </div>
         </div>
-        {/* Progress bar overlay at bottom of image */}
         {pct > 0 && (
           <div style={{ position:'absolute', bottom:0, left:0, right:0, height:3, background:'rgba(255,255,255,0.3)' }}>
             <div style={{ width:`${pct}%`, height:'100%', background: ep.completed ? GREEN : '#fff' }} />
@@ -87,7 +84,8 @@ function RecentCard({ ep }) {
         )}
       </div>
 
-      <div style={{ padding:'10px 10px 12px' }}>
+      {/* Text — clicking navigates to the podcast's resource page */}
+      <Link href={`/resource/${ep.show_resource_id}`} style={{ display:'block', padding:'10px 10px 12px', textDecoration:'none', color:'inherit' }}>
         <div style={{ fontSize:11, color:GREEN, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5,
           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ep.show_name}</div>
         <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
@@ -98,7 +96,7 @@ function RecentCard({ ep }) {
             {ep.completed ? '✓ Done' : isActive && isPlaying ? '▶ Playing' : isActive ? 'Paused' : pct > 0 ? `${pct}%` : '▶ Play'}
           </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }

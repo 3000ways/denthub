@@ -367,20 +367,19 @@ function SpotlightCard({ item }) {
     );
   }
 
-  // Podcast — plays in the site player
+  // Podcast — image plays, text navigates to resource page
   return (
-    <div onClick={handlePodcastPlay}
-      style={{ display:'block', background: isActive ? '#f0faf6' : '#fff', border:`1px solid ${isActive ? GREEN : BORDER}`,
-        borderRadius:8, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s, transform 0.15s' }}
+    <div style={{ display:'block', background: isActive ? '#f0faf6' : '#fff', border:`1px solid ${isActive ? GREEN : BORDER}`,
+        borderRadius:8, overflow:'hidden', transition:'box-shadow 0.15s, transform 0.15s' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
-      <div style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden' }}>
+      {/* Artwork — clicking plays */}
+      <div onClick={handlePodcastPlay} style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden', cursor:'pointer' }}>
         {item.image && !imgErr
           ? <img src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
           : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}><span style={{ fontSize:28, color:'#ccc' }}>🎙</span></div>
         }
         <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:GREEN, padding:'3px 7px', borderRadius:3 }}>Podcast</div>
-        {/* Play/pause overlay */}
         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
           background: isActive ? 'rgba(15,110,86,0.35)' : 'rgba(0,0,0,0.25)',
           opacity: isActive ? 1 : 0, transition:'opacity 0.15s' }}
@@ -393,7 +392,8 @@ function SpotlightCard({ item }) {
           </div>
         </div>
       </div>
-      <div style={{ padding:'10px 10px 12px' }}>
+      {/* Text — clicking navigates to resource page */}
+      <Link href={`/resource/${item.resourceId}`} style={{ display:'block', padding:'10px 10px 12px', textDecoration:'none', color:'inherit' }}>
         <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
         <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
           display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</div>
@@ -404,7 +404,7 @@ function SpotlightCard({ item }) {
             {isActive && isPlaying ? '▶ Playing' : isActive ? 'Paused' : '▶ Play'}
           </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }
