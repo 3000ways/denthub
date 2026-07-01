@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SiteNav from '../components/SiteNav';
@@ -26,6 +27,22 @@ function SectionLabel({ children }) {
 }
 
 export default function About() {
+  const [resources, setResources]     = useState([]);
+  const [episodeCount, setEpisodeCount] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/airtable?table=Resources')
+      .then(r => r.json())
+      .then(d => setResources(d.records || []))
+      .catch(() => {});
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(d => setEpisodeCount(d.episodes || 0))
+      .catch(() => {});
+  }, []);
+
+  const byType = t => resources.filter(r => r.fields?.Type === t).length;
+
   return (
     <>
       <Head>
@@ -61,13 +78,13 @@ export default function About() {
               Every resource is scored using a weighted formula that combines expert opinion, community feedback, popularity, recency, and clinical depth. The goal is a trusted, living directory that gets better as more dentists contribute.
             </p>
 
-            {/* Stats bar */}
+            {/* Stats bar — live data */}
             <div style={{ display:'flex', gap:28, padding:'20px 0', borderTop:`1px solid ${BORDER}`, flexWrap:'wrap' }}>
               {[
-                { value:'800+', label:'resources indexed' },
-                { value:'48',   label:'categories' },
-                { value:'9',    label:'themes' },
-                { value:'9',    label:'specialties covered' },
+                { value: episodeCount > 0 ? episodeCount.toLocaleString() : '—', label:'episodes indexed' },
+                { value: resources.length > 0 ? resources.length.toLocaleString() : '—', label:'total resources' },
+                { value: byType('Podcast') || '—', label:'podcasts' },
+                { value: byType('YouTube') || '—', label:'YouTube channels' },
               ].map(({ value, label }) => (
                 <div key={label}>
                   <div style={{ fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>{value}</div>
