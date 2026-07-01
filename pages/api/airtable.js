@@ -3,11 +3,27 @@ export default async function handler(req, res) {
   const PAT  = process.env.AIRTABLE_PAT;
   const BASE = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
 
-  // Logo proxy — Google favicon service
+  // Logo proxy — Clearbit (high-res) with Google favicon fallback
   if (logo) {
+    // Try Clearbit first — returns proper company logos at high resolution
+    try {
+      const cb = await fetch(
+        `https://logo.clearbit.com/${logo}`,
+        { headers: { 'User-Agent': 'DentHub/1.0' }, signal: AbortSignal.timeout(4000) }
+      );
+      if (cb.ok) {
+        const buf  = await cb.arrayBuffer();
+        const type = cb.headers.get('content-type') || 'image/png';
+        res.setHeader('Content-Type', type);
+        res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
+        return res.status(200).send(Buffer.from(buf));
+      }
+    } catch {}
+
+    // Fall back to Google favicon service
     try {
       const r = await fetch(
-        `https://www.google.com/s2/favicons?domain=${logo}&sz=64`,
+        `https://www.google.com/s2/favicons?domain=${logo}&sz=128`,
         { headers: { 'User-Agent': 'DentHub/1.0' } }
       );
       if (!r.ok) return res.status(404).end();
