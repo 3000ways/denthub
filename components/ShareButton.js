@@ -36,17 +36,22 @@ function RowIcon({ kind }) {
 //   variant="icon"    → bare icon button (cards, player)
 //   variant="labeled" → icon + "Share" pill (resource page hero)
 //   context           → optional episode/extra text folded into the share copy
-export function ShareButton({ resourceId, name, type, context, variant = 'icon', size = 15 }) {
+export function ShareButton({ resourceId, episodeId, episodeTitle, name, type, context, variant = 'icon', size = 15 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const [copied, setCopied] = useState(false);
   const btnRef = useRef(null);
 
-  const url = `${SITE}/resource/${resourceId}`;
-  const shareTitle = `${name} — The Dental Commute`;
-  const shareText = context
-    ? `${context} (${name}) — found on The Dental Commute`
-    : `${name} — ${type ? `a ${type} ` : ''}ranked on The Dental Commute`;
+  // Share the specific episode when we have one; otherwise the resource page.
+  const url = episodeId ? `${SITE}/episode/${episodeId}` : `${SITE}/resource/${resourceId}`;
+  const shareTitle = episodeId
+    ? `${episodeTitle} — The Dental Commute`
+    : `${name} — The Dental Commute`;
+  const shareText = episodeId
+    ? `${episodeTitle}${name ? ` — ${name}` : ''} · The Dental Commute`
+    : context
+      ? `${context} (${name}) — found on The Dental Commute`
+      : `${name} — ${type ? `a ${type} ` : ''}ranked on The Dental Commute`;
 
   const canNative = typeof navigator !== 'undefined' && !!navigator.share && (navigator.maxTouchPoints || 0) > 0;
 
