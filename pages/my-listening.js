@@ -82,26 +82,31 @@ export default function MyListening() {
         <title>My Listening History — The Dental Commute</title>
       </Head>
 
-      <div style={{ fontFamily: FONT_BODY, minHeight: '100vh', background: '#fff' }}>
+      <div style={{ fontFamily: FONT_BODY, minHeight: '100vh',
+        background: '#f5f2eb',
+        backgroundImage: 'radial-gradient(#c2b89a 1px, transparent 1px)',
+        backgroundSize: '22px 22px' }}>
 
-        {/* Nav */}
-        <div style={{ borderBottom: `1px solid ${BORDER}`, padding: '0 24px', height: 56,
-          display: 'flex', alignItems: 'center', gap: 24 }}>
-          <div style={{ width: 3, height: 56, background: GREEN, marginLeft: -24, flexShrink: 0 }} />
-          <Link href="/" style={{ textDecoration: 'none' }}>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 700, color: '#111' }}>
-              The Dental Commute
-            </span>
-          </Link>
-          <div style={{ flex: 1 }} />
-          <Link href="/" style={{ fontSize: 13, color: '#666', textDecoration: 'none' }}>← Back</Link>
-        </div>
+        <div style={{ height: 3, background: GREEN }} />
 
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 28px 100px' }}>
 
-          {/* Header */}
+          {/* Nav */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            padding: '20px 0 18px', borderBottom: `1px solid ${BORDER}`, marginBottom: 40 }}>
+            <Link href="/" style={{ flexShrink: 0 }}>
+              <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto', display: 'block' }} />
+            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+              <Link href="/about" style={{ fontSize: 13, color: '#111', textDecoration: 'none', fontWeight: 500 }}>About</Link>
+              <Link href="/" style={{ fontSize: 13, color: '#666', textDecoration: 'none' }}>← Back to directory</Link>
+            </div>
+          </div>
+
+          {/* Page title */}
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, color: '#111', margin: '0 0 8px' }}>
+            <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#999', marginBottom: 14, fontWeight: 500 }}>Your Account</div>
+            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 700, color: '#111', lineHeight: 1.1, margin: '0 0 8px', letterSpacing: -1 }}>
               My Listening History
             </h1>
             <p style={{ fontSize: 14, color: '#888', margin: 0 }}>
@@ -275,3 +280,4 @@ export default function MyListening() {
     </>
   );
 }
+
