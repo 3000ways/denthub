@@ -234,13 +234,14 @@ best sequenced AFTER the web foundations (player, CE tracking) prove the concept
   CarPlay/Android Auto), with steering-wheel/lock-screen controls, background audio, offline
   downloads. The full "real podcast app" experience.
 
-## 🎓 Big Theme: CE Tracking & Certificates (podcast listening → documented CE)
+## 🎓 Big Theme: CE Tracking & Certificates (podcast listening → documented CE) ✅ _Built._
 
 Turn listening dentists are *already doing* into documented Continuing Education. Track
 which episodes a user has listened to, mark an episode "listened" at **≥80% played**, and
 let them generate a **PDF report** (dates/times/durations) and a **CE certificate**. CE is
 mandatory and recurring for every licensed dentist, so this is a strong sign-up + retention
-driver and a real differentiator.
+driver and a real differentiator. **Delivered:** `pages/my-listening.js` (listening log +
+progress tracking) and `pages/ce-report.js` (PDF-ready CE report + certificate).
 
 **⚠️ Hard dependency — the embedded player.** You can only measure "80% listened" if
 playback happens **on the site**. So this is gated on the **embedded audio player** (see
@@ -330,13 +331,13 @@ building toward a hands-free, in-car experience.
   curates — same UI/player as editorial channels (see Channels above).
 - **"New from your bookmarks" feed** — shows the latest episodes from only the shows
   a user follows. ✅ _Built in PR #2 (`/api/bookmark-feed`)._
-- **Embedded audio player** — play episodes directly on the website (later). A clean,
-  responsive in-browser player gets most of the way to the car use case, since a
-  Tesla just runs a web browser — no app store needed.
+- **Embedded audio player** ✅ _Built._ — play episodes directly on the website. A clean,
+  responsive in-browser player (`components/PlayerBar.js`) with persistent playback across
+  page navigation. Gets most of the way to the car use case since a Tesla just runs a web browser.
 - **Cross-device / in-car ("Tesla") experience** — open the site in the car and your
-  bookmarks are right there, press play for the road trip. Because bookmarks are
-  account-bound (above), they already follow the person across devices; remaining work
-  is the embedded player + a car-friendly responsive layout.
+  bookmarks are right there, press play for the road trip. Bookmarks are account-bound so
+  they follow the person across devices; the embedded player is now built; remaining work
+  is a car-friendly responsive layout.
 
 **Infrastructure note:** accounts/bookmarks are powered by **Supabase** (hosted
 database + Google OAuth), added in PR #2. This is the project's first real
@@ -401,12 +402,11 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 - **Claim Your Profile — owner-curated resource pages** (see theme above) — manual
   approval by Andrei; strict editorial-integrity firewall (owner content in Supabase,
   scoring stays in Airtable). Phased: claim+basics → rich profile → creator value loop.
-- **Embedded audio player + car-friendly layout** for the in-car ("Tesla") experience
-  (see "Bookmarks & embedded player" above). Bookmarks already sync across devices via
-  accounts; this is the remaining playback/layout work.
-- **CE Tracking & Certificates** (see theme above) — listening tracking (≥80% = listened)
-  → "My CE" log + PDF report → CE certificate. Gated on the embedded player; start as a
-  self-study documentation tool (not accredited credit). High-value differentiator.
+- **Car-friendly layout** for the in-car ("Tesla") experience — the embedded player is built
+  and bookmarks sync across devices; remaining work is a responsive layout optimised for
+  in-car screens.
+- ✅ **CE Tracking & Certificates** — built (`pages/my-listening.js` + `pages/ce-report.js`).
+  Self-study documentation tool; future: optional quiz per episode, accreditation exploration.
 - **Native mobile apps (iOS + Android) with CarPlay / Android Auto** (see theme above) —
   the flagship in-car listen-and-earn-CE experience. Biggest bet on the roadmap; reuses the
   Supabase backend; build cross-platform (React Native/Expo); sequence after web foundations.
@@ -419,6 +419,11 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## ✅ Done
 
+- **CE Tracking & Certificates** — listening progress tracked at ≥80% played; "My Listening"
+  log (`pages/my-listening.js`) and CE report/certificate (`pages/ce-report.js`). Self-study
+  documentation tool with honest disclaimer; `listening_progress` table in Supabase.
+- **Embedded audio player** — in-browser player (`components/PlayerBar.js`) with persistent
+  playback across page navigation. Powers the listening-tracking and CE features.
 - **Thumbtack Pinboard** — community "pin-a-resource" feature on the home page. Signed-in users
   pin any resource; the home page shows who pinned what until the next person re-pins. Backed by
   `pins` table in Supabase; `components/Pinboard.js` + `components/PinButton.js`.
