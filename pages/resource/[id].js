@@ -335,21 +335,34 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
     }
   }, [record.id]);
 
-  // Look up Supabase episode IDs for this podcast so the player can track progress
+  // Look up Supabase episode IDs for the episodes actually shown, so each can
+  // link to its /episode/[id] page (and the player can track progress). We query
+  // by the visible episodes' audio URLs rather than a blanket limit: a plain
+  // limit(100) misses recent episodes on shows with large back-catalogs (which
+  // is why only the top couple were linking).
   useEffect(() => {
-    if (!isPodcast) return;
+    if (!isPodcast || !podData) return;
+    const urls = [...(podData.recent || []), ...(podData.notable || [])]
+      .map(e => e.audioUrl)
+      .filter(Boolean);
+    if (!urls.length) return;
     supabase
       .from('episodes')
-      .select('id, audio_url, show_name, image, duration_seconds, show_resource_id')
+      .select('id, audio_url, show_name, image, duration_seconds, show_resource_id, published_at')
       .eq('show_resource_id', record.id)
-      .limit(100)
+      .in('audio_url', urls)
       .then(({ data }) => {
         if (!data) return;
         const map = {};
-        data.forEach(ep => { if (ep.audio_url) map[ep.audio_url] = ep; });
+        data.forEach(ep => {
+          if (!ep.audio_url) return;
+          const cur = map[ep.audio_url];
+          // Prefer the row that has a published_at — duplicate harvest rows can lack one.
+          if (!cur || (!cur.published_at && ep.published_at)) map[ep.audio_url] = ep;
+        });
         setEpisodeIdMap(map);
       });
-  }, [record.id, isPodcast]);
+  }, [record.id, isPodcast, podData]);
 
   const score = f['Final Score'] ? (f['Final Score'] % 1 === 0 ? f['Final Score'].toString() : f['Final Score'].toFixed(1)) : null;
   const breakdown = [
