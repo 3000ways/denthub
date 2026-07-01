@@ -278,6 +278,37 @@ certificate (learner name, episode, date, CE hours, provider line + disclaimer).
   a US state, or general) so the regulatory wording is accurate.
 - Per-episode vs batch certificates; include the quiz or not.
 
+## 🧲 Big Theme: Community Home Page — a trace left by the last visitor
+
+Make the home page feel *inhabited*: one visitor leaves something that the next visitor
+sees, so the page quietly changes between visits. The emotional beat — "real dentists were
+here, you're not alone" — builds community and serendipity. Inspired by Andrei's old
+"fridge-magnet poetry" applet (rearrangeable word tiles that persisted for the next person).
+
+**⚠️ The crux — the moderation firewall.** Anything one stranger leaves for the next is an
+abuse risk. The trick (same as the fridge magnets): **constrain what can be expressed** so
+it's expressive but *structurally* safe. Flavors, safest → riskiest:
+1. **Fridge-magnet word poetry** — rearrange tiles from a **fixed, pre-approved word set**;
+   safety comes from curated building blocks (can't spell something vile). Whimsical, on-brand.
+2. **Pin-a-resource (safest + most useful)** — pin one resource from the catalog; home shows
+   "📌 Pinned by a periodontist in Ohio" until the next person re-pins. Almost no unmoderated
+   content (the pinned thing is already vetted); reinforces discovery.
+3. **Free-text note (charming but risky)** — needs a moderation queue + AI profanity filter;
+   can't show to the next visitor until approved. Ongoing work + real risk.
+
+**Safety layers (stack several):** constrained input (primary defense); **require sign-in to
+contribute** (accountability/ban — accounts already exist); AI/profanity backstop; report
+button + one-click admin removal; rate-limit (one change per user per day).
+
+**Design decision:** single evolving artifact ("last visitor wins," like the fridge —
+magical, easiest to moderate, RECOMMENDED) vs. an accumulating wall (richer, more to moderate).
+
+**Backend:** tiny — one Supabase row holding current state (pinned resource id OR magnet
+arrangement + who + when); public-read, writes gated by sign-in + safety layers.
+
+**Recommendation:** start with **pin-a-resource** (safe, useful, reinforces the product),
+add **fridge-magnet poetry** as a delightful v2 (pure community whimsy).
+
 ## 🎧 Big Theme: Bookmarks & embedded player ("podcast app" experience)
 
 Let dentists follow shows and listen, the way they would in any podcast app —
@@ -371,6 +402,9 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 - **Native mobile apps (iOS + Android) with CarPlay / Android Auto** (see theme above) —
   the flagship in-car listen-and-earn-CE experience. Biggest bet on the roadmap; reuses the
   Supabase backend; build cross-platform (React Native/Expo); sequence after web foundations.
+- **Community Home Page — trace left by the last visitor** (see theme above) — a persistent
+  shared artifact (pin-a-resource first; fridge-magnet word poetry as v2) that changes the
+  home page between visits. Safety via constrained input + sign-in + moderation.
 - Extend the user-account system toward **voting**
   (now built on Supabase/Google sign-in → add NPI-verified voting).
 - Bayesian vote confidence adjustment to prevent score gaming.
