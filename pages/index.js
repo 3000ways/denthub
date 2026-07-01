@@ -868,11 +868,14 @@ export default function Home({ initialResources }) {
           </a>
           {/* Right-side nav links */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20 }}>
-            <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>
-            {user && (
+            {!isMobile && <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>}
+            <button onClick={openSubmitModal} style={{ fontSize:12, padding: isMobile ? '7px 12px' : '7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
+              {isMobile ? 'Submit' : 'Submit a resource'}
+            </button>
+            {user && !isMobile && (
               <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                {isMobile ? (bookmarkCount > 0 ? bookmarkCount : '') : `Saved${bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}`}
+                {`Saved${bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}`}
               </Link>
             )}
             {user ? (
@@ -921,9 +924,6 @@ export default function Home({ initialResources }) {
                 Sign in
               </button>
             )}
-            <button onClick={openSubmitModal} style={{ fontSize:12, padding: isMobile ? '7px 12px' : '7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
-              {isMobile ? 'Submit' : 'Submit a resource'}
-            </button>
           </div>
         </div>
       </div>
