@@ -23,7 +23,7 @@ function ResourceCard({ record, artworkUrl }) {
   const typeName = f.Type || '';
   const config = SECTION_CONFIG[typeName] || { accent: GREEN, badge: typeName, icon: '⭐' };
 
-  const imageUrl = artworkUrl || f['Image URL'] || null;
+  const imageUrl = f['Image URL'] || artworkUrl || null;
   const domain = (() => {
     try { return new URL(f.URL || '').hostname.replace('www.', ''); }
     catch { return null; }
