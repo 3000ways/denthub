@@ -35,8 +35,8 @@ export default function SiteNav() {
         fontFamily: FONT,
       }}>
         {/* Logo — cropped to remove blank padding in image file */}
-        <Link href="/" style={{ flexShrink: 0, overflow: 'hidden', height: 44, display: 'flex', alignItems: 'center' }}>
-          <img src="/wide-logo.png" alt="The Dental Commute" style={{ height: 90, width: 'auto', marginTop: -23, marginBottom: -23, display: 'block' }} />
+        <Link href="/" style={{ flexShrink: 0, overflow: 'hidden', height: 44, display: 'flex', alignItems: 'center', maxWidth: isMobile ? 160 : 'none' }}>
+          <img src="/wide-logo.png" alt="The Dental Commute" style={{ height: isMobile ? 62 : 90, width: 'auto', marginTop: isMobile ? -16 : -23, marginBottom: isMobile ? -16 : -23, display: 'block' }} />
         </Link>
 
         {/* Right side */}
