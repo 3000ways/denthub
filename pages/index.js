@@ -724,6 +724,14 @@ export default function Home({ initialResources }) {
   // back to the first page so "Show more" starts fresh for the new view.
   useEffect(() => { setVisibleCount(RANKED_PAGE); }, [activeCategory, activeSpecialty, activeTopic, search]);
 
+  // Activate category filter from ?category= query param (e.g. from "See all" links)
+  useEffect(() => {
+    if (router.query.category) {
+      setActiveCategory(router.query.category);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [router.query.category]);
+
   function selectCategory(cat) { setActiveCategory(prev => prev === cat ? null : cat); setExpandedId(null); }
   function selectSpecialty(s) { setActiveSpecialty(prev => prev === s ? null : s); setExpandedId(null); }
   function selectTopic(t) { setActiveTopic(prev => prev === t ? null : t); setExpandedId(null); }
