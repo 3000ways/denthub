@@ -1110,7 +1110,7 @@ export default function Home({ initialResources }) {
             {user && <BookmarkFeed isMobile={isMobile} limit={4} />}
 
             {/* Recently Listened — pick up where you left off */}
-            {user && <RecentlyListened user={user} isMobile={isMobile} />}
+            <RecentlyListened isMobile={isMobile} />
 
             {/* Spotlight: Latest Episodes & Videos */}
             {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (

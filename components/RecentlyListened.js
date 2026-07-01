@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth-context';
 import { usePlayer } from '../lib/player-context';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
@@ -102,11 +103,13 @@ function RecentCard({ ep }) {
   );
 }
 
-export function RecentlyListened({ user, isMobile = false }) {
+export function RecentlyListened({ isMobile = false }) {
+  const { user, loading: authLoading } = useAuth();
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { setLoading(false); return; }
 
     supabase
@@ -117,7 +120,7 @@ export function RecentlyListened({ user, isMobile = false }) {
         position_seconds,
         duration_seconds,
         completed,
-        updated_at,
+        listened_at,
         episodes (
           id,
           title,
@@ -132,8 +135,8 @@ export function RecentlyListened({ user, isMobile = false }) {
       .order('listened_at', { ascending: false })
       .limit(LIMIT)
       .then(({ data, error }) => {
-        if (error || !data) { setLoading(false); return; }
-        const mapped = data
+        if (error) { console.error('[RecentlyListened] query error:', error); setLoading(false); return; }
+        const mapped = (data || [])
           .filter(row => row.episodes)
           .map(row => ({
             episode_id:       row.episode_id,
@@ -146,7 +149,7 @@ export function RecentlyListened({ user, isMobile = false }) {
         setEpisodes(mapped);
         setLoading(false);
       });
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   if (!user || loading || episodes.length === 0) return null;
 
