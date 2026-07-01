@@ -1734,7 +1734,7 @@ function Users() {
         <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>Visitor traffic, pageviews, and search rankings live in your Google dashboards.</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {[
-            { label: 'Google Analytics ↗', href: 'https://analytics.google.com/', desc: 'Traffic & pageviews' },
+            { label: 'Google Analytics ↗', href: 'https://analytics.google.com/analytics/web/?authuser=0#/a29630818p542284629/reports/intelligenthome', desc: 'Traffic & pageviews' },
             { label: 'Search Console ↗', href: 'https://search.google.com/search-console', desc: 'Search rankings & queries' },
           ].map(l => (
             <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" style={{ flex: '1 1 180px', textDecoration: 'none', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 14px', background: '#fafafa', display: 'block' }}>
