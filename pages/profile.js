@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const router = useRouter();
 
-  const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '' });
+  const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '', province_state: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedResources, setSavedResources] = useState([]);
@@ -77,9 +77,10 @@ export default function ProfilePage() {
     if (profile) {
       setForm({
         full_name:  profile.full_name  || '',
-        specialty:  profile.specialty  || '',
-        role:       profile.role       || '',
-        avatar_url: profile.avatar_url || user?.user_metadata?.avatar_url || '',
+        specialty:      profile.specialty      || '',
+        role:           profile.role           || '',
+        avatar_url:     profile.avatar_url     || user?.user_metadata?.avatar_url || '',
+        province_state: profile.province_state || '',
       });
     }
   }, [profile]);
@@ -167,6 +168,17 @@ export default function ProfilePage() {
                 <option value="">Select your specialty</option>
                 {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
+            </div>
+
+            <div style={{ marginBottom:22 }}>
+              <label style={labelStyle}>Province / State</label>
+              <input
+                type="text"
+                placeholder="e.g. Ontario, California, British Columbia"
+                value={form.province_state}
+                onChange={e => setForm(f => ({ ...f, province_state: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
 
             {/* Save button */}

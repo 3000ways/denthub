@@ -143,7 +143,7 @@ export default function CEReport() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 36, paddingBottom: 24, borderBottom: '2px solid #111' }}>
           <div>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height: 48, width: 'auto', display: 'block', marginBottom: 16 }} />
+            <img src="/logo.png" alt="The Dental Commute" style={{ height: 144, width: 'auto', display: 'block', marginBottom: 16 }} />
             <div style={{ fontSize: 22, fontWeight: 700, color: '#111', letterSpacing: -0.5 }}>
               Continuing Education Activity Log
             </div>
@@ -179,6 +179,12 @@ export default function CEReport() {
               <div>
                 <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 4 }}>Role</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: '#111' }}>{profile.role}</div>
+              </div>
+            )}
+            {profile?.province_state && (
+              <div>
+                <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 4 }}>Province / State</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#111' }}>{profile.province_state}</div>
               </div>
             )}
             <div>
