@@ -92,7 +92,7 @@ function RecentCard({ ep }) {
         <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
           display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ep.title}</div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div style={{ fontSize:11, color:'#ccc' }}>{timeAgo(ep.updated_at)}</div>
+          <div style={{ fontSize:11, color:'#ccc' }}>{timeAgo(ep.listened_at)}</div>
           <div style={{ fontSize:10, color: ep.completed ? GREEN : '#aaa', fontWeight:600 }}>
             {ep.completed ? '✓ Done' : isActive && isPlaying ? '▶ Playing' : isActive ? 'Paused' : pct > 0 ? `${pct}%` : '▶ Play'}
           </div>
@@ -129,7 +129,7 @@ export function RecentlyListened({ user, isMobile = false }) {
         )
       `)
       .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
+      .order('listened_at', { ascending: false })
       .limit(LIMIT)
       .then(({ data, error }) => {
         if (error || !data) { setLoading(false); return; }
@@ -140,7 +140,7 @@ export function RecentlyListened({ user, isMobile = false }) {
             position_seconds: row.position_seconds,
             duration_seconds: row.duration_seconds,
             completed:        row.completed,
-            updated_at:       row.updated_at,
+            listened_at:      row.listened_at,
             ...row.episodes,
           }));
         setEpisodes(mapped);
