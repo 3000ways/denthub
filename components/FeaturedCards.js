@@ -7,15 +7,15 @@ const GREEN  = '#0F6E56';
 const BORDER = '#e8e8e8';
 
 const SECTION_CONFIG = {
-  Podcasts:    { accent: '#0F6E56', badge: 'Podcast',    icon: '🎙' },
-  YouTube:     { accent: '#e52d27', badge: 'YouTube',    icon: '▶' },
-  'CE Courses':{ accent: '#1a56a0', badge: 'CE',         icon: '🎓' },
-  Coaching:    { accent: '#7c3aed', badge: 'Coaching',   icon: '🏆' },
-  Communities: { accent: '#d97706', badge: 'Community',  icon: '👥' },
-  Conferences: { accent: '#0e7490', badge: 'Conference', icon: '📅' },
+  Podcasts:     { accent: '#0F6E56', badge: 'Podcast',    icon: '🎙' },
+  YouTube:      { accent: '#e52d27', badge: 'YouTube',    icon: '▶'  },
+  'CE Courses': { accent: '#1a56a0', badge: 'CE',         icon: '🎓' },
+  Coaching:     { accent: '#7c3aed', badge: 'Coaching',   icon: '🏆' },
+  Communities:  { accent: '#d97706', badge: 'Community',  icon: '👥' },
+  Conferences:  { accent: '#0e7490', badge: 'Conference', icon: '📅' },
 };
 
-function ResourceCard({ record, isMobile }) {
+function ResourceCard({ record }) {
   const f = record.fields;
   const [imgErr, setImgErr] = useState(false);
 
@@ -27,57 +27,57 @@ function ResourceCard({ record, isMobile }) {
     try { return new URL(f.URL || '').hostname.replace('www.', ''); }
     catch { return null; }
   })();
-  const score = f['Final Score'] || f.Score;
-  const src = imageUrl || (domain ? `/api/airtable?logo=${domain}` : null);
+  const score  = f['Final Score'] || f.Score;
+  const src    = imageUrl || (domain ? `/api/airtable?logo=${domain}` : null);
   const isFavicon = !imageUrl;
 
   return (
-    <Link href={`/resource/${record.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}>
-      <div
-        style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
-          transition: 'box-shadow 0.15s, transform 0.15s', display: 'flex', flexDirection: 'column', width: '100%' }}
+    <Link href={`/resource/${record.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+      <div style={{
+          height: '100%', display: 'flex', flexDirection: 'column',
+          background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
+          transition: 'box-shadow 0.15s, transform 0.15s' }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
 
-        {/* Square image area — white bg for logos, light tan for artwork */}
-        <div style={{ position: 'relative', width: '100%', paddingBottom: '100%',
+        {/* Square image — flexShrink:0 so it never gets squeezed */}
+        <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', flexShrink: 0,
           background: isFavicon ? '#fff' : '#f5f2eb', overflow: 'hidden',
           borderBottom: `1px solid ${BORDER}` }}>
           {src && !imgErr ? (
-            <img
-              src={src}
-              alt={f.Name}
-              onError={() => setImgErr(true)}
+            <img src={src} alt={f.Name} onError={() => setImgErr(true)}
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
                 objectFit: isFavicon ? 'contain' : 'cover',
-                padding: isFavicon ? 16 : 0 }}
-            />
+                padding: isFavicon ? 16 : 0 }} />
           ) : (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 32, color: '#ccc' }}>{config.icon}</span>
             </div>
           )}
-          <div style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-            textTransform: 'uppercase', color: '#fff', background: config.accent, padding: '3px 7px', borderRadius: 3 }}>
+          <div style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, fontWeight: 700,
+            letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff',
+            background: config.accent, padding: '3px 7px', borderRadius: 3 }}>
             {config.badge}
           </div>
           {score && (
-            <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, fontWeight: 700, color: GREEN,
-              background: '#E8F5F0', border: `1px solid ${GREEN}`, borderRadius: 4, padding: '2px 7px' }}>
+            <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, fontWeight: 700,
+              color: GREEN, background: '#E8F5F0', border: `1px solid ${GREEN}`,
+              borderRadius: 4, padding: '2px 7px' }}>
               {Math.round(score)}
             </div>
           )}
         </div>
 
-        {/* Fixed-height text area so all cards align */}
-        <div style={{ padding: '10px 12px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#111', lineHeight: 1.3, marginBottom: 3,
+        {/* Text: fixed 70px height — no card-to-card variation */}
+        <div style={{ height: 70, padding: '9px 11px 0', overflow: 'hidden' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#111', lineHeight: 1.3,
             fontFamily: FONT_DISPLAY, display: '-webkit-box', WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '2.6em' }}>
+            WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 4 }}>
             {f.Name}
           </div>
-          <div style={{ fontSize: 10, color: '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {f['Host or Author'] || f.Author || ' '}
+          <div style={{ fontSize: 10, color: '#aaa', whiteSpace: 'nowrap',
+            overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {f['Host or Author'] || f.Author || ''}
           </div>
         </div>
       </div>
@@ -106,7 +106,8 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
     <div style={{ marginBottom: 28, background: 'rgba(255,255,255,0.55)', borderRadius: 12,
       padding: isMobile ? '16px 10px 16px' : '28px 28px 24px',
       border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', fontFamily: FONT_BODY }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 24, paddingBottom: 14, borderBottom: '2px solid #111' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 24,
+        paddingBottom: 14, borderBottom: '2px solid #111' }}>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY, letterSpacing: -0.4 }}>
           {title || `Featured ${section}`}
         </div>
@@ -116,8 +117,9 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
           </div>
         )}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobile ? 8 : 12 }}>
-        {display.map(r => <ResourceCard key={r.id} record={r} isMobile={isMobile} />)}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gap: isMobile ? 8 : 12, alignItems: 'stretch' }}>
+        {display.map(r => <ResourceCard key={r.id} record={r} />)}
       </div>
     </div>
   );
