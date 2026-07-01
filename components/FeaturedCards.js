@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
+import { RateButton } from './RateButton';
+import { ShareButton } from './ShareButton';
+import { SignInModal } from './AuthModal';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -16,7 +19,7 @@ const SECTION_CONFIG = {
   Conferences:  { accent: '#0e7490', badge: 'Conference', icon: '📅' },
 };
 
-function ResourceCard({ record, artworkUrl }) {
+function ResourceCard({ record, artworkUrl, onSignInRequired }) {
   const f = record.fields;
   const [imgErr, setImgErr] = useState(false);
 
@@ -89,6 +92,12 @@ function ResourceCard({ record, artworkUrl }) {
             {f['Host or Author'] || f.Author || ''}
           </div>
         </div>
+
+        {/* Action strip — rate + share, live everywhere the card appears */}
+        <div style={{ display: 'flex', gap: 6, padding: '0 11px 10px' }}>
+          <RateButton resourceId={record.id} variant="icon" grow onSignInRequired={onSignInRequired} />
+          <ShareButton resourceId={record.id} name={f.Name} type={f.Type} variant="icon" />
+        </div>
       </div>
     </Link>
   );
@@ -98,6 +107,7 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
   const [records, setRecords] = useState([]);
   const [artworkMap, setArtworkMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [showSignIn, setShowSignIn] = useState(false);
 
   useEffect(() => {
     fetch(`/api/admin/featured?section=${encodeURIComponent(section)}`)
@@ -155,8 +165,9 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gap: isMobile ? 8 : 12, alignItems: 'stretch' }}>
-        {display.map(r => <ResourceCard key={r.id} record={r} artworkUrl={artworkMap[r.id]} />)}
+        {display.map(r => <ResourceCard key={r.id} record={r} artworkUrl={artworkMap[r.id]} onSignInRequired={() => setShowSignIn(true)} />)}
       </div>
+      {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
     </div>
   );
 }
