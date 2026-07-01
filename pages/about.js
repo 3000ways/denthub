@@ -97,23 +97,34 @@ export default function About() {
           {/* ── Card 2: Scoring formula ── */}
           <div style={card}>
             <SectionLabel>The scoring formula</SectionLabel>
-            <p style={{ fontSize:14, color:'#777', lineHeight:1.65, margin:'0 0 20px' }}>
-              Each resource receives a composite score weighted across five dimensions.
+
+            <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 16px' }}>
+              Every resource on The Dental Commute receives a composite score out of 100, calculated across five weighted dimensions. The score is generated using an AI model that evaluates each resource against publicly available information — listener reviews, download trends, citation frequency in dental education, recency of content, and clinical relevance.
             </p>
+            <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 24px' }}>
+              <strong style={{ color:'#333' }}>The score is not a ranking of quality.</strong> It is a signal, not a verdict. A podcast with a score of 72 is not objectively better than one with a score of 68 — they may simply serve different audiences, specialties, or learning styles. The score is intended to give visitors a starting point, not to declare a winner.
+            </p>
+
             {[
-              { label:'Expert Score',      weight:'25%' },
-              { label:'Community Score',   weight:'25%' },
-              { label:'Popularity Score',  weight:'20%' },
-              { label:'Recency Score',     weight:'15%' },
-              { label:'Clinical Depth',    weight:'15%' },
-            ].map(({ label, weight }) => (
-              <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-                padding:'11px 0', borderBottom:`0.5px solid ${BORDER}` }}>
-                <span style={{ fontSize:14, color:'#444' }}>{label}</span>
-                <span style={{ fontSize:13, fontWeight:700, color:GREEN, background:'#E8F5F0',
-                  borderRadius:4, padding:'2px 10px' }}>{weight}</span>
+              { label:'Expert Score',     weight:'25%', desc:'How often the resource is cited or recommended by educators, lecturers, and specialists in the field.' },
+              { label:'Community Score',  weight:'25%', desc:'Aggregated listener and reader sentiment drawn from reviews, ratings, and community discussions.' },
+              { label:'Popularity Score', weight:'20%', desc:'Reach and visibility — download numbers, subscriber counts, and search presence within dentistry.' },
+              { label:'Recency Score',    weight:'15%', desc:'How actively the resource is being updated. Fresh, consistent content scores higher than dormant archives.' },
+              { label:'Clinical Depth',   weight:'15%', desc:'The degree to which the content engages with evidence-based clinical material rather than lifestyle or business topics alone.' },
+            ].map(({ label, weight, desc }) => (
+              <div key={label} style={{ padding:'14px 0', borderBottom:`0.5px solid ${BORDER}` }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
+                  <span style={{ fontSize:14, fontWeight:600, color:'#333' }}>{label}</span>
+                  <span style={{ fontSize:13, fontWeight:700, color:GREEN, background:'#E8F5F0',
+                    borderRadius:4, padding:'2px 10px', flexShrink:0 }}>{weight}</span>
+                </div>
+                <p style={{ fontSize:13, color:'#888', lineHeight:1.6, margin:0 }}>{desc}</p>
               </div>
             ))}
+
+            <p style={{ fontSize:13, color:'#aaa', lineHeight:1.6, margin:'20px 0 0', fontStyle:'italic' }}>
+              Scores are periodically recalculated as new community data becomes available. As The Dental Commute grows, community voting from verified dental professionals will carry increasing weight in the formula.
+            </p>
           </div>
 
           {/* ── Card 3: Submit ── */}
