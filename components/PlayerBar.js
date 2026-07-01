@@ -10,7 +10,7 @@ function fmt(secs) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-const ART_SIZE = 112; // pops above the 72px bar by 40px
+const ART_SIZE = 150; // pops above the 72px bar by 78px
 const BAR_HEIGHT = 72;
 
 export default function PlayerBar() {
