@@ -28,7 +28,10 @@ function ResourceCard({ record, isMobile }) {
     catch { return null; }
   })();
   const score = f['Final Score'] || f.Score;
+  // Use Image URL (artwork) if present; fall back to favicon proxy
   const src = imageUrl || (domain ? `/api/airtable?logo=${domain}` : null);
+  // Artwork fills the card; favicons need padding to avoid looking blown-up
+  const isFavicon = !imageUrl;
 
   return (
     <Link href={`/resource/${record.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
@@ -44,7 +47,9 @@ function ResourceCard({ record, isMobile }) {
               src={src}
               alt={f.Name}
               onError={() => setImgErr(true)}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 20 }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: isFavicon ? 'contain' : 'cover',
+                padding: isFavicon ? 20 : 0 }}
             />
           ) : (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -94,7 +99,8 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
 
   if (loading || records.length === 0) return null;
 
-  const cols = isMobile ? 2 : Math.min(records.length, 6);
+  const display = records.slice(0, 6);
+  const cols = isMobile ? 2 : Math.min(display.length, 6);
 
   return (
     <div style={{ marginBottom: 28, background: 'rgba(255,255,255,0.55)', borderRadius: 12,
@@ -111,7 +117,7 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
         )}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobile ? 8 : 12 }}>
-        {records.map(r => <ResourceCard key={r.id} record={r} isMobile={isMobile} />)}
+        {display.map(r => <ResourceCard key={r.id} record={r} isMobile={isMobile} />)}
       </div>
     </div>
   );

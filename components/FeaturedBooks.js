@@ -6,10 +6,13 @@ const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN  = '#0F6E56';
 const BORDER = '#e8e8e8';
 
-function BookCard({ record, coverUrl, isMobile }) {
+function BookCard({ record, isMobile }) {
   const f = record.fields;
   const [imgErr, setImgErr] = useState(false);
   const score = f['Final Score'] || f.Score;
+  // Use Airtable Image URL if set, otherwise Open Library covers by title (free, no API key)
+  const coverSrc = f['Image URL'] ||
+    `https://covers.openlibrary.org/b/title/${encodeURIComponent(f.Name || '')}-M.jpg`;
 
   return (
     <Link href={`/resource/${record.id}`} style={{ textDecoration:'none', color:'inherit', display:'block' }}>
@@ -20,9 +23,9 @@ function BookCard({ record, coverUrl, isMobile }) {
 
         {/* Cover image area */}
         <div style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f5f2eb', overflow:'hidden' }}>
-          {coverUrl && !imgErr ? (
+          {!imgErr ? (
             <img
-              src={coverUrl}
+              src={coverSrc}
               alt={f.Name}
               onError={() => setImgErr(true)}
               style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}
@@ -58,28 +61,19 @@ function BookCard({ record, coverUrl, isMobile }) {
 
 export function FeaturedBooks({ isMobile = false }) {
   const [books, setBooks] = useState([]);
-  const [covers, setCovers] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/admin/featured?section=Books').then(r => r.json()),
-      fetch('/api/book-stats').then(r => r.json()),
-    ])
-      .then(([featured, bookStats]) => {
-        setBooks(featured.records || []);
-        // bookStats is keyed by Airtable record ID, each entry has { cover, ... }
-        const coverMap = {};
-        Object.entries(bookStats).forEach(([id, data]) => {
-          if (data?.cover) coverMap[id] = data.cover;
-        });
-        setCovers(coverMap);
-      })
+    fetch('/api/admin/featured?section=Books')
+      .then(r => r.json())
+      .then(d => setBooks(d.records || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   if (loading || books.length === 0) return null;
+
+  const display = books.slice(0, 6);
 
   return (
     <div style={{ marginBottom:28, background:'rgba(255,255,255,0.55)', borderRadius:12,
@@ -89,8 +83,8 @@ export function FeaturedBooks({ isMobile = false }) {
         <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Featured Books</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Editor&rsquo;s picks</div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : Math.min(books.length, 6)}, 1fr)`, gap: isMobile ? 8 : 12 }}>
-        {books.map(r => <BookCard key={r.id} record={r} coverUrl={covers[r.id]} isMobile={isMobile} />)}
+      <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : Math.min(display.length, 6)}, 1fr)`, gap: isMobile ? 8 : 12 }}>
+        {display.map(r => <BookCard key={r.id} record={r} isMobile={isMobile} />)}
       </div>
     </div>
   );
