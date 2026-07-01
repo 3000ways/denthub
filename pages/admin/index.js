@@ -1553,6 +1553,7 @@ function Users() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('joined');
   const [sortDir, setSortDir] = useState('desc');
+  const [episodes, setEpisodes] = useState(null); // site-wide episode count (public /api/stats)
 
   useEffect(() => {
     fetch('/api/admin/users')
@@ -1563,6 +1564,12 @@ function Users() {
       })
       .catch(() => setError('Failed to load users'))
       .finally(() => setLoading(false));
+
+    // Episode count is public and cached; nice to show alongside user metrics.
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(d => setEpisodes(typeof d.episodes === 'number' ? d.episodes : null))
+      .catch(() => {});
   }, []);
 
   function fmt(iso) {
@@ -1615,6 +1622,34 @@ function Users() {
     </button>
   );
 
+  // ── Usage dashboard metrics (computed from the full user list, not the search filter) ──
+  const DAY = 86400000;
+  const now = Date.now();
+  const withinDays = (iso, n) => iso && (now - new Date(iso).getTime()) <= n * DAY;
+
+  const totalUsers = users.length;
+  const new7d = users.filter(u => withinDays(u.created_at, 7)).length;
+  const new30d = users.filter(u => withinDays(u.created_at, 30)).length;
+  const active7d = users.filter(u => withinDays(u.last_sign_in_at, 7)).length;
+  const active30d = users.filter(u => withinDays(u.last_sign_in_at, 30)).length;
+  const totalSaves = users.reduce((s, u) => s + (u.bookmark_count || 0), 0);
+  const savers = users.filter(u => (u.bookmark_count || 0) > 0).length;
+
+  // New sign-ups per week for the last 8 weeks (bucket 0 = oldest, 7 = this week).
+  const WEEKS = 8;
+  const weekly = Array(WEEKS).fill(0);
+  users.forEach(u => {
+    if (!u.created_at) return;
+    const weeksAgo = Math.floor((now - new Date(u.created_at).getTime()) / (7 * DAY));
+    if (weeksAgo >= 0 && weeksAgo < WEEKS) weekly[WEEKS - 1 - weeksAgo]++;
+  });
+  const weeklyMax = Math.max(1, ...weekly);
+
+  // Top specialties among users who set one.
+  const specCounts = {};
+  users.forEach(u => { if (u.specialty) specCounts[u.specialty] = (specCounts[u.specialty] || 0) + 1; });
+  const topSpecialties = Object.entries(specCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
   if (loading) return <div style={{ textAlign: 'center', padding: 60, color: '#aaa', fontSize: 14 }}>Loading users…</div>;
 
   if (error) return (
@@ -1630,6 +1665,87 @@ function Users() {
 
   return (
     <div>
+      {/* ── Usage dashboard ─────────────────────────────────────── */}
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 4px' }}>Usage Dashboard</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>A snapshot of your own account &amp; engagement data. For visitor traffic and search rankings, see the Google links below.</p>
+
+      {/* Headline stat cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, marginBottom: 14 }}>
+        {[
+          { label: 'Total users', value: totalUsers },
+          { label: 'New · 7 days', value: new7d, green: new7d > 0 },
+          { label: 'New · 30 days', value: new30d, green: new30d > 0 },
+          { label: 'Active · 7 days', value: active7d, sub: 'signed in' },
+          { label: 'Active · 30 days', value: active30d, sub: 'signed in' },
+          { label: 'Total saves', value: totalSaves },
+          { label: 'Users w/ a save', value: savers },
+          { label: 'Episodes indexed', value: episodes, sub: episodes == null ? 'loading…' : undefined },
+        ].map(m => (
+          <div key={m.label} style={{ background: '#fafafa', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: m.green ? GREEN : '#111' }}>
+              {m.value == null ? '—' : (m.value).toLocaleString()}
+            </div>
+            <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{m.label}</div>
+            {m.sub && <div style={{ fontSize: 10, color: '#bbb', marginTop: 1 }}>{m.sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Sign-ups over time + top specialties */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginBottom: 14 }}>
+        {/* Weekly sign-ups bar chart */}
+        <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>New sign-ups · last 8 weeks</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 90 }}>
+            {weekly.map((n, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ fontSize: 10, color: '#888', fontWeight: 600 }}>{n || ''}</div>
+                <div title={`${n} new`} style={{ width: '100%', height: `${(n / weeklyMax) * 64}px`, minHeight: n > 0 ? 3 : 0, background: i === weekly.length - 1 ? GREEN : '#cfe3dc', borderRadius: '3px 3px 0 0' }} />
+                <div style={{ fontSize: 9, color: '#bbb' }}>{i === weekly.length - 1 ? 'now' : `-${weekly.length - 1 - i}w`}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top specialties */}
+        <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Top specialties</div>
+          {topSpecialties.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#bbb', paddingTop: 8 }}>No specialties set yet.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {topSpecialties.map(([spec, n]) => (
+                <div key={spec} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: 12, color: '#555', width: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spec}</div>
+                  <div style={{ flex: 1, background: '#f1f1f1', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+                    <div style={{ width: `${(n / topSpecialties[0][1]) * 100}%`, height: '100%', background: GREEN }} />
+                  </div>
+                  <div style={{ fontSize: 12, color: '#111', fontWeight: 600, width: 24, textAlign: 'right' }}>{n}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Link out to Google properties for full traffic/search analytics */}
+      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px', marginBottom: 28 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Full analytics on Google</div>
+        <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>Visitor traffic, pageviews, and search rankings live in your Google dashboards.</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Google Analytics ↗', href: 'https://analytics.google.com/', desc: 'Traffic & pageviews' },
+            { label: 'Search Console ↗', href: 'https://search.google.com/search-console', desc: 'Search rankings & queries' },
+          ].map(l => (
+            <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" style={{ flex: '1 1 180px', textDecoration: 'none', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 14px', background: '#fafafa', display: 'block' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: GREEN }}>{l.label}</div>
+              <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{l.desc}</div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Registered users table ──────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>Registered Users</h2>
         <span style={{ fontSize: 13, color: '#888' }}>{users.length} total</span>
