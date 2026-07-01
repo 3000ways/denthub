@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Settings'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Conference', 'Other'];
 
@@ -1474,6 +1474,134 @@ function EpisodeArchive() {
 }
 
 // ══════════════════════════════════════════
+//  TAB — Featured Content
+// ══════════════════════════════════════════
+const FEATURED_SECTIONS = ['Books', 'Podcasts', 'YouTube', 'CE Courses', 'Coaching', 'Communities', 'Conferences'];
+
+function FeaturedContent() {
+  const [section, setSection] = useState('Books');
+  const [featured, setFeatured] = useState([]);
+  const [allResources, setAllResources] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  async function loadFeatured(sec) {
+    setLoading(true); setFeatured([]);
+    try {
+      const r = await fetch(`/api/admin/featured?section=${encodeURIComponent(sec)}`);
+      const d = await r.json();
+      setFeatured(d.records || []);
+    } catch {}
+    setLoading(false);
+  }
+
+  useEffect(() => { loadFeatured(section); }, [section]);
+
+  useEffect(() => {
+    if (allResources.length > 0) return;
+    setLoadingAll(true);
+    fetch('/api/admin/resources')
+      .then(r => r.json())
+      .then(d => setAllResources(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setLoadingAll(false));
+  }, []);
+
+  const featuredIds = new Set(featured.map(r => r.id));
+  const searchResults = search.trim().length > 1
+    ? allResources.filter(r => !featuredIds.has(r.id) && (r.fields?.Name || '').toLowerCase().includes(search.toLowerCase())).slice(0, 8)
+    : [];
+
+  async function doSearch() {}  // handled above via filter
+
+  async function addFeatured(record) {
+    setMsg('');
+    const r = await fetch('/api/admin/featured', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: record.id, section }),
+    });
+    if (r.ok) { setMsg(`Added "${record.fields.Name}"`); setSearch(''); setSearchResults([]); loadFeatured(section); }
+    else setMsg('Error adding resource');
+  }
+
+  async function removeFeatured(record) {
+    setMsg('');
+    const r = await fetch('/api/admin/featured', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: record.id, section: null }),
+    });
+    if (r.ok) { setMsg(`Removed "${record.fields.Name}"`); loadFeatured(section); }
+    else setMsg('Error removing resource');
+  }
+
+  return (
+    <div>
+      <h2 style={{ fontSize:18, fontWeight:700, color:'#111', marginBottom:6 }}>Featured Content</h2>
+      <p style={{ fontSize:13, color:'#777', marginBottom:20 }}>
+        Pick which resources appear in the Featured sections on the homepage. Each resource can only be featured in one section at a time.
+      </p>
+
+      {/* Section tabs */}
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:24 }}>
+        {FEATURED_SECTIONS.map(s => (
+          <button key={s} onClick={() => setSection(s)}
+            style={{ padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:FONT,
+              background: section === s ? GREEN : '#f0ede8', color: section === s ? '#fff' : '#555',
+              border: section === s ? `1px solid ${GREEN}` : `1px solid ${BORDER}` }}>
+            {s}
+          </button>
+        ))}
+      </div>
+
+      {/* Currently featured */}
+      <div style={{ marginBottom:24 }}>
+        <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginBottom:10 }}>
+          Currently featured in {section} ({featured.length})
+        </div>
+        {loading && <div style={{ fontSize:13, color:'#aaa' }}>Loading…</div>}
+        {!loading && featured.length === 0 && <div style={{ fontSize:13, color:'#aaa' }}>None yet — search below to add some.</div>}
+        {featured.map(r => (
+          <div key={r.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:6, marginBottom:6 }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:600, color:'#111' }}>{r.fields.Name || r.fields.fldtPkYPgBaGj7aGZ}</div>
+              <div style={{ fontSize:11, color:'#aaa' }}>{r.fields.Author || r.fields.fldr1Dibd8NGArVbo} · Score: {Math.round(r.fields['Final Score'] || r.fields.fld0FNO3uxt3K0pCX || 0)}</div>
+            </div>
+            <button onClick={() => removeFeatured(r)}
+              style={{ fontSize:12, padding:'5px 12px', borderRadius:4, background:'#fff5f5', color:'#c0392b', border:'1px solid #fcc', cursor:'pointer', fontFamily:FONT, fontWeight:600, flexShrink:0 }}>
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Search to add */}
+      <div style={{ marginBottom:12 }}>
+        <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginBottom:10 }}>Add a resource</div>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder={`Search resources to feature in ${section}…`}
+          style={{ ...inp(), marginBottom:6 }} />
+        {loadingAll && <div style={{ fontSize:12, color:'#aaa', padding:'6px 0' }}>Loading resources…</div>}
+        {searchResults.map(r => (
+          <div key={r.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background:'#fafaf8', border:`1px solid ${BORDER}`, borderRadius:6, marginBottom:4 }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:600, color:'#111' }}>{r.fields.Name}</div>
+              <div style={{ fontSize:11, color:'#aaa' }}>{r.fields.Type} · {r.fields.Author || ''}</div>
+            </div>
+            <button onClick={() => addFeatured(r)}
+              style={{ fontSize:12, padding:'5px 12px', borderRadius:4, background:'#E8F5F0', color:GREEN, border:`1px solid ${GREEN}`, cursor:'pointer', fontFamily:FONT, fontWeight:600, flexShrink:0 }}>
+              + Feature
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {msg && <div style={{ fontSize:13, color:GREEN, fontWeight:600, padding:'8px 0' }}>{msg}</div>}
+    </div>
+  );
+}
+
 //  TAB 7 — Settings
 // ══════════════════════════════════════════
 function Settings() {
@@ -1903,7 +2031,8 @@ export default function AdminPage() {
         {tab === 5 && <Deduplication />}
         {tab === 6 && <Users />}
         {tab === 7 && <EpisodeArchive />}
-        {tab === 8 && <Settings />}
+        {tab === 8 && <FeaturedContent />}
+        {tab === 9 && <Settings />}
       </div>
     </div>
   );

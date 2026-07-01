@@ -9,6 +9,7 @@ import { SignInModal, OnboardingModal } from '../components/AuthModal';
 import { BookmarkButton } from '../components/BookmarkButton';
 import { BookmarkFeed } from '../components/BookmarkFeed';
 import { RecentlyListened } from '../components/RecentlyListened';
+import { FeaturedBooks } from '../components/FeaturedBooks';
 import { CommunitySection } from '../components/Community';
 
 const CATEGORIES = [
@@ -1157,6 +1158,9 @@ export default function Home({ initialResources }) {
                 )}
               </div>
             )}
+
+            {/* Featured Books */}
+            <FeaturedBooks isMobile={isMobile} />
 
             {/* Editor's Picks — compact list, after the live content */}
             {editorsPicks.length > 0 && (
