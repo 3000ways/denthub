@@ -33,9 +33,9 @@ function ResourceCard({ record, artworkUrl }) {
   const isFavicon = !imageUrl;
 
   return (
-    <Link href={`/resource/${record.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+    <Link href={`/resource/${record.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
       <div style={{
-          height: '100%', display: 'flex', flexDirection: 'column',
+          flex: 1, display: 'flex', flexDirection: 'column',
           background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
           transition: 'box-shadow 0.15s, transform 0.15s' }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
