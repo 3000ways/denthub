@@ -71,11 +71,14 @@ export default function About() {
           {/* ── Card 1: Mission + Stats ── */}
           <div style={card}>
             <SectionLabel>What we do</SectionLabel>
-            <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 28px' }}>
-              The Dental Commute is a curated index of the best learning resources in dentistry — podcasts, books, CE courses, YouTube channels, software, and more — scored and ranked by dental professionals.
+            <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 20px' }}>
+              The Dental Commute is a curated directory of the best learning resources in dentistry — podcasts, YouTube channels, books, CE courses, conferences, coaching programs, and professional communities — all in one place.
+            </p>
+            <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 20px' }}>
+              Think of it as a search engine for dental education. Instead of sifting through Google results or asking colleagues for recommendations, you can browse by category or specialty and find what other dental professionals are actually listening to, reading, and learning from.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 28px' }}>
-              Every resource is scored using a weighted formula that combines expert opinion, community feedback, popularity, recency, and clinical depth. The goal is a trusted, living directory that gets better as more dentists contribute.
+              Each resource carries a score generated from publicly available signals — reviews, reach, recency, and clinical relevance. The score isn't meant to declare one resource better than another; it's a starting point to help you discover what's out there and decide what's right for you.
             </p>
 
             {/* Stats bar — live data */}
