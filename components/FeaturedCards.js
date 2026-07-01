@@ -29,8 +29,15 @@ function ResourceCard({ record, artworkUrl }) {
     catch { return null; }
   })();
   const score  = f['Final Score'] || f.Score;
-  const src    = imageUrl || (domain ? `/api/airtable?logo=${domain}` : null);
-  const isFavicon = !imageUrl;
+  const isYouTube = domain && domain.includes('youtube.com') && f.URL;
+
+  // Pick the best image source. YouTube channels/videos expose a real thumbnail
+  // via our og:image proxy; everything else uses its logo (favicon) fallback.
+  let src, isFavicon;
+  if (imageUrl)        { src = imageUrl; isFavicon = false; }
+  else if (isYouTube)  { src = `/api/youtube-thumb?url=${encodeURIComponent(f.URL)}`; isFavicon = false; }
+  else if (domain)     { src = `/api/airtable?logo=${domain}`; isFavicon = true; }
+  else                 { src = null; isFavicon = true; }
 
   return (
     <Link href={`/resource/${record.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
