@@ -153,11 +153,9 @@ export default function ProfilePage() {
             <div style={{ fontSize:14, color:'#888' }}>{user.email}</div>
           </div>
 
-          {/* White card */}
+          {/* ── Section 1: Profile ── */}
           <div style={{ background:'rgba(255,255,255,0.85)', border:`1px solid ${BORDER}`, borderRadius:12,
-            boxShadow:'0 1px 6px rgba(0,0,0,0.05)', padding:'32px 32px 28px' }}>
-
-            {/* ── Section 1: Profile ── */}
+            boxShadow:'0 1px 6px rgba(0,0,0,0.05)', padding:'32px 32px 28px', marginBottom:16 }}>
             <SectionHeader label="Your Profile" />
 
             <form onSubmit={handleSave} style={{ maxWidth:520 }}>
@@ -228,8 +226,11 @@ export default function ProfilePage() {
               </div>
             </form>
 
-            {/* ── Section 2: Listening & CE ── */}
-            <div style={{ marginTop:36, paddingTop:32, borderTop:`1px solid ${BORDER}` }}>
+          </div>{/* end profile card */}
+
+          {/* ── Section 2: Listening & CE ── */}
+          <div style={{ background:'rgba(255,255,255,0.85)', border:`1px solid ${BORDER}`, borderRadius:12,
+            boxShadow:'0 1px 6px rgba(0,0,0,0.05)', padding:'32px 32px 28px', marginBottom:16 }}>
               <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:20 }}>
                 <SectionHeader label="Listening & CE Tracking" />
                 {listenStats?.completedCount > 0 && (
@@ -295,8 +296,11 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* ── Section 3: Saved Resources ── */}
-            <div style={{ marginTop:36, paddingTop:32, borderTop:`1px solid ${BORDER}` }}>
+          </div>{/* end listening card */}
+
+          {/* ── Section 3: Saved Resources ── */}
+          <div style={{ background:'rgba(255,255,255,0.85)', border:`1px solid ${BORDER}`, borderRadius:12,
+            boxShadow:'0 1px 6px rgba(0,0,0,0.05)', padding:'32px 32px 28px', marginBottom:16 }}>
               <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:20 }}>
                 <SectionHeader label={`Saved Resources${bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}`} />
                 {bookmarkCount > 0 && (
@@ -332,9 +336,12 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* ── Footer: sign out + delete account ── */}
-            <div style={{ marginTop:36, paddingTop:28, borderTop:`1px solid ${BORDER}`,
-              display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
+          </div>{/* end saved card */}
+
+          {/* ── Footer: sign out + delete account ── */}
+          <div style={{ background:'rgba(255,255,255,0.85)', border:`1px solid ${BORDER}`, borderRadius:12,
+            boxShadow:'0 1px 6px rgba(0,0,0,0.05)', padding:'24px 32px',
+            display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
               <Link href="/" style={{ fontSize:13, color:'#888', textDecoration:'none' }}>← Back to directory</Link>
 
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -374,9 +381,7 @@ export default function ProfilePage() {
                   <span style={{ fontSize:13, color:'#aaa' }}>Deleting…</span>
                 )}
               </div>
-            </div>
-
-          </div>{/* end white card */}
+          </div>{/* end footer card */}
         </div>
       </div>
     </>
