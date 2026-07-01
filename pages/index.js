@@ -356,11 +356,79 @@ function SpotlightCard({ item }) {
   );
 }
 
+// Episode row inside the expanded accordion on the ranked list.
+// ep comes from podcast-single API: audioUrl, title, image, description, date, guid, durationSeconds, publishedAt
+function ExpandedEpisodeRow({ ep, showName, showResourceId, showArt, isFirst }) {
+  const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
+  const audioUrl = ep.audioUrl;
+  const isActive = !!(currentEpisode && (
+    currentEpisode.audio_url === audioUrl
+  ));
+  const isListened = !!(currentEpisode?.id && completedIds?.has(currentEpisode.id) && isActive);
+
+  async function handlePlay(e) {
+    e.preventDefault();
+    if (isActive) { isPlaying ? pause() : resume(); return; }
+    let epData = {
+      audio_url: audioUrl,
+      show_name: showName,
+      show_resource_id: showResourceId,
+      title: ep.title,
+      image: ep.image || showArt,
+      guid: ep.guid || audioUrl,
+      duration_seconds: ep.durationSeconds,
+    };
+    if (epData.guid && epData.show_resource_id && epData.audio_url) {
+      try {
+        const res = await fetch('/api/upsert-episode', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guid: epData.guid, show_resource_id: epData.show_resource_id,
+            show_name: epData.show_name, title: epData.title,
+            audio_url: epData.audio_url, image: epData.image,
+            published_at: ep.publishedAt, duration_seconds: epData.duration_seconds,
+          }),
+        });
+        if (res.ok) { const { id } = await res.json(); epData = { ...epData, id }; }
+      } catch {}
+    }
+    play(epData);
+  }
+
+  return (
+    <div onClick={handlePlay}
+      style={{ display:'flex', gap:10, alignItems:'center', background: isActive ? '#f0faf6' : '#fff',
+        border:`1px solid ${isActive ? GREEN : BORDER}`, borderRadius:7, padding:'8px 10px',
+        transition:'border-color 0.15s', cursor:'pointer' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = GREEN; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = BORDER; }}>
+      {ep.image && (
+        <img src={ep.image} alt={ep.title} style={{ width:42, height:42, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
+      )}
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:12, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3 }}>{ep.title}</div>
+        {ep.description && (
+          <div style={{ fontSize:11, color:'#777', marginTop:2, lineHeight:1.4,
+            overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' }}>{ep.description}</div>
+        )}
+        <div style={{ fontSize:11, color:'#aaa', marginTop:2, display:'flex', gap:8, alignItems:'center' }}>
+          {isFirst && <span style={{ color:GREEN, fontWeight:600 }}>New</span>}
+          {ep.date && <span>{ep.date}</span>}
+          {isActive && isPlaying && <span style={{ color:GREEN, fontWeight:600 }}>▶ Playing</span>}
+        </div>
+      </div>
+      <span style={{ fontSize:11, color: isActive ? GREEN : '#bbb', fontWeight:500, flexShrink:0 }}>
+        {isActive && isPlaying ? 'Pause' : isActive ? 'Resume' : '▶ Play'}
+      </span>
+    </div>
+  );
+}
+
 function EpisodeCard({ ep }) {
   const [imgErr, setImgErr] = useState(false);
   const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
   const mins = ep.duration;
-  const isActive = currentEpisode?.id === ep.id;
+  const isActive = !!(currentEpisode?.id && ep.id && currentEpisode.id === ep.id);
   const isListened = completedIds?.has(ep.id);
 
   function handlePlay(e) {
@@ -1214,27 +1282,14 @@ export default function Home({ initialResources }) {
                               <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
                               <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight: isMobile ? 0 : 80 }}>
                                 {pod.episodes.map((ep, idx) => (
-                                  <a key={idx} href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
-                                    style={{ display:'flex', gap:10, textDecoration:'none', color:'inherit', alignItems:'center', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:7, padding:'8px 10px', transition:'border-color 0.15s' }}
-                                    onMouseEnter={e => e.currentTarget.style.borderColor=GREEN}
-                                    onMouseLeave={e => e.currentTarget.style.borderColor=BORDER}>
-                                    {ep.image && (
-                                      <img src={ep.image} alt={ep.title}
-                                        style={{ width:42, height:42, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
-                                    )}
-                                    <div style={{ flex:1, minWidth:0 }}>
-                                      <div style={{ fontSize:12, fontWeight:600, color:'#111', lineHeight:1.3 }}>{ep.title}</div>
-                                      {ep.description && (
-                                        <div style={{ fontSize:11, color:'#777', marginTop:2, lineHeight:1.4,
-                                          overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' }}>{ep.description}</div>
-                                      )}
-                                      <div style={{ fontSize:11, color:'#aaa', marginTop:2 }}>
-                                        {idx === 0 && <span style={{ color:GREEN, fontWeight:600, marginRight:6 }}>New</span>}
-                                        {ep.date}
-                                      </div>
-                                    </div>
-                                    <span style={{ fontSize:11, color:GREEN, fontWeight:500, flexShrink:0 }}>Listen →</span>
-                                  </a>
+                                  <ExpandedEpisodeRow
+                                    key={idx}
+                                    ep={ep}
+                                    showName={f.Name}
+                                    showResourceId={r.id}
+                                    showArt={pod?.showArt}
+                                    isFirst={idx === 0}
+                                  />
                                 ))}
                               </div>
                             </div>
