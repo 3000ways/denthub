@@ -15,6 +15,22 @@ feels alive on every visit and gives people things to do — and that eventually
 personalizes itself to each dentist. Broken into quick wins (Next) and a larger
 personalization system (Later).
 
+### Primary layout — vertical feed of horizontal carousels (Netflix/Spotify-style)
+
+Make browsing podcasts the main navigation paradigm: a **vertical feed** where **each
+category is a horizontal carousel** of cards. Scroll vertically for new categories, swipe
+horizontally to browse within one — responsive on mobile and desktop, like modern
+streaming platforms. This maps naturally onto **Channels** (each row ≈ a channel/category).
+
+- **Open decision — cards = shows or episodes?** The request said "make *episode-level*
+  navigation the main way" but described "*podcast cards*." Decide whether each carousel
+  holds **podcast/show cards** (browse shows → drill into episodes) or **episode cards**
+  (browse individual episodes directly). Changes the whole feel; confirm with Andrei.
+- **⚠️ North-star note (intentional evolution).** `CLAUDE.md` currently says magazine-style,
+  "reject anything that looks like a card grid," Economist-inspired. A carousel-of-cards
+  layout is a deliberate move *toward* the modern-platform look — a conscious update to the
+  design north star, not an accident. Reconcile CLAUDE.md's design section when built.
+
 ### Quick wins — fresh home-page modules ("Option B")
 _Lower effort, mostly using content/data we already have._
 
@@ -293,6 +309,12 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 📋 Next (planned, not started)
 
+- **Home page → carousel layout** (see "Primary layout" under the home-page theme) —
+  vertical feed of horizontal category carousels (Netflix/Spotify-style), responsive.
+  Open decision: show cards vs episode cards. A meaningful design-north-star shift.
+- **Delete profile / account.** Let users delete their own account from their profile.
+  Must **cascade-delete** all their data (profile, bookmarks, later listening/CE history),
+  not just the login. Privacy / "right to be forgotten" expectation. Supabase; branch + PR.
 - **About page — "Who's behind this" team section.** Two profiles: Andrei
   (Founder / Endodontist) and **DMD Yodabot** 🤖, the project's AI teammate (playful
   persona). Needs Andrei's bio copy. Code change → branch + PR.
