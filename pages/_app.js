@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Script from 'next/script';
 import { AuthProvider } from '../lib/auth-context';
 import { BookmarkProvider } from '../lib/bookmarks-context';
+import { VotesProvider } from '../lib/votes-context';
 import { PlayerProvider, usePlayer } from '../lib/player-context';
 import PlayerBar from '../components/PlayerBar';
 
@@ -26,6 +27,7 @@ export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
     <BookmarkProvider>
+    <VotesProvider>
     <PlayerProvider>
       <Head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -55,6 +57,7 @@ export default function App({ Component, pageProps }) {
       )}
       <AppShell Component={Component} pageProps={pageProps} />
     </PlayerProvider>
+    </VotesProvider>
     </BookmarkProvider>
     </AuthProvider>
   );

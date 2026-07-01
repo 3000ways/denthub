@@ -6,6 +6,7 @@ import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
 import { BookmarkButton } from '../../components/BookmarkButton';
+import { ShareButton } from '../../components/ShareButton';
 import { PinButton } from '../../components/PinButton';
 import { usePlayer } from '../../lib/player-context';
 import { supabase } from '../../lib/supabase';
@@ -66,6 +67,22 @@ export async function getStaticProps({ params }) {
 
     const type = record.fields?.Type;
 
+    // Pick the best image for the Open Graph card, so a shared link shows the
+    // resource's own artwork/logo (not a generic site image). Prefer an explicit
+    // Image URL; for podcasts without one, borrow show art from the episode archive.
+    let ogImage = record.fields?.['Image URL'] || null;
+    if (!ogImage && type === 'Podcast') {
+      try {
+        const { data } = await supabase
+          .from('episodes')
+          .select('image')
+          .eq('show_resource_id', params.id)
+          .not('image', 'is', null)
+          .limit(1);
+        if (data && data[0]?.image) ogImage = data[0].image;
+      } catch {}
+    }
+
     // Fetch related resources (same type)
     const filterFormula = `AND({Status}='Published', RECORD_ID() != '${params.id}', {Type}='${type}')`;
     const relRes = await fetch(
@@ -117,7 +134,7 @@ export async function getStaticProps({ params }) {
       } catch {}
     }
 
-    return { props: { record, related, ytData, bookData }, revalidate: 300 };
+    return { props: { record, related, ytData, bookData, ogImage: ogImage || null }, revalidate: 300 };
   } catch {
     return { notFound: true, revalidate: 60 };
   }
@@ -282,7 +299,7 @@ function EpisodeCard({ ep, isNew }) {
   );
 }
 
-export default function ResourcePage({ record, related, ytData, bookData }) {
+export default function ResourcePage({ record, related, ytData, bookData, ogImage }) {
   const f = record.fields;
   const { user, profile } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
@@ -344,8 +361,12 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={`https://thedentalcommute.com/resource/${record.id}`} />
-        <meta property="og:image" content="https://thedentalcommute.com/og-image.jpg" />
+        <meta property="og:image" content={ogImage || 'https://thedentalcommute.com/og-image.jpg'} />
         <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={ogImage || 'https://thedentalcommute.com/og-image.jpg'} />
         <link rel="canonical" href={`https://thedentalcommute.com/resource/${record.id}`} />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -424,6 +445,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
                 </a>
               )}
               <BookmarkButton resourceId={record.id} variant="labeled" kind={(isPodcast || isYouTube) ? 'follow' : 'save'} onSignInRequired={() => setShowSignIn(true)} />
+              <ShareButton resourceId={record.id} name={f.Name} type={f.Type} variant="labeled" />
               <PinButton resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
             </div>
           </div>

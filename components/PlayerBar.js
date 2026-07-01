@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { usePlayer } from '../lib/player-context';
+import { RateButton } from './RateButton';
+import { ShareButton } from './ShareButton';
+import { SignInModal } from './AuthModal';
 
 const GREEN = '#0F6E56';
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
@@ -18,6 +21,10 @@ export default function PlayerBar() {
   const { currentEpisode, isPlaying, position, duration, percent, pause, resume, seek, markListened, completedIds } = usePlayer();
   const isListened = completedIds?.has(currentEpisode?.id);
   const [isMobile, setIsMobile] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  // The show this episode belongs to; drives the rate + share targets.
+  const showId = currentEpisode?.show_resource_id;
+  const showName = currentEpisode?.show_name || currentEpisode?.podcast;
 
   useEffect(() => {
     function check() { setIsMobile(window.innerWidth < 640); }
@@ -37,6 +44,8 @@ export default function PlayerBar() {
   // ── Mobile layout ──────────────────────────────────────────────────────────
   if (isMobile) {
     return (
+      <>
+      {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
         background: '#fff',
@@ -81,8 +90,8 @@ export default function PlayerBar() {
           </div>
         </div>
 
-        {/* Bottom row: transport + mark as listened */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '4px 14px 10px' }}>
+        {/* Bottom row: transport + rate/share + mark as listened */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '4px 14px 10px' }}>
           <button
             onClick={() => seek(Math.max(0, position - 15))}
             title="Back 15 seconds"
@@ -109,6 +118,9 @@ export default function PlayerBar() {
             15↻
           </button>
 
+          {showId && <RateButton resourceId={showId} onSignInRequired={() => setShowSignIn(true)} />}
+          {showId && <ShareButton resourceId={showId} name={showName} type="Podcast" context={currentEpisode.title} />}
+
           <button
             onClick={() => markListened(currentEpisode)}
             title={isListened ? 'Already marked as listened' : 'Mark as listened'}
@@ -123,11 +135,14 @@ export default function PlayerBar() {
           </button>
         </div>
       </div>
+      </>
     );
   }
 
   // ── Desktop layout ─────────────────────────────────────────────────────────
   return (
+    <>
+    {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
       background: '#fff',
@@ -208,6 +223,14 @@ export default function PlayerBar() {
         </button>
       </div>
 
+      {/* Rate + Share the currently-playing show */}
+      {showId && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <RateButton resourceId={showId} variant="labeled" onSignInRequired={() => setShowSignIn(true)} />
+          <ShareButton resourceId={showId} name={showName} type="Podcast" context={currentEpisode.title} />
+        </div>
+      )}
+
       {/* Mark as Listened */}
       <button
         onClick={() => markListened(currentEpisode)}
@@ -240,5 +263,6 @@ export default function PlayerBar() {
         </span>
       </div>
     </div>
+    </>
   );
 }

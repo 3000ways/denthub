@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth-context';
+import { useVotes } from '../lib/votes-context';
 
 const FONT = "'Inter', sans-serif";
 const GREEN = '#2D6A4F';
@@ -8,8 +9,11 @@ const BORDER = '#e5e7eb';
 
 export function CommunitySection({ resourceId, onSignInRequired }) {
   const { user, profile } = useAuth();
-  const [voteCount, setVoteCount] = useState(0);
-  const [hasVoted, setHasVoted] = useState(false);
+  // "Helpful" votes are shared via the votes context so the count/state stay in
+  // sync with the same 👍 on resource cards and the player bar.
+  const { hasVoted, getCount, primeCount, toggleVote } = useVotes();
+  const voteCount = getCount(resourceId) || 0;
+  const voted = hasVoted(resourceId);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -18,18 +22,9 @@ export function CommunitySection({ resourceId, onSignInRequired }) {
 
   useEffect(() => {
     if (!resourceId) return;
-    loadVotes();
+    primeCount(resourceId);
     loadComments();
   }, [resourceId, user]);
-
-  async function loadVotes() {
-    const { count } = await supabase.from('votes').select('*', { count: 'exact', head: true }).eq('resource_id', resourceId);
-    setVoteCount(count || 0);
-    if (user) {
-      const { data } = await supabase.from('votes').select('id').eq('resource_id', resourceId).eq('user_id', user.id).single();
-      setHasVoted(!!data);
-    }
-  }
 
   async function loadComments() {
     const { data } = await supabase
@@ -40,18 +35,10 @@ export function CommunitySection({ resourceId, onSignInRequired }) {
     setComments(data || []);
   }
 
-  async function toggleVote() {
+  async function handleVote() {
     if (!user) { onSignInRequired(); return; }
     setLoadingVote(true);
-    if (hasVoted) {
-      await supabase.from('votes').delete().eq('resource_id', resourceId).eq('user_id', user.id);
-      setHasVoted(false);
-      setVoteCount(v => v - 1);
-    } else {
-      await supabase.from('votes').insert({ resource_id: resourceId, user_id: user.id });
-      setHasVoted(true);
-      setVoteCount(v => v + 1);
-    }
+    await toggleVote(resourceId);
     setLoadingVote(false);
   }
 
@@ -86,15 +73,15 @@ export function CommunitySection({ resourceId, onSignInRequired }) {
     <div style={{ borderTop: `1px solid ${BORDER}`, marginTop: 16, paddingTop: 14 }}>
       {/* Vote row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <button onClick={toggleVote} disabled={loadingVote} style={{
+        <button onClick={handleVote} disabled={loadingVote} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px',
-          borderRadius: 20, border: `1px solid ${hasVoted ? GREEN : BORDER}`,
-          background: hasVoted ? GREEN : '#fff', color: hasVoted ? '#fff' : '#555',
+          borderRadius: 20, border: `1px solid ${voted ? GREEN : BORDER}`,
+          background: voted ? GREEN : '#fff', color: voted ? '#fff' : '#555',
           cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: FONT,
           transition: 'all 0.15s',
         }}>
           <span style={{ fontSize: 15 }}>👍</span>
-          {hasVoted ? 'Helpful' : 'Mark as helpful'}
+          {voted ? 'Helpful' : 'Mark as helpful'}
         </button>
         {voteCount > 0 && (
           <span style={{ fontSize: 13, color: '#888' }}>
