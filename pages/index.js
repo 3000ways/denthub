@@ -868,12 +868,12 @@ export default function Home({ initialResources }) {
           {/* Nav logo — breaks out downward on mobile, wide crop on desktop */}
           <a href="/" style={{ display:'flex', alignItems:'flex-start', textDecoration:'none', flexShrink:0, ...(isMobile ? { position:'absolute', top:3, left:16, zIndex:101 } : { overflow:'hidden', height:44 }) }}>
             {isMobile
-              ? <img src="/logo.png" alt="The Dental Commute" style={{ height:90, width:'auto' }} />
+              ? <img src="/logo.png" alt="The Dental Commute" style={{ height:135, width:'auto' }} />
               : <img src="/wide-logo.png" alt="The Dental Commute" style={{ height:90, width:'auto', marginTop:-23, marginBottom:-23 }} />
             }
           </a>
           {/* Spacer on mobile so right-side links don't overlap logo */}
-          {isMobile && <div style={{ width:90, flexShrink:0 }} />}
+          {isMobile && <div style={{ width:135, flexShrink:0 }} />}
           {/* Right-side nav links */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20 }}>
             {!isMobile && <Link href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</Link>}
@@ -940,7 +940,7 @@ export default function Home({ initialResources }) {
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
-          <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 460, marginBottom:44, paddingTop: isMobile ? 80 : 16 }}>
+          <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 460, marginBottom:44, paddingTop: isMobile ? 120 : 16 }}>
             {/* Large logo — desktop only, in page flow, scrolls away */}
             {!isMobile && (
               <a href="/" style={{ position:'absolute', top:0, left:0, zIndex:10, textDecoration:'none' }}>
