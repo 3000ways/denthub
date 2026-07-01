@@ -294,7 +294,6 @@ export default function ProfilePage() {
                   <Link href="/" style={{ color:GREEN, textDecoration:'none', fontWeight:500 }}>Browse episodes →</Link>
                 </div>
               )}
-            </div>
 
           </div>{/* end listening card */}
 
@@ -334,7 +333,6 @@ export default function ProfilePage() {
                   })}
                 </div>
               )}
-            </div>
 
           </div>{/* end saved card */}
 
