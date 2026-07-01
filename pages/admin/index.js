@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings', 'Scoring'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Other'];
 
@@ -897,6 +897,66 @@ Return ONLY the JSON array, no other text.`;
               </div>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  TAB 10 — Scoring (automated ranking engine)
+// ══════════════════════════════════════════
+function ScoringTab() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  async function run(preview) {
+    setBusy(true); setError(''); setResult(null);
+    try {
+      const r = await fetch(`/api/cron/recompute-scores${preview ? '?preview=1' : ''}`);
+      const d = await r.json();
+      if (d.error) setError(d.error); else setResult({ ...d, previewed: preview });
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Automated Scoring</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
+        Recomputes ranking scores from real signals — <strong>Recency</strong> from the episode archive and
+        <strong> Community</strong> from on-site engagement (votes, comments, bookmarks, pins) — and writes them back
+        to Airtable. Final Score recomputes automatically. Runs nightly on its own; use these to run it now.
+        <br /><span style={{ color: '#bbb' }}>Popularity and the AI-judged Expert / Clinical Depth scores are coming in the next passes.</span>
+      </p>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        <button onClick={() => run(true)} disabled={busy} style={{ flex: 1, padding: '12px', background: '#fff', color: GREEN, border: `1px solid ${GREEN}`, borderRadius: 6, cursor: busy ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: busy ? 0.6 : 1 }}>
+          {busy ? '…' : 'Preview (no write)'}
+        </button>
+        <button onClick={() => run(false)} disabled={busy} style={{ flex: 1, padding: '12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: busy ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: busy ? 0.6 : 1 }}>
+          {busy ? 'Recomputing…' : '↻ Recompute now'}
+        </button>
+      </div>
+
+      {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+
+      {result && (
+        <div>
+          <div style={{ padding: '12px 16px', background: '#d1fae5', borderRadius: 8, fontSize: 13, color: '#065f46', marginBottom: 16 }}>
+            {result.previewed ? 'Previewed' : `✓ Wrote ${result.written} updates`} · {result.resources} resources ·
+            {' '}{result.recencyScored} recency-scored · {result.communityScored} community-scored
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Top by recency (sample):</div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {(result.sample || []).map((s, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '8px 12px', fontSize: 13 }}>
+                <span style={{ color: '#111' }}>{s.name} <span style={{ color: '#bbb', fontSize: 11 }}>{s.type}</span></span>
+                <span style={{ color: '#666', fontSize: 12 }}>recency {s.recency} · community {s.community}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -2033,6 +2093,7 @@ export default function AdminPage() {
         {tab === 7 && <EpisodeArchive />}
         {tab === 8 && <FeaturedContent />}
         {tab === 9 && <Settings />}
+        {tab === 10 && <ScoringTab />}
       </div>
     </div>
   );
