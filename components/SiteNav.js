@@ -11,7 +11,7 @@ export default function SiteNav() {
   const { user, profile, signOut, signInWithGoogle } = useAuth();
   const { count: bookmarkCount } = useBookmarks();
   const [showMenu, setShowMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
