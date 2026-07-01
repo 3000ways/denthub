@@ -185,6 +185,10 @@ export default function About() {
               style={{ fontSize:14, color:GREEN, fontWeight:600, textDecoration:'none' }}>
               hello@thedentalcommute.com
             </a>
+
+            <p style={{ fontSize:13, color:'#aaa', lineHeight:1.65, margin:'20px 0 0', fontStyle:'italic' }}>
+              📬 Suggestions and positive feedback go to Dr. Ionescu. Complaints go directly to YODA_Bot, who will process them with patience, wisdom, and zero emotional response.
+            </p>
           </div>
 
         </div>
