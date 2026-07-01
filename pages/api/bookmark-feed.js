@@ -4,6 +4,8 @@
 // returns their most recent episodes/videos merged and sorted by date.
 // Same live-RSS approach as /api/spotlight, but pointed at the user's shows.
 
+import { supabase } from '../../lib/supabase';
+
 const AIRTABLE_BASE  = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
 const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
 const AIRTABLE_PAT   = process.env.AIRTABLE_PAT;
@@ -138,6 +140,19 @@ export default async function handler(req, res) {
     .filter(e => e.sortDate > 0)
     .sort((a, b) => b.sortDate - a.sortDate)
     .slice(0, MAX_ITEMS);
+
+  // Attach archive episode IDs (matched by audio_url) so podcast cards can
+  // deep-link to the per-episode page. Items not yet harvested simply don't get
+  // one and fall back to the show page.
+  try {
+    const audioUrls = episodes.filter(e => e.type === 'podcast' && e.url).map(e => e.url);
+    if (audioUrls.length) {
+      const { data: rows } = await supabase.from('episodes').select('id, audio_url').in('audio_url', audioUrls);
+      const idByUrl = {};
+      (rows || []).forEach(r => { if (r.audio_url) idByUrl[r.audio_url] = r.id; });
+      episodes.forEach(e => { if (e.type === 'podcast' && idByUrl[e.url]) e.episodeId = idByUrl[e.url]; });
+    }
+  } catch {}
 
   const data = { episodes, followedShows: shows.length, fetchedAt: new Date().toISOString() };
   cache.set(key, { data, time: Date.now() });

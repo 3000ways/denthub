@@ -228,11 +228,22 @@ export default function MyListening() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 10, color: GREEN, fontWeight: 600, letterSpacing: '0.06em',
                         textTransform: 'uppercase', marginBottom: 3 }}>{ep.show_name}</div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: isActive ? GREEN : '#111',
-                        lineHeight: 1.3, marginBottom: 6, fontFamily: FONT_DISPLAY,
-                        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {ep.title}
-                      </div>
+                      {ep.id ? (
+                        <Link href={`/episode/${ep.id}`} title="View episode"
+                          style={{ display: 'block', fontSize: 14, fontWeight: 600, color: isActive ? GREEN : '#111',
+                            lineHeight: 1.3, marginBottom: 6, fontFamily: FONT_DISPLAY, textDecoration: 'none',
+                            overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+                          onMouseEnter={e => e.currentTarget.style.textDecoration='underline'}
+                          onMouseLeave={e => e.currentTarget.style.textDecoration='none'}>
+                          {ep.title}
+                        </Link>
+                      ) : (
+                        <div style={{ fontSize: 14, fontWeight: 600, color: isActive ? GREEN : '#111',
+                          lineHeight: 1.3, marginBottom: 6, fontFamily: FONT_DISPLAY,
+                          overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {ep.title}
+                        </div>
+                      )}
 
                       {/* Progress bar for in-progress */}
                       {!row.completed && progressPct > 0 && (

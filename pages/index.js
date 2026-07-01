@@ -522,10 +522,20 @@ function EpisodeCard({ ep }) {
       {/* Text */}
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:10, color:GREEN, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:4 }}>{ep.podcast}</div>
-        <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:5, fontFamily:FONT_DISPLAY,
-          overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
-          {ep.title}
-        </div>
+        {ep.id ? (
+          <Link href={`/episode/${ep.id}`} title="View episode"
+            style={{ display:'block', fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:5, fontFamily:FONT_DISPLAY, textDecoration:'none',
+              overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}
+            onMouseEnter={e => e.currentTarget.style.textDecoration='underline'}
+            onMouseLeave={e => e.currentTarget.style.textDecoration='none'}>
+            {ep.title}
+          </Link>
+        ) : (
+          <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:5, fontFamily:FONT_DISPLAY,
+            overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+            {ep.title}
+          </div>
+        )}
         {ep.description && (
           <div style={{ fontSize:12, color:'#999', lineHeight:1.5, marginBottom:6,
             overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>

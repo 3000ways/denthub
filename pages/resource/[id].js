@@ -260,10 +260,20 @@ function EpisodeCard({ ep, isNew }) {
 
       {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? GREEN : '#111', lineHeight: 1.3, marginBottom: 2,
-          overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-          {ep.title}
-        </div>
+        {ep.id ? (
+          <Link href={`/episode/${ep.id}`} title="View episode"
+            style={{ fontSize: 13, fontWeight: 600, color: isActive ? GREEN : '#111', lineHeight: 1.3, marginBottom: 2, textDecoration: 'none',
+              overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+            onMouseEnter={e => e.currentTarget.style.textDecoration='underline'}
+            onMouseLeave={e => e.currentTarget.style.textDecoration='none'}>
+            {ep.title}
+          </Link>
+        ) : (
+          <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? GREEN : '#111', lineHeight: 1.3, marginBottom: 2,
+            overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            {ep.title}
+          </div>
+        )}
         {ep.description && (
           <div style={{ fontSize: 11, color: '#888', lineHeight: 1.4, overflow: 'hidden',
             display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>

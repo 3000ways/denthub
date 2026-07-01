@@ -108,8 +108,8 @@ function FeedCard({ item }) {
         </div>
       </div>
 
-      {/* Text — clicking navigates to resource page */}
-      <Link href={`/resource/${item.resourceId}`} style={{ display:'block', padding:'12px 14px 14px', textDecoration:'none', color:'inherit' }}>
+      {/* Text — clicking opens the episode page (falls back to the show page) */}
+      <Link href={item.episodeId ? `/episode/${item.episodeId}` : `/resource/${item.resourceId}`} style={{ display:'block', padding:'12px 14px 14px', textDecoration:'none', color:'inherit' }}>
         <div style={{ fontSize:10, color:accent, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.show}</div>
         <div style={{ fontSize:13, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
           display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</div>

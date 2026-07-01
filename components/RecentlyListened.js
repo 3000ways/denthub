@@ -84,8 +84,8 @@ function RecentCard({ ep }) {
         )}
       </div>
 
-      {/* Text — clicking navigates to the podcast's resource page */}
-      <Link href={`/resource/${ep.show_resource_id}`} style={{ display:'block', padding:'10px 10px 12px', textDecoration:'none', color:'inherit' }}>
+      {/* Text — clicking opens the episode page (falls back to the show page) */}
+      <Link href={ep.episode_id ? `/episode/${ep.episode_id}` : `/resource/${ep.show_resource_id}`} style={{ display:'block', padding:'10px 10px 12px', textDecoration:'none', color:'inherit' }}>
         <div style={{ fontSize:11, color:GREEN, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5,
           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ep.show_name}</div>
         <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
