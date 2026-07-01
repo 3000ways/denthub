@@ -12,6 +12,7 @@ import { RecentlyListened } from '../components/RecentlyListened';
 import { FeaturedBooks } from '../components/FeaturedBooks';
 import { FeaturedCards } from '../components/FeaturedCards';
 import { CommunitySection } from '../components/Community';
+import { Pinboard } from '../components/Pinboard';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -1159,6 +1160,9 @@ export default function Home({ initialResources }) {
                 )}
               </div>
             )}
+
+            {/* Community Pinboard — resources fellow dentists tacked up */}
+            <Pinboard resources={resources} isMobile={isMobile} />
 
             {/* Featured sections — one per resource category */}
             <FeaturedCards section="Podcasts"    title="Featured Podcasts"          subtitle="Editor's picks" isMobile={isMobile} />

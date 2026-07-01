@@ -120,6 +120,7 @@ export default function ProfilePage() {
       // Delete all user data from Supabase, then delete the auth user via API
       await supabase.from('listening_progress').delete().eq('user_id', user.id);
       await supabase.from('bookmarks').delete().eq('user_id', user.id);
+      await supabase.from('pins').delete().eq('user_id', user.id);
       await supabase.from('profiles').delete().eq('id', user.id);
       const { data: { session } } = await supabase.auth.getSession();
       await fetch('/api/delete-account', {

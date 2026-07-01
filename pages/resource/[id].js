@@ -6,6 +6,7 @@ import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
 import { BookmarkButton } from '../../components/BookmarkButton';
+import { PinButton } from '../../components/PinButton';
 import { usePlayer } from '../../lib/player-context';
 import { supabase } from '../../lib/supabase';
 
@@ -423,6 +424,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
                 </a>
               )}
               <BookmarkButton resourceId={record.id} variant="labeled" kind={(isPodcast || isYouTube) ? 'follow' : 'save'} onSignInRequired={() => setShowSignIn(true)} />
+              <PinButton resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
             </div>
           </div>
 
