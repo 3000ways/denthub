@@ -641,33 +641,33 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
           )}
 
           {/* Claim this page */}
-          <div style={{ marginTop: 40, textAlign: 'center', background: 'rgba(255,255,255,0.55)', border: `1px solid ${BORDER}`, borderRadius: 14, padding: '24px 28px' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#333', marginBottom: 6 }}>Are you the creator of {f.Name}?</div>
-            <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6, marginBottom: 14, maxWidth: 460, margin: '0 auto 14px' }}>
-              This is your page. Correct the info, add your links, or ask us to remove it — whatever you need.
-            </div>
+          <div style={{ marginTop: 40, textAlign: 'center' }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>
+              Are you the creator of {f.Name}? You can correct the info, add your links, or ask us to remove this page.{' '}
+            </span>
             <a
               href={`mailto:hello@thedentalcommute.com?subject=${encodeURIComponent(`Claim page: ${f.Name}`)}&body=${encodeURIComponent(
                 `Hi,\n\nMy name is [Your Name] and my email is [Your Email].\n\nI'm the creator/owner of ${f.Name}. I'd like to:\n\n- [ ] Correct information on this page\n- [ ] Add or update my links (website, subscribe, support/Patreon)\n- [ ] Request removal from The Dental Commute\n\nDetails:\n\n`
               )}`}
-              style={{ fontSize: 13, fontWeight: 600, color: GREEN, textDecoration: 'none', border: `1px solid ${GREEN}`, borderRadius: 6, padding: '9px 18px', display: 'inline-block' }}
-              onMouseEnter={e => { e.currentTarget.style.background = GREEN; e.currentTarget.style.color = '#fff'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = GREEN; }}
+              style={{ fontSize: 12, fontWeight: 600, color: '#999', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: 1, whiteSpace: 'nowrap' }}
+              onMouseEnter={e => e.currentTarget.style.color = GREEN}
+              onMouseLeave={e => e.currentTarget.style.color = '#999'}
             >
               Claim this page →
             </a>
           </div>
 
         </div>
+
+        <div style={{ borderTop:'1px solid #e8e8e8', marginTop:40 }}>
+          <div style={{ maxWidth:1140, margin:'0 auto', padding:'20px 28px' }}>
+            <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
+          </div>
+        </div>
       </div>
 
       {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
       {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
-      <div style={{ borderTop:'1px solid #e8e8e8', marginTop:40 }}>
-        <div style={{ maxWidth:1140, margin:'0 auto', padding:'20px 28px' }}>
-          <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
-        </div>
-      </div>
     </>
   );
 }
