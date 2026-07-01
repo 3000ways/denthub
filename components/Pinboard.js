@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth-context';
 import { attributionLine } from '../lib/pins';
 
 const FONT = "'Inter', sans-serif";
@@ -40,7 +41,9 @@ function Thumbtack() {
 
 // `item` is a normalized card: { href, name, typeLabel, image, initial } —
 // built from either an Airtable resource or an archived episode.
-function PinCard({ pin, item, isMobile }) {
+// When `isOwn`, a small ✕ lets the pinner remove their own pin (which also
+// frees their pin for the day).
+function PinCard({ pin, item, isMobile, isOwn, onUnpin }) {
   const tilt = tiltFor(pin.id, isMobile);
   const [hover, setHover] = useState(false);
 
@@ -67,6 +70,21 @@ function PinCard({ pin, item, isMobile }) {
       }}
     >
       <Thumbtack />
+      {isOwn && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onUnpin(pin.id); }}
+          title="Remove your pin (frees your pin for today)"
+          aria-label="Remove your pin"
+          style={{
+            position: 'absolute', top: -8, right: -8, zIndex: 4,
+            width: 22, height: 22, borderRadius: '50%', border: 'none',
+            background: '#fff', color: '#c0392b', cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.35)', fontSize: 12, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+          }}>
+          ✕
+        </button>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
         {item.image
           ? <img src={item.image} alt={item.name}
@@ -90,9 +108,17 @@ function PinCard({ pin, item, isMobile }) {
 }
 
 export function Pinboard({ resources = [], isMobile = false }) {
+  const { user } = useAuth();
   const [pins, setPins] = useState([]);
   const [episodesById, setEpisodesById] = useState({});
   const [loaded, setLoaded] = useState(false);
+
+  // Remove the current user's own pin from the board (RLS enforces ownership).
+  // Deleting the row also frees their pin for the day.
+  async function unpin(pinId) {
+    const { error } = await supabase.from('pins').delete().eq('id', pinId);
+    if (!error) setPins(prev => prev.filter(p => p.id !== pinId));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +126,7 @@ export function Pinboard({ resources = [], isMobile = false }) {
     // available, then keep the newest SLOTS that resolve.
     supabase
       .from('pins')
-      .select('id, resource_id, episode_id, pinner_specialty, pinner_region, is_anonymous, created_at')
+      .select('id, user_id, resource_id, episode_id, pinner_specialty, pinner_region, is_anonymous, created_at')
       .order('created_at', { ascending: false })
       .limit(SLOTS * 4)
       .then(async ({ data }) => {
@@ -184,7 +210,8 @@ export function Pinboard({ resources = [], isMobile = false }) {
           alignItems: 'start',
         }}>
           {cards.map(c => (
-            <PinCard key={c.pin.id} pin={c.pin} item={c.item} isMobile={isMobile} />
+            <PinCard key={c.pin.id} pin={c.pin} item={c.item} isMobile={isMobile}
+              isOwn={!!user && c.pin.user_id === user.id} onUnpin={unpin} />
           ))}
         </div>
       </div>
