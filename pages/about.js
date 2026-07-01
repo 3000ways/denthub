@@ -21,10 +21,9 @@ export default function About() {
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
       <div style={{ height:3, background:GREEN }} />
 
-      <div style={{ maxWidth:720, margin:'0 auto', padding:'0 28px 100px' }}>
-
-        {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:64, borderBottom:`1px solid ${BORDER}`, marginBottom:60 }}>
+      {/* Sticky nav */}
+      <div style={{ position:'sticky', top:0, zIndex:200, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', borderBottom:`1px solid ${BORDER}` }}>
+        <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 28px', height:56, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
           <Link href="/">
             <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto', display:'block' }} />
           </Link>
@@ -35,6 +34,9 @@ export default function About() {
             </Link>
           </div>
         </div>
+      </div>
+
+      <div style={{ maxWidth:720, margin:'0 auto', padding:'40px 28px 100px' }}>
 
         {/* Content */}
         <div style={{ maxWidth:560 }}>

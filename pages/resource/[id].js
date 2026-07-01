@@ -358,8 +358,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
 
         {/* Header */}
         <div style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${BORDER}`, background: 'rgba(245,242,235,0.97)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-          <div style={{ height: 3, background: GREEN }} />
-          <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Link href="/">
               <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto' }} />
             </Link>

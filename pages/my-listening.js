@@ -89,19 +89,20 @@ export default function MyListening() {
 
         <div style={{ height: 3, background: GREEN }} />
 
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 28px 100px' }}>
-
-          {/* Nav */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-            padding: '20px 0 18px', borderBottom: `1px solid ${BORDER}`, marginBottom: 40 }}>
+        {/* Sticky nav */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 200, background: 'rgba(245,242,235,0.97)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderBottom: `1px solid ${BORDER}` }}>
+          <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
             <Link href="/" style={{ flexShrink: 0 }}>
               <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto', display: 'block' }} />
             </Link>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-              <Link href="/about" style={{ fontSize: 13, color: '#111', textDecoration: 'none', fontWeight: 500 }}>About</Link>
-              <Link href="/" style={{ fontSize: 13, color: '#666', textDecoration: 'none' }}>← Back to directory</Link>
+              <Link href="/about" style={{ fontSize: 13, color: '#777', textDecoration: 'none', fontWeight: 500 }}>About</Link>
+              <Link href="/" style={{ fontSize: 13, color: '#777', textDecoration: 'none', fontWeight: 500 }}>← Directory</Link>
             </div>
           </div>
+        </div>
+
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 28px 100px' }}>
 
           {/* Page title */}
           <div style={{ marginBottom: 32 }}>
