@@ -175,7 +175,12 @@ function SmallLogo({ url, name, imageUrl, size = 40 }) {
 
 function EpisodeCard({ ep, isNew }) {
   const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
-  const isActive = currentEpisode?.id === ep.id;
+  // Guard: currentEpisode must be non-null. Compare by id when available,
+  // fall back to audio_url so un-archived episodes don't all match (undefined === undefined).
+  const isActive = !!(currentEpisode && (
+    (ep.id && currentEpisode.id && ep.id === currentEpisode.id) ||
+    (!ep.id && ep.audio_url && currentEpisode.audio_url === ep.audio_url)
+  ));
   const isListened = ep.id && completedIds?.has(ep.id);
 
   async function handlePlay(e) {
