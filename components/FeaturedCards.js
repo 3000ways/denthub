@@ -139,7 +139,7 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
           </div>
         )}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gap: isMobile ? 8 : 12, alignItems: 'stretch' }}>
         {display.map(r => <ResourceCard key={r.id} record={r} artworkUrl={artworkMap[r.id]} />)}
       </div>

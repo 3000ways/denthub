@@ -83,7 +83,7 @@ export function FeaturedBooks({ isMobile = false }) {
         <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Featured Books</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Editor&rsquo;s picks</div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : Math.min(display.length, 6)}, 1fr)`, gap: isMobile ? 8 : 12 }}>
+      <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : Math.min(display.length, 6)}, minmax(0, 1fr))`, gap: isMobile ? 8 : 12 }}>
         {display.map(r => <BookCard key={r.id} record={r} isMobile={isMobile} />)}
       </div>
     </div>
