@@ -5,6 +5,8 @@ import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
 import { BookmarkButton } from '../../components/BookmarkButton';
+import { usePlayer } from '../../lib/player-context';
+import { supabase } from '../../lib/supabase';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -171,22 +173,79 @@ function SmallLogo({ url, name, imageUrl, size = 40 }) {
 }
 
 function EpisodeCard({ ep, isNew }) {
+  const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
+  const isActive = currentEpisode?.id === ep.id;
+  const isListened = ep.id && completedIds?.has(ep.id);
+
+  function handlePlay(e) {
+    e.preventDefault();
+    if (isActive) {
+      isPlaying ? pause() : resume();
+    } else {
+      play(ep);
+    }
+  }
+
   return (
-    <a href={ep.audioUrl || '#'} target="_blank" rel="noopener noreferrer"
-      style={{ display: 'flex', gap: 12, textDecoration: 'none', color: 'inherit', alignItems: 'center', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 12px', transition: 'border-color 0.15s' }}
+    <div
+      style={{ display: 'flex', gap: 12, alignItems: 'center', background: '#fff',
+        border: `1px solid ${isActive ? GREEN : BORDER}`, borderRadius: 8, padding: '10px 12px', transition: 'border-color 0.15s' }}
       onMouseEnter={e => e.currentTarget.style.borderColor = GREEN}
-      onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
-      {ep.image && <img src={ep.image} alt={ep.title} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#111', lineHeight: 1.3, marginBottom: 2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ep.title}</div>
-        {ep.description && <div style={{ fontSize: 11, color: '#888', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{ep.description}</div>}
-        <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>
-          {isNew && <span style={{ color: GREEN, fontWeight: 600, marginRight: 6 }}>New</span>}
-          {ep.date}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = BORDER; }}>
+
+      {/* Artwork / play button */}
+      <div onClick={handlePlay} style={{ position: 'relative', flexShrink: 0, cursor: 'pointer' }}>
+        {ep.image
+          ? <img src={ep.image} alt={ep.title} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
+          : <div style={{ width: 44, height: 44, borderRadius: 6, background: '#f0ede8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ccc' }}>🎙</div>
+        }
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 6, background: 'rgba(0,0,0,0.32)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          opacity: isActive ? 1 : 0, transition: 'opacity 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+          onMouseLeave={e => { if (!isActive) e.currentTarget.style.opacity = '0'; }}>
+          <span style={{ color: '#fff', fontSize: 14 }}>{isActive && isPlaying ? '⏸' : '▶'}</span>
         </div>
       </div>
-      <span style={{ fontSize: 11, color: GREEN, fontWeight: 500, flexShrink: 0 }}>Listen →</span>
-    </a>
+
+      {/* Text */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? GREEN : '#111', lineHeight: 1.3, marginBottom: 2,
+          overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          {ep.title}
+        </div>
+        {ep.description && (
+          <div style={{ fontSize: 11, color: '#888', lineHeight: 1.4, overflow: 'hidden',
+            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
+            {ep.description}
+          </div>
+        )}
+        <div style={{ fontSize: 11, color: '#bbb', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isNew && <span style={{ color: GREEN, fontWeight: 600 }}>New</span>}
+          {ep.date && <span>{ep.date}</span>}
+          {isListened && (
+            <span style={{ color: GREEN, fontWeight: 600, background: '#E8F5F0', borderRadius: 4, padding: '1px 5px', fontSize: 10 }}>
+              ✓ Listened
+            </span>
+          )}
+          {isActive && isPlaying && <span style={{ color: GREEN, fontWeight: 600 }}>▶ Playing</span>}
+        </div>
+      </div>
+
+      {/* Play / open actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
+        <button onClick={handlePlay}
+          style={{ fontSize: 11, color: GREEN, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
+          {isActive && isPlaying ? 'Pause' : isActive ? 'Resume' : '▶ Play'}
+        </button>
+        {ep.audioUrl && (
+          <a href={ep.audioUrl} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 10, color: '#ccc', textDecoration: 'none' }}>
+            Open →
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -201,6 +260,8 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
   const isPodcast = f.Type === 'Podcast';
   const isYouTube = f.Type === 'YouTube';
   const isBook    = f.Type === 'Book';
+  // Map of audio_url -> Supabase episode id, built from our archive
+  const [episodeIdMap, setEpisodeIdMap] = useState({});
 
   useEffect(() => {
     if (isPodcast && f['RSS Feed URL']) {
@@ -213,6 +274,22 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
         .catch(() => {});
     }
   }, [record.id]);
+
+  // Look up Supabase episode IDs for this podcast so the player can track progress
+  useEffect(() => {
+    if (!isPodcast) return;
+    supabase
+      .from('episodes')
+      .select('id, audio_url, show_name, image, duration_seconds, show_resource_id')
+      .eq('show_resource_id', record.id)
+      .limit(100)
+      .then(({ data }) => {
+        if (!data) return;
+        const map = {};
+        data.forEach(ep => { if (ep.audio_url) map[ep.audio_url] = ep; });
+        setEpisodeIdMap(map);
+      });
+  }, [record.id, isPodcast]);
 
   const score = f['Final Score'] ? (f['Final Score'] % 1 === 0 ? f['Final Score'].toString() : f['Final Score'].toFixed(1)) : null;
   const breakdown = [
@@ -427,7 +504,11 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
             <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Recent Episodes</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {podData.recent.map((ep, i) => <EpisodeCard key={i} ep={ep} isNew={i === 0} />)}
+                {podData.recent.map((ep, i) => {
+                  const archived = episodeIdMap[ep.audioUrl];
+                  const enriched = archived ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl } : { ...ep, audio_url: ep.audioUrl, show_name: f.Name };
+                  return <EpisodeCard key={i} ep={enriched} isNew={i === 0} />;
+                })}
               </div>
             </div>
           )}
@@ -440,7 +521,11 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
               </div>
               <div style={{ fontSize: 12, color: '#bbb', marginBottom: 16 }}>Classic episodes still in the feed — evergreen content worth revisiting.</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {podData.notable.map((ep, i) => <EpisodeCard key={i} ep={ep} isNew={false} />)}
+                {podData.notable.map((ep, i) => {
+                  const archived = episodeIdMap[ep.audioUrl];
+                  const enriched = archived ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl } : { ...ep, audio_url: ep.audioUrl, show_name: f.Name };
+                  return <EpisodeCard key={i} ep={enriched} isNew={false} />;
+                })}
               </div>
             </div>
           )}
