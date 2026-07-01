@@ -104,13 +104,14 @@ export function PinButton({ resourceId, onSignInRequired }) {
             📌 {previewLine}
           </div>
 
-          {/* Nudge when there's no specialty to attribute. */}
-          {!hasSpecialty && (
+          {/* Nudge to complete the profile when the attribution is missing the
+              specialty and/or the region (skipped when pinning anonymously). */}
+          {!effectiveAnon && (!hasSpecialty || !region) && (
             <div style={{ fontSize: 11, color: '#8a6d3b', background: '#fcf6e6', border: '1px solid #f2e4bf',
               borderRadius: 6, padding: '8px 10px', marginBottom: 12, lineHeight: 1.45 }}>
-              Add your specialty &amp; region in your{' '}
+              Add your {!hasSpecialty ? 'specialty & region' : 'region'} in your{' '}
               <Link href="/profile" style={{ color: GREEN, fontWeight: 600 }}>profile</Link>{' '}
-              so your pins show where they&rsquo;re from. You can still pin now.
+              so your pin shows {!hasSpecialty ? 'who and where' : 'where'} it&rsquo;s from. You can still pin now.
             </div>
           )}
 
