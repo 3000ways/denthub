@@ -780,6 +780,11 @@ export default function Home({ initialResources }) {
                 </button>
                 {showUserMenu && (
                   <div style={{ position:'absolute', top:'calc(100% + 10px)', right:0, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, boxShadow:'0 4px 20px rgba(0,0,0,0.08)', minWidth:150, zIndex:200, overflow:'hidden' }}>
+                    <a href="/my-listening" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
+                      onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+                      onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+                      🎧 My Listening
+                    </a>
                     <a href="/profile" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
                       onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
                       onMouseLeave={e => e.currentTarget.style.background='#fff'}>

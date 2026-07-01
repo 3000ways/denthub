@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
+import { supabase } from '../lib/supabase';
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedResources, setSavedResources] = useState([]);
+  const [listenStats, setListenStats] = useState(null);
 
   // Pull resource details so we can preview a few bookmarks here.
   useEffect(() => {
@@ -38,6 +40,32 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(res => setSavedResources(res.records || []))
       .catch(() => setSavedResources([]));
+  }, [user]);
+
+  // Fetch listening stats from Supabase
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('listening_progress')
+      .select(`
+        completed, position_seconds, duration_seconds, completed_at, listened_at,
+        episodes ( id, title, show_name, image )
+      `)
+      .eq('user_id', user.id)
+      .order('listened_at', { ascending: false })
+      .then(({ data }) => {
+        if (!data) return;
+        const completed = data.filter(r => r.completed);
+        const inProgress = data.filter(r => !r.completed);
+        const totalSeconds = completed.reduce((sum, r) => sum + (r.duration_seconds || 0), 0);
+        setListenStats({
+          completedCount: completed.length,
+          inProgressCount: inProgress.length,
+          totalHours: Math.floor(totalSeconds / 3600),
+          totalMins: Math.floor((totalSeconds % 3600) / 60),
+          recent: completed.slice(0, 3),
+        });
+      });
   }, [user]);
 
   useEffect(() => {
@@ -166,6 +194,79 @@ export default function ProfilePage() {
             </div>
 
           </form>
+
+          {/* CE / Listening */}
+          <div style={{ marginTop:56, paddingTop:36, borderTop:`1px solid ${BORDER}` }}>
+            <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:18 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'#111', letterSpacing:0.2 }}>Listening & CE Tracking</div>
+              {listenStats?.completedCount > 0 && (
+                <Link href="/my-listening" style={{ fontSize:12, color:GREEN, fontWeight:500, textDecoration:'none' }}>View full history →</Link>
+              )}
+            </div>
+
+            {/* Stats row */}
+            {listenStats && listenStats.completedCount > 0 ? (
+              <>
+                <div style={{ display:'flex', gap:12, marginBottom:24, flexWrap:'wrap' }}>
+                  <div style={{ background:'#E8F5F0', borderRadius:8, padding:'14px 20px', minWidth:100, flex:1 }}>
+                    <div style={{ fontSize:24, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1 }}>
+                      {listenStats.completedCount}
+                    </div>
+                    <div style={{ fontSize:11, color:'#555', marginTop:4 }}>Episodes listened</div>
+                  </div>
+                  {(listenStats.totalHours > 0 || listenStats.totalMins > 0) && (
+                    <div style={{ background:'#f9f9f9', borderRadius:8, padding:'14px 20px', minWidth:100, flex:1 }}>
+                      <div style={{ fontSize:24, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>
+                        {listenStats.totalHours > 0 ? `${listenStats.totalHours}h ${listenStats.totalMins}m` : `${listenStats.totalMins}m`}
+                      </div>
+                      <div style={{ fontSize:11, color:'#555', marginTop:4 }}>Total time listened</div>
+                    </div>
+                  )}
+                  {listenStats.inProgressCount > 0 && (
+                    <div style={{ background:'#f9f9f9', borderRadius:8, padding:'14px 20px', minWidth:100, flex:1 }}>
+                      <div style={{ fontSize:24, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>
+                        {listenStats.inProgressCount}
+                      </div>
+                      <div style={{ fontSize:11, color:'#555', marginTop:4 }}>In progress</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent listens */}
+                {listenStats.recent.length > 0 && (
+                  <div style={{ borderTop:`1px solid ${BORDER}` }}>
+                    <div style={{ fontSize:11, color:'#aaa', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', padding:'12px 0 10px' }}>Recently listened</div>
+                    {listenStats.recent.map((row, i) => {
+                      const ep = row.episodes;
+                      if (!ep) return null;
+                      const date = row.completed_at ? new Date(row.completed_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null;
+                      return (
+                        <div key={i} style={{ display:'flex', gap:12, alignItems:'center', padding:'10px 0', borderBottom:`0.5px solid ${BORDER}` }}>
+                          {ep.image
+                            ? <img src={ep.image} alt={ep.title} style={{ width:36, height:36, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
+                            : <div style={{ width:36, height:36, borderRadius:5, background:'#f0ede8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>🎙</div>
+                          }
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:13, fontWeight:500, color:'#111', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>{ep.title}</div>
+                            <div style={{ fontSize:11, color:'#888' }}>{ep.show_name}{date ? ` · ${date}` : ''}</div>
+                          </div>
+                          <span style={{ fontSize:10, color:GREEN, fontWeight:600, background:'#E8F5F0', borderRadius:4, padding:'2px 7px', flexShrink:0 }}>✓</span>
+                        </div>
+                      );
+                    })}
+                    <Link href="/my-listening" style={{ display:'block', fontSize:12, color:GREEN, fontWeight:500, textDecoration:'none', padding:'14px 0 2px' }}>
+                      View full history & CE log →
+                    </Link>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize:13, color:'#aaa' }}>
+                No listening history yet.{' '}
+                <Link href="/" style={{ color:GREEN, textDecoration:'none', fontWeight:500 }}>Browse episodes →</Link>
+              </div>
+            )}
+          </div>
 
           {/* Saved resources */}
           <div style={{ marginTop:56, paddingTop:36, borderTop:`1px solid ${BORDER}` }}>
