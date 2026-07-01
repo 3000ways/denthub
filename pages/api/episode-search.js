@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await supabase
       .from('episodes')
-      .select('id, show_name, title, description, published_at, link, audio_url, image, duration_seconds')
+      .select('id, show_resource_id, show_name, title, description, published_at, link, audio_url, image, duration_seconds')
       .textSearch('fts', q.trim(), { type: 'websearch', config: 'english' })
       .order('published_at', { ascending: false, nullsFirst: false })
       .limit(maxN);
@@ -42,15 +42,19 @@ export default async function handler(req, res) {
     if (error) throw new Error(error.message);
 
     const episodes = (data || []).map(ep => ({
-      id:          ep.id,
-      title:       ep.title,
-      podcast:     ep.show_name,
-      date:        formatDate(ep.published_at),
-      description: ep.description ? ep.description.slice(0, 220) : null,
-      image:       ep.image || null,
-      url:         ep.link || null,
-      audioUrl:    ep.audio_url || null,
-      duration:    formatDuration(ep.duration_seconds),
+      id:               ep.id,
+      title:            ep.title,
+      podcast:          ep.show_name,
+      show_name:        ep.show_name,
+      show_resource_id: ep.show_resource_id,
+      date:             formatDate(ep.published_at),
+      description:      ep.description ? ep.description.slice(0, 220) : null,
+      image:            ep.image || null,
+      url:              ep.link || null,
+      audio_url:        ep.audio_url || null,
+      audioUrl:         ep.audio_url || null,
+      duration:         formatDuration(ep.duration_seconds),
+      duration_seconds: ep.duration_seconds || null,
     }));
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');

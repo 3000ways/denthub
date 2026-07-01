@@ -2,15 +2,31 @@ import Head from 'next/head';
 import Script from 'next/script';
 import { AuthProvider } from '../lib/auth-context';
 import { BookmarkProvider } from '../lib/bookmarks-context';
+import { PlayerProvider, usePlayer } from '../lib/player-context';
+import PlayerBar from '../components/PlayerBar';
 
 // Google Analytics 4 Measurement ID. Public by design (it ships in the page),
 // so a hardcoded fallback is fine; can be overridden via a Vercel env var.
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-NHEQGSKG9D';
 
+// Inner shell: reads PlayerContext to add bottom padding when the bar is visible
+function AppShell({ Component, pageProps }) {
+  const { currentEpisode } = usePlayer();
+  return (
+    <>
+      <div style={{ paddingBottom: currentEpisode ? 80 : 0 }}>
+        <Component {...pageProps} />
+      </div>
+      <PlayerBar />
+    </>
+  );
+}
+
 export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
     <BookmarkProvider>
+    <PlayerProvider>
       <Head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -37,7 +53,8 @@ export default function App({ Component, pageProps }) {
           </Script>
         </>
       )}
-      <Component {...pageProps} />
+      <AppShell Component={Component} pageProps={pageProps} />
+    </PlayerProvider>
     </BookmarkProvider>
     </AuthProvider>
   );

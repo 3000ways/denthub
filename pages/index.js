@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
+import { usePlayer } from '../lib/player-context';
 import { SignInModal, OnboardingModal } from '../components/AuthModal';
 import { BookmarkButton } from '../components/BookmarkButton';
 import { BookmarkFeed } from '../components/BookmarkFeed';
@@ -357,28 +358,47 @@ function SpotlightCard({ item }) {
 
 function EpisodeCard({ ep }) {
   const [imgErr, setImgErr] = useState(false);
+  const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
   const mins = ep.duration;
+  const isActive = currentEpisode?.id === ep.id;
+  const isListened = completedIds?.has(ep.id);
+
+  function handlePlay(e) {
+    e.preventDefault();
+    if (isActive) {
+      isPlaying ? pause() : resume();
+    } else {
+      play(ep);
+    }
+  }
 
   return (
-    <a href={ep.audioUrl || ep.url || '#'} target="_blank" rel="noopener noreferrer"
-      style={{ display:'flex', gap:14, padding:'16px 0', borderBottom:`1px solid ${BORDER}`, textDecoration:'none', color:'inherit', alignItems:'flex-start' }}
-      onMouseEnter={e => { e.currentTarget.style.opacity='0.8'; }}
-      onMouseLeave={e => { e.currentTarget.style.opacity='1'; }}
-    >
-      {/* Thumbnail */}
-      <div style={{ width:64, height:64, borderRadius:6, overflow:'hidden', background:'#f0ede8', flexShrink:0 }}>
+    <div style={{ display:'flex', gap:14, padding:'16px 0', borderBottom:`1px solid ${BORDER}`, alignItems:'flex-start' }}>
+      {/* Thumbnail — clicking it plays */}
+      <div
+        onClick={handlePlay}
+        style={{ width:64, height:64, borderRadius:6, overflow:'hidden', background:'#f0ede8', flexShrink:0,
+          cursor:'pointer', position:'relative' }}>
         {ep.image && !imgErr ? (
           <img src={ep.image} alt={ep.title} onError={() => setImgErr(true)}
             style={{ width:'100%', height:'100%', objectFit:'cover' }} />
         ) : (
           <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:'#ccc' }}>🎙</div>
         )}
+        {/* Play overlay */}
+        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
+          background: isActive ? 'rgba(15,110,86,0.7)' : 'rgba(0,0,0,0.3)',
+          opacity: isActive ? 1 : 0, transition:'opacity 0.15s' }}
+          onMouseEnter={e => { if (!isActive) e.currentTarget.style.opacity='1'; }}
+          onMouseLeave={e => { if (!isActive) e.currentTarget.style.opacity='0'; }}>
+          <span style={{ color:'#fff', fontSize:20 }}>{isActive && isPlaying ? '⏸' : '▶'}</span>
+        </div>
       </div>
 
       {/* Text */}
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:10, color:GREEN, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:4 }}>{ep.podcast}</div>
-        <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:5, fontFamily:FONT_DISPLAY,
+        <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:5, fontFamily:FONT_DISPLAY,
           overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
           {ep.title}
         </div>
@@ -388,13 +408,33 @@ function EpisodeCard({ ep }) {
             {ep.description}
           </div>
         )}
-        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+        <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
           {ep.date && <span style={{ fontSize:11, color:'#bbb' }}>{ep.date}</span>}
           {mins && <span style={{ fontSize:11, color:'#bbb' }}>· {mins}</span>}
-          <span style={{ fontSize:11, color:GREEN, fontWeight:500 }}>Listen →</span>
+          {isListened && (
+            <span style={{ fontSize:10, color:GREEN, fontWeight:600, letterSpacing:'0.05em',
+              background:'#E8F5F0', borderRadius:4, padding:'2px 6px' }}>
+              ✓ Listened
+            </span>
+          )}
+          {isActive && isPlaying && (
+            <span style={{ fontSize:10, color:GREEN, fontWeight:600, letterSpacing:'0.05em' }}>
+              ▶ Now playing
+            </span>
+          )}
+          <button onClick={handlePlay}
+            style={{ fontSize:11, color:GREEN, fontWeight:500, background:'none', border:'none', cursor:'pointer', padding:0 }}>
+            {isActive && isPlaying ? 'Pause' : isActive ? 'Resume' : 'Play ▶'}
+          </button>
+          {ep.url && (
+            <a href={ep.url} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize:11, color:'#bbb', textDecoration:'none' }}>
+              Open →
+            </a>
+          )}
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
