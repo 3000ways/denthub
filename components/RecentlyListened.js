@@ -154,7 +154,7 @@ export function RecentlyListened({ isMobile = false }) {
   if (!user || loading || episodes.length === 0) return null;
 
   return (
-    <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12,
+    <div style={{ marginBottom:28, background:'rgba(255,255,255,0.55)', borderRadius:12,
       padding: isMobile ? '16px 10px 16px' : '28px 28px 24px',
       border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)', fontFamily:FONT_BODY }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
