@@ -34,9 +34,9 @@ export default function SiteNav() {
         height: 53, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         fontFamily: FONT,
       }}>
-        {/* Logo */}
-        <Link href="/" style={{ flexShrink: 0 }}>
-          <img src="/logo.png" alt="The Dental Commute" style={{ height: 36, width: 'auto', display: 'block' }} />
+        {/* Logo — cropped to remove blank padding in image file */}
+        <Link href="/" style={{ flexShrink: 0, overflow: 'hidden', height: 44, display: 'flex', alignItems: 'center' }}>
+          <img src="/wide-logo.png" alt="The Dental Commute" style={{ height: 90, width: 'auto', marginTop: -23, marginBottom: -23, display: 'block' }} />
         </Link>
 
         {/* Right side */}
