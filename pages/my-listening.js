@@ -93,14 +93,24 @@ export default function MyListening() {
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 28px 100px' }}>
 
           {/* Page title */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#999', marginBottom: 14, fontWeight: 500 }}>Your Account</div>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 700, color: '#111', lineHeight: 1.1, margin: '0 0 8px', letterSpacing: -1 }}>
-              My Listening History
-            </h1>
-            <p style={{ fontSize: 14, color: '#888', margin: 0 }}>
-              Episodes you've played or marked as listened.
-            </p>
+          <div style={{ marginBottom: 32, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#999', marginBottom: 14, fontWeight: 500 }}>Your Account</div>
+              <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 700, color: '#111', lineHeight: 1.1, margin: '0 0 8px', letterSpacing: -1 }}>
+                My Listening History
+              </h1>
+              <p style={{ fontSize: 14, color: '#888', margin: 0 }}>
+                Episodes you've played or marked as listened.
+              </p>
+            </div>
+            {user && (
+              <a href="/ce-report" target="_blank" rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: GREEN,
+                  border: `1px solid ${GREEN}`, borderRadius: 5, padding: '9px 18px', textDecoration: 'none',
+                  whiteSpace: 'nowrap', flexShrink: 0 }}>
+                ↓ Export CE Report
+              </a>
+            )}
           </div>
 
           {/* Not signed in */}
