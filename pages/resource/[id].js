@@ -177,13 +177,39 @@ function EpisodeCard({ ep, isNew }) {
   const isActive = currentEpisode?.id === ep.id;
   const isListened = ep.id && completedIds?.has(ep.id);
 
-  function handlePlay(e) {
+  async function handlePlay(e) {
     e.preventDefault();
     if (isActive) {
       isPlaying ? pause() : resume();
-    } else {
-      play(ep);
+      return;
     }
+    // If this episode isn't in our Supabase archive yet, upsert it now so
+    // progress tracking works immediately without waiting for the nightly harvest.
+    let enriched = ep;
+    if (!ep.id && ep.guid && ep.show_resource_id && ep.audio_url) {
+      try {
+        const res = await fetch('/api/upsert-episode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guid:             ep.guid,
+            show_resource_id: ep.show_resource_id,
+            show_name:        ep.show_name,
+            title:            ep.title,
+            description:      ep.description,
+            audio_url:        ep.audio_url,
+            image:            ep.image,
+            published_at:     ep.publishedAt,
+            duration_seconds: ep.durationSeconds,
+          }),
+        });
+        if (res.ok) {
+          const { id } = await res.json();
+          enriched = { ...ep, id };
+        }
+      } catch {}
+    }
+    play(enriched);
   }
 
   return (
@@ -506,7 +532,9 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {podData.recent.map((ep, i) => {
                   const archived = episodeIdMap[ep.audioUrl];
-                  const enriched = archived ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl } : { ...ep, audio_url: ep.audioUrl, show_name: f.Name };
+                  const enriched = archived
+                    ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl }
+                    : { ...ep, audio_url: ep.audioUrl, show_name: f.Name, show_resource_id: record.id };
                   return <EpisodeCard key={i} ep={enriched} isNew={i === 0} />;
                 })}
               </div>
@@ -523,7 +551,9 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {podData.notable.map((ep, i) => {
                   const archived = episodeIdMap[ep.audioUrl];
-                  const enriched = archived ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl } : { ...ep, audio_url: ep.audioUrl, show_name: f.Name };
+                  const enriched = archived
+                    ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl }
+                    : { ...ep, audio_url: ep.audioUrl, show_name: f.Name, show_resource_id: record.id };
                   return <EpisodeCard key={i} ep={enriched} isNew={false} />;
                 })}
               </div>

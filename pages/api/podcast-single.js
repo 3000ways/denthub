@@ -17,6 +17,15 @@ function stripHtml(str) {
   return (str || '').replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#\d+;/g,'').replace(/&[a-z]+;/g,'').replace(/\s+/g,' ').trim();
 }
 
+function parseDuration(str) {
+  if (!str) return null;
+  const parts = str.trim().split(':').map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 1 && !isNaN(parts[0])) return parts[0];
+  return null;
+}
+
 function parseFeed(xml) {
   const showArt = getAttr(xml, 'itunes:image', 'href') || null;
   const itemRegex = /<item[\s>]([\s\S]*?)<\/item>/gi;
@@ -24,20 +33,26 @@ function parseFeed(xml) {
   let match;
   while ((match = itemRegex.exec(xml)) !== null && episodes.length < 30) {
     const item = match[1];
-    const title       = stripHtml(getTag(item, 'title'));
-    const pubDate     = getTag(item, 'pubDate');
-    const audioUrl    = getAttr(item, 'enclosure', 'url');
-    const link        = getTag(item, 'link');
-    const episodeArt  = getAttr(item, 'itunes:image', 'href') || showArt;
-    const description = stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '');
-    const parsedDate  = pubDate ? new Date(pubDate) : null;
+    const title           = stripHtml(getTag(item, 'title'));
+    const pubDate         = getTag(item, 'pubDate');
+    const audioUrl        = getAttr(item, 'enclosure', 'url');
+    const link            = getTag(item, 'link');
+    const episodeArt      = getAttr(item, 'itunes:image', 'href') || showArt;
+    const description     = stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '');
+    const guid            = stripHtml(getTag(item, 'guid')) || audioUrl;
+    const durationRaw     = getTag(item, 'itunes:duration');
+    const durationSeconds = parseDuration(durationRaw);
+    const parsedDate      = pubDate ? new Date(pubDate) : null;
     episodes.push({
-      title:       title || 'Episode',
-      date:        parsedDate ? parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-      timestamp:   parsedDate ? parsedDate.getTime() : 0,
-      audioUrl:    audioUrl || link || null,
-      image:       episodeArt,
-      description: description.slice(0, 200),
+      title:           title || 'Episode',
+      date:            parsedDate ? parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+      publishedAt:     parsedDate ? parsedDate.toISOString() : null,
+      timestamp:       parsedDate ? parsedDate.getTime() : 0,
+      audioUrl:        audioUrl || link || null,
+      image:           episodeArt,
+      description:     description.slice(0, 200),
+      guid:            guid || null,
+      durationSeconds: durationSeconds,
     });
   }
   return { showArt, episodes };
