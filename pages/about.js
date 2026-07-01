@@ -68,6 +68,38 @@ export default function About() {
             </h1>
           </div>
 
+          {/* ── Card 0: Team ── */}
+          <div style={card}>
+            <SectionLabel>The team</SectionLabel>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:32 }}>
+
+              {/* Andrei */}
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+                <img src="/andrei.png" alt="Andrei Ionescu"
+                  style={{ width:100, height:100, borderRadius:'50%', objectFit:'cover',
+                    border:`3px solid ${BORDER}`, marginBottom:16 }} />
+                <div style={{ fontSize:16, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, marginBottom:4 }}>Dr. Andrei Ionescu</div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, marginBottom:12 }}>Founder · Endodontist</div>
+                <p style={{ fontSize:13, color:'#777', lineHeight:1.65, margin:0 }}>
+                  Practicing endodontist and lifelong learner who built The Dental Commute out of frustration with how hard it is to find quality dental education in one place. His commute time became his CE time — and this site is the result.
+                </p>
+              </div>
+
+              {/* YODA_Bot */}
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+                <img src="/yoda-bot.png" alt="YODA_Bot"
+                  style={{ width:100, height:100, borderRadius:'50%', objectFit:'cover',
+                    border:`3px solid ${BORDER}`, marginBottom:16 }} />
+                <div style={{ fontSize:16, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, marginBottom:4 }}>YODA_Bot</div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, marginBottom:12 }}>AI Curator · Scoring Engine</div>
+                <p style={{ fontSize:13, color:'#777', lineHeight:1.65, margin:0 }}>
+                  The AI behind the scores. YODA_Bot (Your Optimal Dental Advisor) evaluates each resource against publicly available signals — reviews, reach, recency, and clinical depth — to generate the composite scores you see across the directory.
+                </p>
+              </div>
+
+            </div>
+          </div>
+
           {/* ── Card 1: Mission + Stats ── */}
           <div style={card}>
             <SectionLabel>What we do</SectionLabel>
