@@ -1167,7 +1167,7 @@ export default function Home({ initialResources }) {
             {/* Featured sections — one per resource category */}
             <FeaturedCards section="Podcasts"    title="Featured Podcasts"          subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedBooks isMobile={isMobile} />
-            <FeaturedCards section="YouTube"     title="Featured YouTube Videos"    subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="YouTube"     title="Featured YouTube Channels"  subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedCards section="CE Courses"  title="Featured CE Courses"        subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedCards section="Coaching"    title="Featured Coaching Programs"  subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedCards section="Communities" title="Featured Communities"       subtitle="Editor's picks" isMobile={isMobile} />
