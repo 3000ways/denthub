@@ -5,7 +5,11 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
+import { useEpisodeBookmarks } from '../lib/episode-bookmarks-context';
+import { usePlayer } from '../lib/player-context';
+import { supabase } from '../lib/supabase';
 import { BookmarkButton } from '../components/BookmarkButton';
+import { EpisodeBookmarkButton } from '../components/EpisodeBookmarkButton';
 import { BookmarkFeed } from '../components/BookmarkFeed';
 import { SignInModal } from '../components/AuthModal';
 
@@ -47,13 +51,57 @@ function Logo({ url, name, imageUrl, size = 40 }) {
   return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
 }
 
+// One saved episode: artwork plays, title opens the episode page, ribbon removes.
+function SavedEpisodeRow({ ep, onSignInRequired }) {
+  const { play, pause, resume, isPlaying, currentEpisode } = usePlayer();
+  const isActive = !!(currentEpisode && currentEpisode.id === ep.id);
+
+  function handlePlay(e) {
+    e.stopPropagation();
+    if (isActive) { isPlaying ? pause() : resume(); return; }
+    play({
+      id: ep.id, title: ep.title, show_name: ep.show_name, show_resource_id: ep.show_resource_id,
+      audio_url: ep.audio_url, image: ep.image, duration_seconds: ep.duration_seconds,
+    });
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: `0.5px solid ${BORDER}` }}>
+      <div onClick={handlePlay} style={{ position: 'relative', width: 44, height: 44, borderRadius: 6, overflow: 'hidden', background: '#f0ede8', flexShrink: 0, cursor: 'pointer' }}>
+        {ep.image
+          ? <img src={ep.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ccc' }}>🎙</div>}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive ? 'rgba(15,110,86,0.55)' : 'rgba(0,0,0,0.28)', opacity: isActive ? 1 : 0, transition: 'opacity 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+          onMouseLeave={e => { if (!isActive) e.currentTarget.style.opacity = '0'; }}>
+          <span style={{ color: '#fff', fontSize: 13 }}>{isActive && isPlaying ? '⏸' : '▶'}</span>
+        </div>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Link href={`/episode/${ep.id}`} style={{ display: 'block', fontSize: 14, fontWeight: 500, color: isActive ? GREEN : '#111', marginBottom: 2, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>
+          {ep.title}
+        </Link>
+        <div style={{ fontSize: 11, color: '#bbb' }}>
+          <span style={{ color: GREEN, fontWeight: 500, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Episode</span>
+          {ep.show_name ? <span> · {ep.show_name}</span> : ''}
+        </div>
+      </div>
+      <EpisodeBookmarkButton episodeId={ep.id} onSignInRequired={onSignInRequired} />
+    </div>
+  );
+}
+
 export default function SavedPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { bookmarkIds, count, loaded: bookmarksLoaded } = useBookmarks();
+  const { episodeBookmarkIds, loaded: epBookmarksLoaded } = useEpisodeBookmarks();
   const [showSignIn, setShowSignIn] = useState(false);
   const [resources, setResources] = useState([]);
   const [loadingResources, setLoadingResources] = useState(true);
+  const [episodeDetails, setEpisodeDetails] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -77,9 +125,25 @@ export default function SavedPage() {
       .finally(() => setLoadingResources(false));
   }, []);
 
+  // Fetch details for the user's saved episodes (newest first). We keep the full
+  // fetched list and render only those still in the live bookmark set, so
+  // removing one updates instantly without a refetch.
+  useEffect(() => {
+    if (!user) { setEpisodeDetails([]); return; }
+    supabase
+      .from('episode_bookmarks')
+      .select('created_at, episodes ( id, title, show_name, show_resource_id, image, audio_url, duration_seconds, published_at )')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setEpisodeDetails((data || []).filter(r => r.episodes).map(r => ({ ...r.episodes, savedAt: r.created_at })));
+      });
+  }, [user, episodeBookmarkIds.size]);
+
   if (authLoading || !user) return null;
 
   const saved = resources.filter(r => bookmarkIds.has(r.id));
+  const savedEpisodes = episodeDetails.filter(ep => episodeBookmarkIds.has(ep.id));
   const ready = bookmarksLoaded && !loadingResources;
 
   return (
@@ -107,8 +171,25 @@ export default function SavedPage() {
           {/* New episodes from followed shows */}
           <BookmarkFeed isMobile={isMobile} limit={isMobile ? 4 : 8} />
 
+          {/* Saved Episodes — individually bookmarked episodes */}
+          {epBookmarksLoaded && savedEpisodes.length > 0 && (
+            <div style={{ marginBottom: 36 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0, fontFamily: FONT_DISPLAY, letterSpacing: -0.4 }}>
+                  Saved Episodes
+                </h2>
+                <span style={{ fontSize: 12, color: '#bbb', fontWeight: 500 }}>{savedEpisodes.length}</span>
+              </div>
+              <div style={{ borderTop: `1px solid ${BORDER}` }}>
+                {savedEpisodes.map(ep => (
+                  <SavedEpisodeRow key={ep.id} ep={ep} onSignInRequired={() => setShowSignIn(true)} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Empty state */}
-          {ready && saved.length === 0 && (
+          {ready && saved.length === 0 && savedEpisodes.length === 0 && (
             <div style={{ padding: '60px 0', textAlign: 'center' }}>
               <div style={{ fontSize: 15, color: '#bbb', marginBottom: 16 }}>You haven&rsquo;t saved anything yet.</div>
               <Link href="/" style={{ fontSize: 13, color: GREEN, fontWeight: 500, textDecoration: 'none', border: `1px solid ${GREEN}`, padding: '8px 18px', borderRadius: 4 }}>

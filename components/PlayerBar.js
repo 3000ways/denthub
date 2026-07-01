@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePlayer } from '../lib/player-context';
-import { RateButton } from './RateButton';
+import { EpisodeBookmarkButton } from './EpisodeBookmarkButton';
 import { ShareButton } from './ShareButton';
 import { SignInModal } from './AuthModal';
 
@@ -118,7 +118,7 @@ export default function PlayerBar() {
             15↻
           </button>
 
-          {showId && <RateButton resourceId={showId} onSignInRequired={() => setShowSignIn(true)} />}
+          {currentEpisode.id && <EpisodeBookmarkButton episodeId={currentEpisode.id} onSignInRequired={() => setShowSignIn(true)} />}
           {(currentEpisode.id || showId) && <ShareButton resourceId={showId} episodeId={currentEpisode.id} episodeTitle={currentEpisode.title} name={showName} type="Podcast" />}
 
           <button
@@ -223,10 +223,10 @@ export default function PlayerBar() {
         </button>
       </div>
 
-      {/* Rate + Share the currently-playing show */}
-      {showId && (
+      {/* Save + Share the currently-playing episode */}
+      {(currentEpisode.id || showId) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <RateButton resourceId={showId} variant="labeled" onSignInRequired={() => setShowSignIn(true)} />
+          {currentEpisode.id && <EpisodeBookmarkButton episodeId={currentEpisode.id} variant="labeled" onSignInRequired={() => setShowSignIn(true)} />}
           <ShareButton resourceId={showId} episodeId={currentEpisode.id} episodeTitle={currentEpisode.title} name={showName} type="Podcast" />
         </div>
       )}
