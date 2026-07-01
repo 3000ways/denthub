@@ -41,13 +41,14 @@ function ResourceCard({ record, artworkUrl }) {
         onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
 
-        {/* Square image — flexShrink:0 so it never gets squeezed */}
-        <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', flexShrink: 0,
+        {/* Square image — aspectRatio keeps every box identical even as a flex child
+            (paddingBottom:'100%' is unreliable inside a flex column and caused uneven cards) */}
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', flexShrink: 0,
           background: isFavicon ? '#fff' : '#f5f2eb', overflow: 'hidden',
           borderBottom: `1px solid ${BORDER}` }}>
           {src && !imgErr ? (
             <img src={src} alt={f.Name} onError={() => setImgErr(true)}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+              style={{ width: '100%', height: '100%',
                 objectFit: isFavicon ? 'contain' : 'cover',
                 padding: isFavicon ? 16 : 0 }} />
           ) : (
