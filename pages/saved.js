@@ -15,6 +15,22 @@ const GREEN = '#0F6E56';
 const GREEN_LIGHT = '#E8F5F0';
 const BORDER = '#e8e8e8';
 
+// Group headings by resource Type, in the order they should appear on the page.
+const TYPE_LABELS = {
+  Podcast: 'Saved Podcasts',
+  YouTube: 'Saved YouTube',
+  Book: 'Saved Books',
+  Course: 'Saved CE Courses',
+  Coaching: 'Saved Coaching',
+  Community: 'Saved Communities',
+  Conference: 'Saved Conferences',
+  Software: 'Saved Software',
+  Mastermind: 'Saved Masterminds',
+  Website: 'Saved Websites',
+};
+const TYPE_ORDER = Object.keys(TYPE_LABELS);
+const labelForType = (t) => TYPE_LABELS[t] || `Saved ${t || 'Other'}`;
+
 function getDomain(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return null; } }
 
 function Logo({ url, name, imageUrl, size = 40 }) {
@@ -101,36 +117,57 @@ export default function SavedPage() {
             </div>
           )}
 
-          {/* Saved list */}
-          {ready && saved.length > 0 && (
-            <div style={{ borderTop: `1px solid ${BORDER}` }}>
-              {saved.map(r => {
-                const f = r.fields;
-                const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
-                return (
-                  <div key={r.id}
-                    onClick={() => router.push(`/resource/${r.id}`)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0', borderBottom: `0.5px solid ${BORDER}`, cursor: 'pointer' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#faf9f6'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <Logo url={f.URL} name={f.Name} imageUrl={f['Image URL']} size={40} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.Name}</div>
-                      <div style={{ fontSize: 11, color: '#bbb' }}>
-                        <span style={{ color: GREEN, fontWeight: 500, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.Type}</span>
-                        {f['Host or Author'] ? <span> · {f['Host or Author']}</span> : ''}
-                      </div>
+          {/* Saved list — grouped by resource type */}
+          {ready && saved.length > 0 && (() => {
+            const renderRow = (r) => {
+              const f = r.fields;
+              const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
+              return (
+                <div key={r.id}
+                  onClick={() => router.push(`/resource/${r.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0', borderBottom: `0.5px solid ${BORDER}`, cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#faf9f6'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Logo url={f.URL} name={f.Name} imageUrl={f['Image URL']} size={40} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.Name}</div>
+                    <div style={{ fontSize: 11, color: '#bbb' }}>
+                      <span style={{ color: GREEN, fontWeight: 500, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.Type}</span>
+                      {f['Host or Author'] ? <span> · {f['Host or Author']}</span> : ''}
                     </div>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: GREEN, background: GREEN_LIGHT, padding: '3px 8px', borderRadius: 20, flexShrink: 0 }}>
-                      <span style={{ fontSize: 9 }}>★</span> {score}
-                    </span>
-                    <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: GREEN, background: GREEN_LIGHT, padding: '3px 8px', borderRadius: 20, flexShrink: 0 }}>
+                    <span style={{ fontSize: 9 }}>★</span> {score}
+                  </span>
+                  <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
+                </div>
+              );
+            };
+
+            // Bucket saved resources by Type, then order groups: known types first
+            // (per TYPE_ORDER), any unknown types after, alphabetically.
+            const groups = {};
+            saved.forEach(r => { const t = r.fields.Type || 'Other'; (groups[t] = groups[t] || []).push(r); });
+            const orderedTypes = [
+              ...TYPE_ORDER.filter(t => groups[t]),
+              ...Object.keys(groups).filter(t => !TYPE_ORDER.includes(t)).sort(),
+            ];
+
+            return orderedTypes.map(type => (
+              <div key={type} style={{ marginBottom: 36 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0, fontFamily: FONT_DISPLAY, letterSpacing: -0.4 }}>
+                    {labelForType(type)}
+                  </h2>
+                  <span style={{ fontSize: 12, color: '#bbb', fontWeight: 500 }}>{groups[type].length}</span>
+                </div>
+                <div style={{ borderTop: `1px solid ${BORDER}` }}>
+                  {groups[type].map(renderRow)}
+                </div>
+              </div>
+            ));
+          })()}
 
           {/* Back link */}
           <div style={{ marginTop: 48, paddingTop: 28, borderTop: `1px solid ${BORDER}` }}>
