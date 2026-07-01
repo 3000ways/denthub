@@ -298,10 +298,10 @@ function EpisodeCard({ ep, isNew }) {
           style={{ fontSize: 11, color: GREEN, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
           {isActive && isPlaying ? 'Pause' : isActive ? 'Resume' : '▶ Play'}
         </button>
-        {ep.audioUrl && (
-          <a href={ep.audioUrl} target="_blank" rel="noopener noreferrer"
+        {(ep.link || ep.audioUrl) && (
+          <a href={ep.link || ep.audioUrl} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 10, color: '#ccc', textDecoration: 'none' }}>
-            Open →
+            {ep.link ? 'Show notes →' : 'Open →'}
           </a>
         )}
       </div>
@@ -574,6 +574,9 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                   return <EpisodeCard key={i} ep={enriched} isNew={i === 0} />;
                 })}
               </div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 14, lineHeight: 1.5 }}>
+                Episodes stream directly from {f.Name}’s official feed — your plays still count toward the show.
+              </div>
             </div>
           )}
 
@@ -638,14 +641,20 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
           )}
 
           {/* Claim this page */}
-          <div style={{ marginTop: 40, textAlign: 'center' }}>
+          <div style={{ marginTop: 40, textAlign: 'center', background: 'rgba(255,255,255,0.55)', border: `1px solid ${BORDER}`, borderRadius: 14, padding: '24px 28px' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#333', marginBottom: 6 }}>Are you the creator of {f.Name}?</div>
+            <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6, marginBottom: 14, maxWidth: 460, margin: '0 auto 14px' }}>
+              This is your page. Correct the info, add your links, or ask us to remove it — whatever you need.
+            </div>
             <a
-              href={`mailto:hello@thedentalcommute.com?subject=Claim%20page%3A%20${encodeURIComponent(f.Name)}&body=Hi%2C%0A%0AMy%20name%20is%20%5BYour%20Name%5D%20and%20my%20email%20is%20%5BYour%20Email%5D.%0A%0AI%20am%20the%20creator%2Fowner%20of%20${encodeURIComponent(f.Name)}%20and%20I%20would%20like%20to%20suggest%20some%20changes%20to%20this%20page.%20Can%20you%20kindly%20make%20the%20following%20changes%20for%20me%3A%0A%0A`}
-              style={{ fontSize: 12, color: '#bbb', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: 1 }}
-              onMouseEnter={e => e.currentTarget.style.color = '#888'}
-              onMouseLeave={e => e.currentTarget.style.color = '#bbb'}
+              href={`mailto:hello@thedentalcommute.com?subject=${encodeURIComponent(`Claim page: ${f.Name}`)}&body=${encodeURIComponent(
+                `Hi,\n\nMy name is [Your Name] and my email is [Your Email].\n\nI'm the creator/owner of ${f.Name}. I'd like to:\n\n- [ ] Correct information on this page\n- [ ] Add or update my links (website, subscribe, support/Patreon)\n- [ ] Request removal from The Dental Commute\n\nDetails:\n\n`
+              )}`}
+              style={{ fontSize: 13, fontWeight: 600, color: GREEN, textDecoration: 'none', border: `1px solid ${GREEN}`, borderRadius: 6, padding: '9px 18px', display: 'inline-block' }}
+              onMouseEnter={e => { e.currentTarget.style.background = GREEN; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = GREEN; }}
             >
-              Are you the creator? Claim this page →
+              Claim this page →
             </a>
           </div>
 

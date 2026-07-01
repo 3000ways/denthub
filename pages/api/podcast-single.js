@@ -49,6 +49,7 @@ function parseFeed(xml) {
       publishedAt:     parsedDate ? parsedDate.toISOString() : null,
       timestamp:       parsedDate ? parsedDate.getTime() : 0,
       audioUrl:        audioUrl || link || null,
+      link:            link || null,
       image:           episodeArt,
       description:     description.slice(0, 200),
       guid:            guid || null,
