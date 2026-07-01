@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Head from 'next/head';
+import SiteNav from '../components/SiteNav';
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -19,22 +20,7 @@ export default function About() {
       <link rel="canonical" href="https://thedentalcommute.com/about" />
     </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
-      <div style={{ height:3, background:GREEN }} />
-
-      {/* Sticky nav */}
-      <div style={{ position:'sticky', top:0, zIndex:200, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', borderBottom:`1px solid ${BORDER}` }}>
-        <div style={{ maxWidth:1140, margin:'0 auto', padding:'0 28px', height:56, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
-          <Link href="/">
-            <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto', display:'block' }} />
-          </Link>
-          <div style={{ display:'flex', alignItems:'center', gap:24 }}>
-            <Link href="/about" style={{ fontSize:13, color:'#111', textDecoration:'none', fontWeight:500, fontFamily:FONT_BODY }}>About</Link>
-            <Link href="/?submit=1" style={{ fontSize:12, padding:'7px 16px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, letterSpacing:0.2, textDecoration:'none' }}>
-              Submit a resource
-            </Link>
-          </div>
-        </div>
-      </div>
+      <SiteNav />
 
       <div style={{ maxWidth:720, margin:'0 auto', padding:'40px 28px 100px' }}>
 

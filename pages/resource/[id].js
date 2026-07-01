@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import SiteNav from '../../components/SiteNav';
 import { useState, useEffect } from 'react';
 import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
@@ -354,23 +355,7 @@ export default function ResourcePage({ record, related, ytData, bookData }) {
       </Head>
 
       <div style={{ background: '#f5f2eb', backgroundImage: 'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize: '22px 22px', minHeight: '100vh', fontFamily: FONT }}>
-        <div style={{ height: 3, background: GREEN }} />
-
-        {/* Header */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${BORDER}`, background: 'rgba(245,242,235,0.97)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-          <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Link href="/">
-              <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto' }} />
-            </Link>
-            {user ? (
-              <Link href="/profile" style={{ fontSize: 13, color: '#555', textDecoration: 'none' }}>{profile?.full_name || user.email}</Link>
-            ) : (
-              <button onClick={() => setShowSignIn(true)} style={{ fontSize: 13, padding: '7px 18px', borderRadius: 4, background: GREEN, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: FONT, fontWeight: 600 }}>
-                Sign in
-              </button>
-            )}
-          </div>
-        </div>
+        <SiteNav />
 
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px 80px' }}>
 

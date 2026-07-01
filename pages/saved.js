@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import SiteNav from '../components/SiteNav';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
@@ -72,20 +73,7 @@ export default function SavedPage() {
         <meta name="robots" content="noindex" />
       </Head>
       <div style={{ background: '#f5f2eb', backgroundImage: 'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize: '22px 22px', minHeight: '100vh', fontFamily: FONT_BODY }}>
-        <div style={{ height: 3, background: GREEN }} />
-
-        {/* Sticky nav */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 200, background: 'rgba(245,242,235,0.97)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', borderBottom: `1px solid ${BORDER}` }}>
-          <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <Link href="/">
-              <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto', display: 'block' }} />
-            </Link>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              <Link href="/about" style={{ fontSize: 13, color: '#777', textDecoration: 'none', fontWeight: 500 }}>About</Link>
-              <Link href="/profile" style={{ fontSize: 13, color: '#777', textDecoration: 'none', fontWeight: 500 }}>Profile</Link>
-            </div>
-          </div>
-        </div>
+        <SiteNav />
 
         <div style={{ maxWidth: 820, margin: '0 auto', padding: '40px 28px 100px' }}>
 
