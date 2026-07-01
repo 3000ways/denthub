@@ -98,9 +98,11 @@ export default function PlayerBar() {
         onClick={() => markListened(currentEpisode)}
         title={isListened ? 'Already marked as listened' : 'Mark as listened'}
         style={{
-          flexShrink: 0, background: 'none', border: `1px solid ${isListened ? GREEN : '#ddd'}`,
+          flexShrink: 0,
+          background: isListened ? '#E8F5F0' : '#f0f0f0',
+          border: `1px solid ${isListened ? GREEN : '#999'}`,
           borderRadius: 6, padding: '5px 10px', cursor: isListened ? 'default' : 'pointer',
-          fontSize: 11, fontWeight: 600, color: isListened ? GREEN : '#aaa',
+          fontSize: 11, fontWeight: 600, color: isListened ? GREEN : '#333',
           display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
         }}>
         {isListened ? '✓ Listened' : '✓ Mark listened'}
