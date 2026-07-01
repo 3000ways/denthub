@@ -34,9 +34,12 @@ export default function SiteNav() {
         height: 53, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         fontFamily: FONT,
       }}>
-        {/* Logo — cropped to remove blank padding in image file */}
-        <Link href="/" style={{ flexShrink: 0, overflow: 'hidden', height: 44, display: 'flex', alignItems: 'center', maxWidth: isMobile ? 160 : 'none' }}>
-          <img src="/wide-logo.png" alt="The Dental Commute" style={{ height: isMobile ? 62 : 90, width: 'auto', marginTop: isMobile ? -16 : -23, marginBottom: isMobile ? -16 : -23, display: 'block' }} />
+        {/* Logo — wide on desktop, circle on mobile */}
+        <Link href="/" style={{ flexShrink: 0, overflow: 'hidden', height: 44, display: 'flex', alignItems: 'center' }}>
+          {isMobile
+            ? <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto', display: 'block' }} />
+            : <img src="/wide-logo.png" alt="The Dental Commute" style={{ height: 90, width: 'auto', marginTop: -23, marginBottom: -23, display: 'block' }} />
+          }
         </Link>
 
         {/* Right side */}
