@@ -4,6 +4,7 @@ import { useState } from 'react';
 import SiteNav from '../../components/SiteNav';
 import { ShareButton } from '../../components/ShareButton';
 import { EpisodeBookmarkButton } from '../../components/EpisodeBookmarkButton';
+import { PinButton } from '../../components/PinButton';
 import { SignInModal } from '../../components/AuthModal';
 import { usePlayer } from '../../lib/player-context';
 import { supabase } from '../../lib/supabase';
@@ -171,6 +172,7 @@ export default function EpisodePage({ ep, more }) {
                       Episode page ↗
                     </a>
                   )}
+                  <PinButton episodeId={ep.id} onSignInRequired={() => setShowSignIn(true)} />
                 </div>
               </div>
             </div>

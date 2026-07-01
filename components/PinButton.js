@@ -18,7 +18,10 @@ const btnBase = {
   cursor: 'pointer', fontFamily: FONT, display: 'inline-flex', alignItems: 'center', gap: 6,
 };
 
-export function PinButton({ resourceId, onSignInRequired }) {
+// Pins either a resource (pass resourceId) or a single episode (pass episodeId)
+// to the shared Community Pinboard. Everything else — the one-per-day limit,
+// anonymity, and attribution — is identical for both.
+export function PinButton({ resourceId, episodeId, onSignInRequired }) {
   const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [anon, setAnon] = useState(false);
@@ -56,7 +59,7 @@ export function PinButton({ resourceId, onSignInRequired }) {
     setPinning(true);
     const { error } = await supabase.from('pins').insert({
       user_id:          user.id,
-      resource_id:      resourceId,
+      ...(episodeId ? { episode_id: episodeId } : { resource_id: resourceId }),
       is_anonymous:     effectiveAnon,
       pinner_specialty: effectiveAnon ? null : profile.specialty,
       pinner_region:    effectiveAnon ? null : region,

@@ -38,16 +38,15 @@ function Thumbtack() {
   );
 }
 
-function PinCard({ pin, resource, isMobile }) {
-  const f = resource.fields;
-  const domain = getDomain(f.URL);
-  const logo = f['Image URL'] || (domain ? `/api/airtable?logo=${domain}` : null);
+// `item` is a normalized card: { href, name, typeLabel, image, initial } —
+// built from either an Airtable resource or an archived episode.
+function PinCard({ pin, item, isMobile }) {
   const tilt = tiltFor(pin.id, isMobile);
   const [hover, setHover] = useState(false);
 
   return (
     <Link
-      href={`/resource/${resource.id}`}
+      href={item.href}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -69,16 +68,16 @@ function PinCard({ pin, resource, isMobile }) {
     >
       <Thumbtack />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
-        {logo
-          ? <img src={logo} alt={f.Name}
+        {item.image
+          ? <img src={item.image} alt={item.name}
               style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'contain', background: '#fff', border: '1px solid #eee' }} />
-          : <div style={{ width: 52, height: 52, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: GREEN }}>{(f.Name || '?')[0]}</div>
+          : <div style={{ width: 52, height: 52, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: GREEN }}>{item.initial}</div>
         }
         <div>
-          <div style={{ fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: GREEN, fontWeight: 700, marginBottom: 3 }}>{f.Type}</div>
+          <div style={{ fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: GREEN, fontWeight: 700, marginBottom: 3 }}>{item.typeLabel}</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#111', lineHeight: 1.3, fontFamily: FONT_DISPLAY,
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {f.Name}
+            {item.name}
           </div>
         </div>
       </div>
@@ -92,28 +91,56 @@ function PinCard({ pin, resource, isMobile }) {
 
 export function Pinboard({ resources = [], isMobile = false }) {
   const [pins, setPins] = useState([]);
+  const [episodesById, setEpisodesById] = useState({});
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    // Pull more than SLOTS so we can skip any pins whose resource is no longer
-    // published/loaded, then keep the newest SLOTS that resolve to a resource.
+    // Pull more than SLOTS so we can skip any pins whose target is no longer
+    // available, then keep the newest SLOTS that resolve.
     supabase
       .from('pins')
-      .select('id, resource_id, pinner_specialty, pinner_region, is_anonymous, created_at')
+      .select('id, resource_id, episode_id, pinner_specialty, pinner_region, is_anonymous, created_at')
       .order('created_at', { ascending: false })
       .limit(SLOTS * 4)
-      .then(({ data }) => {
-        if (!cancelled) { setPins(data || []); setLoaded(true); }
+      .then(async ({ data }) => {
+        const rows = data || [];
+        if (cancelled) return;
+        setPins(rows);
+        // Fetch details for any episode pins (resource pins resolve from the prop).
+        const epIds = [...new Set(rows.filter(p => p.episode_id).map(p => p.episode_id))];
+        if (epIds.length) {
+          const { data: eps } = await supabase
+            .from('episodes')
+            .select('id, title, image')
+            .in('id', epIds);
+          if (!cancelled && eps) {
+            const map = {};
+            eps.forEach(e => { map[e.id] = e; });
+            setEpisodesById(map);
+          }
+        }
+        if (!cancelled) setLoaded(true);
       });
     return () => { cancelled = true; };
   }, []);
 
-  // Resolve each pin to a loaded resource; drop unresolved ones; keep newest SLOTS.
+  // Normalize each pin to a card (resource OR episode); drop unresolved; keep newest SLOTS.
   const byId = new Map(resources.map(r => [r.id, r]));
   const cards = pins
-    .map(p => ({ pin: p, resource: byId.get(p.resource_id) }))
-    .filter(c => c.resource)
+    .map(p => {
+      if (p.episode_id) {
+        const ep = episodesById[p.episode_id];
+        if (!ep) return null;
+        return { pin: p, item: { href: `/episode/${ep.id}`, name: ep.title, typeLabel: 'Episode', image: ep.image || null, initial: (ep.title || '?')[0] } };
+      }
+      const r = byId.get(p.resource_id);
+      if (!r) return null;
+      const f = r.fields;
+      const domain = getDomain(f.URL);
+      return { pin: p, item: { href: `/resource/${r.id}`, name: f.Name, typeLabel: f.Type, image: f['Image URL'] || (domain ? `/api/airtable?logo=${domain}` : null), initial: (f.Name || '?')[0] } };
+    })
+    .filter(Boolean)
     .slice(0, SLOTS);
 
   // Nothing to show yet (and nothing pinned) — hide the whole section rather than
@@ -145,7 +172,7 @@ export function Pinboard({ resources = [], isMobile = false }) {
             📌 The Community Pinboard
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-            Resources fellow dentists tacked up for you — pin your own from any resource page.
+            Resources and episodes fellow dentists tacked up for you — pin your own from any resource or episode page.
           </div>
         </div>
 
@@ -157,7 +184,7 @@ export function Pinboard({ resources = [], isMobile = false }) {
           alignItems: 'start',
         }}>
           {cards.map(c => (
-            <PinCard key={c.pin.id} pin={c.pin} resource={c.resource} isMobile={isMobile} />
+            <PinCard key={c.pin.id} pin={c.pin} item={c.item} isMobile={isMobile} />
           ))}
         </div>
       </div>
