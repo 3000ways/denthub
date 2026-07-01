@@ -7,6 +7,7 @@ import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
 import { BookmarkButton } from '../../components/BookmarkButton';
 import { ShareButton } from '../../components/ShareButton';
+import { EpisodeBookmarkButton } from '../../components/EpisodeBookmarkButton';
 import { PinButton } from '../../components/PinButton';
 import { usePlayer } from '../../lib/player-context';
 import { supabase } from '../../lib/supabase';
@@ -191,7 +192,7 @@ function SmallLogo({ url, name, imageUrl, size = 40 }) {
   return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />;
 }
 
-function EpisodeCard({ ep, isNew }) {
+function EpisodeCard({ ep, isNew, onSignInRequired }) {
   const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
   // Guard: currentEpisode must be non-null. Compare by id when available,
   // fall back to audio_url so un-archived episodes don't all match (undefined === undefined).
@@ -291,6 +292,11 @@ function EpisodeCard({ ep, isNew }) {
           {isActive && isPlaying && <span style={{ color: GREEN, fontWeight: 600 }}>▶ Playing</span>}
         </div>
       </div>
+
+      {/* Save this episode */}
+      {ep.id && (
+        <EpisodeBookmarkButton episodeId={ep.id} onSignInRequired={onSignInRequired} />
+      )}
 
       {/* Play / open actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
@@ -571,7 +577,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                   const enriched = archived
                     ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl }
                     : { ...ep, audio_url: ep.audioUrl, show_name: f.Name, show_resource_id: record.id };
-                  return <EpisodeCard key={i} ep={enriched} isNew={i === 0} />;
+                  return <EpisodeCard key={i} ep={enriched} isNew={i === 0} onSignInRequired={() => setShowSignIn(true)} />;
                 })}
               </div>
               <div style={{ fontSize: 11, color: '#bbb', marginTop: 14, lineHeight: 1.5 }}>
@@ -593,7 +599,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                   const enriched = archived
                     ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl }
                     : { ...ep, audio_url: ep.audioUrl, show_name: f.Name, show_resource_id: record.id };
-                  return <EpisodeCard key={i} ep={enriched} isNew={false} />;
+                  return <EpisodeCard key={i} ep={enriched} isNew={false} onSignInRequired={() => setShowSignIn(true)} />;
                 })}
               </div>
             </div>
