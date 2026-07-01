@@ -1161,13 +1161,13 @@ export default function Home({ initialResources }) {
             )}
 
             {/* Featured sections — one per resource category */}
-            <FeaturedCards section="Podcasts"    title="Top Podcasts"       subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="Podcasts"    title="Featured Podcasts"          subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedBooks isMobile={isMobile} />
-            <FeaturedCards section="YouTube"     title="Top YouTube Channels" subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="CE Courses"  title="Top CE Courses"     subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="Coaching"    title="Top Coaching Programs" subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="Communities" title="Top Communities"    subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="Conferences" title="Top Conferences"    subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="YouTube"     title="Featured YouTube Videos"    subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="CE Courses"  title="Featured CE Courses"        subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="Coaching"    title="Featured Coaching Programs"  subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="Communities" title="Featured Communities"       subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedCards section="Conferences" title="Featured Conferences"       subtitle="Editor's picks" isMobile={isMobile} />
 
             {/* New this week */}
             {recentlyAdded.length > 0 && (
