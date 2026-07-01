@@ -8,6 +8,7 @@ import { usePlayer } from '../lib/player-context';
 import { SignInModal, OnboardingModal } from '../components/AuthModal';
 import { BookmarkButton } from '../components/BookmarkButton';
 import { BookmarkFeed } from '../components/BookmarkFeed';
+import { RecentlyListened } from '../components/RecentlyListened';
 import { CommunitySection } from '../components/Community';
 
 const CATEGORIES = [
@@ -782,11 +783,6 @@ export default function Home({ initialResources }) {
     .sort((a,b) => new Date(b.fields.createdAt) - new Date(a.fields.createdAt))
     .slice(0,4);
 
-  // Saved channel — the user's bookmarked resources, newest first.
-  const savedResources = bookmarkCount > 0
-    ? [...displayResources].filter(r => bookmarkIds.has(r.id))
-    : [];
-
   // Editor's Picks — Andrei's hand-picked features. Each needs the checkbox and a
   // blurb. Ordered by the "Editor's Pick Order" field (lower shows first); picks
   // without an order fall to the back, broken by Final Score.
@@ -1113,39 +1109,8 @@ export default function Home({ initialResources }) {
             {/* New from your bookmarks — latest episodes from followed shows */}
             {user && <BookmarkFeed isMobile={isMobile} limit={4} />}
 
-            {/* Saved channel — only when signed in and the user has bookmarks */}
-            {user && savedResources.length > 0 && (
-              <div style={{ marginBottom:52 }}>
-                <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12, marginBottom:18, paddingBottom:14, borderBottom:`2px solid #111` }}>
-                  <div style={{ display:'flex', alignItems:'baseline', gap:12 }}>
-                    <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Saved</div>
-                    <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>{bookmarkCount} bookmarked</div>
-                  </div>
-                  <Link href="/saved" style={{ fontSize:12, color:GREEN, fontWeight:500, textDecoration:'none' }}>View all →</Link>
-                </div>
-                <div style={{ borderTop:`1px solid ${BORDER}` }}>
-                  {savedResources.slice(0,4).map(r => (
-                    <div key={r.id}
-                      onClick={() => router.push(`/resource/${r.id}`)}
-                      style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
-                      onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
-                      onMouseLeave={e => e.currentTarget.style.background='transparent'}
-                    >
-                      <Logo url={r.fields.URL} name={r.fields.Name} size={36} imageUrl={r.fields['Image URL']} />
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:14, fontWeight:500, color:'#111', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.fields.Name}</div>
-                        <div style={{ fontSize:11, color:'#bbb' }}>
-                          <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{r.fields.Type}</span>
-                          {r.fields['Host or Author'] ? <span> · {r.fields['Host or Author']}</span> : ''}
-                        </div>
-                      </div>
-                      <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(r.fields['Final Score']||0)} fields={r.fields} />
-                      <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Recently Listened — pick up where you left off */}
+            {user && <RecentlyListened user={user} isMobile={isMobile} />}
 
             {/* Spotlight: Latest Episodes & Videos */}
             {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
