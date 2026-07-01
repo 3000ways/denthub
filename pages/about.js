@@ -104,13 +104,13 @@ export default function About() {
           <div style={card}>
             <SectionLabel>What we do</SectionLabel>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 20px' }}>
-              The Dental Commute is a curated directory of the best learning resources in dentistry — podcasts, YouTube channels, books, CE courses, conferences, coaching programs, and professional communities — all in one place.
+              The Dental Commute is a curated directory of the best learning resources in dentistry: podcasts, YouTube channels, books, CE courses, conferences, coaching programs, and professional communities.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 20px' }}>
               Think of it as a search engine for dental education. Instead of sifting through Google results or asking colleagues for recommendations, you can browse by category or specialty and find what other dental professionals are actually listening to, reading, and learning from.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 28px' }}>
-              Each resource carries a score generated from publicly available signals — reviews, reach, recency, and clinical relevance. The score isn't meant to declare one resource better than another; it's a starting point to help you discover what's out there and decide what's right for you.
+              Each resource carries a score generated from publicly available signals: reviews, reach, recency, and clinical relevance. The score isn't meant to declare one resource better than another. It's a starting point to help you discover what's out there and decide what's right for you.
             </p>
 
             {/* Stats bar — live data */}
@@ -134,16 +134,16 @@ export default function About() {
             <SectionLabel>The scoring formula</SectionLabel>
 
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 16px' }}>
-              Every resource on The Dental Commute receives a composite score out of 100, calculated across five weighted dimensions. The score is generated using an AI model that evaluates each resource against publicly available information — listener reviews, download trends, citation frequency in dental education, recency of content, and clinical relevance.
+              Every resource on The Dental Commute receives a composite score out of 100, calculated across five weighted dimensions. The score is generated using an AI model that evaluates each resource against publicly available information: listener reviews, download trends, citation frequency in dental education, recency of content, and clinical relevance.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 24px' }}>
-              <strong style={{ color:'#333' }}>The score is not a ranking of quality.</strong> It is a signal, not a verdict. A podcast with a score of 72 is not objectively better than one with a score of 68 — they may simply serve different audiences, specialties, or learning styles. The score is intended to give visitors a starting point, not to declare a winner.
+              <strong style={{ color:'#333' }}>The score is not a ranking of quality.</strong> It is a signal, not a verdict. A podcast with a score of 72 is not objectively better than one with a score of 68. They may simply serve different audiences, specialties, or learning styles. The score is intended to give visitors a starting point, not to declare a winner.
             </p>
 
             {[
               { label:'Expert Score',     weight:'25%', desc:'How often the resource is cited or recommended by educators, lecturers, and specialists in the field.' },
               { label:'Community Score',  weight:'25%', desc:'Aggregated listener and reader sentiment drawn from reviews, ratings, and community discussions.' },
-              { label:'Popularity Score', weight:'20%', desc:'Reach and visibility — download numbers, subscriber counts, and search presence within dentistry.' },
+              { label:'Popularity Score', weight:'20%', desc:'Reach and visibility: download numbers, subscriber counts, and search presence within dentistry.' },
               { label:'Recency Score',    weight:'15%', desc:'How actively the resource is being updated. Fresh, consistent content scores higher than dormant archives.' },
               { label:'Clinical Depth',   weight:'15%', desc:'The degree to which the content engages with evidence-based clinical material rather than lifestyle or business topics alone.' },
             ].map(({ label, weight, desc }) => (
@@ -179,7 +179,7 @@ export default function About() {
           <div style={card}>
             <SectionLabel>Get in touch</SectionLabel>
             <p style={{ fontSize:14, color:'#777', lineHeight:1.65, margin:'0 0 20px' }}>
-              Questions, feedback, or partnership inquiries — reach out directly.
+              Questions, feedback, or partnership inquiries? Reach out directly.
             </p>
             <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:20 }}>
               <div style={{ fontSize:14, color:'#555' }}>
@@ -197,9 +197,6 @@ export default function About() {
                 </a>
               </div>
             </div>
-            <p style={{ fontSize:13, color:'#aaa', lineHeight:1.65, margin:0, fontStyle:'italic' }}>
-              YODA_Bot will process all complaints with patience, wisdom, and zero emotional response.
-            </p>
           </div>
 
         </div>
