@@ -256,6 +256,11 @@ export default function CEReport() {
         </div>
 
       </div>
+      <div style={{ borderTop:'1px solid #e8e8e8', marginTop:40 }}>
+        <div style={{ maxWidth:1140, margin:'0 auto', padding:'20px 28px' }}>
+          <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
+        </div>
+      </div>
     </>
   );
 }

@@ -203,9 +203,8 @@ export default function About() {
 
         {/* Footer */}
         <div style={{ borderTop:`1px solid ${BORDER}` }}>
-          <div style={{ maxWidth:720, margin:'0 auto', padding:'20px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8 }}>
+          <div style={{ maxWidth:720, margin:'0 auto', padding:'20px 20px' }}>
             <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
-            <a href="mailto:hello@thedentalcommute.com" style={{ fontSize:12, color:'#bbb', textDecoration:'none' }}>hello@thedentalcommute.com</a>
           </div>
         </div>
 
