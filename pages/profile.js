@@ -21,6 +21,23 @@ const SPECIALTIES = [
 
 const ROLES = ['Dentist', 'Dental Student', 'Dental Hygienist', 'Dental Assistant', 'Practice Manager', 'Other'];
 
+const US_STATES = [
+  'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
+  'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
+  'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan',
+  'Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada',
+  'New Hampshire','New Jersey','New Mexico','New York','North Carolina',
+  'North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island',
+  'South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont',
+  'Virginia','Washington','West Virginia','Wisconsin','Wyoming',
+];
+
+const CA_PROVINCES = [
+  'Alberta','British Columbia','Manitoba','New Brunswick',
+  'Newfoundland and Labrador','Northwest Territories','Nova Scotia',
+  'Nunavut','Ontario','Prince Edward Island','Quebec','Saskatchewan','Yukon',
+];
+
 function getDomain(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return null; } }
 
 export default function ProfilePage() {
@@ -172,13 +189,15 @@ export default function ProfilePage() {
 
             <div style={{ marginBottom:22 }}>
               <label style={labelStyle}>Province / State</label>
-              <input
-                type="text"
-                placeholder="e.g. Ontario, California, British Columbia"
-                value={form.province_state}
-                onChange={e => setForm(f => ({ ...f, province_state: e.target.value }))}
-                style={inputStyle}
-              />
+              <select value={form.province_state} onChange={e => setForm(f => ({ ...f, province_state: e.target.value }))} style={inputStyle}>
+                <option value="">Select province or state</option>
+                <optgroup label="── United States ──">
+                  {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </optgroup>
+                <optgroup label="── Canada ──">
+                  {CA_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                </optgroup>
+              </select>
             </div>
 
             {/* Save button */}
