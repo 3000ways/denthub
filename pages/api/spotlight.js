@@ -26,6 +26,7 @@ async function fetchAllFromAirtable(type) {
   if (!res.ok) return [];
   const json = await res.json();
   return (json.records || []).map(r => ({
+    id:     r.id,
     name:   r.fields['Name'],
     type:   type,
     rssUrl: r.fields['RSS Feed URL'],
@@ -66,18 +67,21 @@ function parsePodcastFeed(xml, meta) {
   const description  = stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '');
   const episodeArt   = getAttr(item, 'itunes:image', 'href') || showArt;
   const enclosureUrl = getAttr(item, 'enclosure', 'url');
+  const guid         = getTag(item, 'guid') || enclosureUrl;
   const parsedDate   = pubDate ? new Date(pubDate) : null;
 
   return {
-    type:        'podcast',
-    show:        meta.name,
-    title:       title || 'New episode',
-    url:         enclosureUrl || link,
-    image:       episodeArt,
-    date:        parsedDate ? parsedDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
-    sortDate:    parsedDate ? parsedDate.getTime() : 0,
-    description: description.slice(0, 200),
-    score:       meta.score,
+    type:             'podcast',
+    show:             meta.name,
+    resourceId:       meta.id,
+    title:            title || 'New episode',
+    url:              enclosureUrl || link,
+    guid:             guid,
+    image:            episodeArt,
+    date:             parsedDate ? parsedDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+    sortDate:         parsedDate ? parsedDate.getTime() : 0,
+    description:      description.slice(0, 200),
+    score:            meta.score,
   };
 }
 
