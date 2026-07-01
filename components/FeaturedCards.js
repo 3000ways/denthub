@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '../lib/supabase';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -15,14 +16,14 @@ const SECTION_CONFIG = {
   Conferences:  { accent: '#0e7490', badge: 'Conference', icon: '📅' },
 };
 
-function ResourceCard({ record }) {
+function ResourceCard({ record, artworkUrl }) {
   const f = record.fields;
   const [imgErr, setImgErr] = useState(false);
 
   const typeName = f.Type || '';
   const config = SECTION_CONFIG[typeName] || { accent: GREEN, badge: typeName, icon: '⭐' };
 
-  const imageUrl = f['Image URL'] || null;
+  const imageUrl = artworkUrl || f['Image URL'] || null;
   const domain = (() => {
     try { return new URL(f.URL || '').hostname.replace('www.', ''); }
     catch { return null; }
@@ -87,12 +88,32 @@ function ResourceCard({ record }) {
 
 export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
   const [records, setRecords] = useState([]);
+  const [artworkMap, setArtworkMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`/api/admin/featured?section=${encodeURIComponent(section)}`)
       .then(r => r.json())
-      .then(d => setRecords(d.records || []))
+      .then(async d => {
+        const recs = d.records || [];
+        setRecords(recs);
+
+        // For podcasts, look up show artwork from Supabase episodes table
+        if (section === 'Podcasts' && recs.length > 0) {
+          const ids = recs.map(r => r.id);
+          const { data } = await supabase
+            .from('episodes')
+            .select('show_resource_id, image')
+            .in('show_resource_id', ids)
+            .not('image', 'is', null)
+            .limit(ids.length * 3);
+          if (data) {
+            const map = {};
+            data.forEach(ep => { if (!map[ep.show_resource_id]) map[ep.show_resource_id] = ep.image; });
+            setArtworkMap(map);
+          }
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [section]);
@@ -119,7 +140,7 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,
         gap: isMobile ? 8 : 12, alignItems: 'stretch' }}>
-        {display.map(r => <ResourceCard key={r.id} record={r} />)}
+        {display.map(r => <ResourceCard key={r.id} record={r} artworkUrl={artworkMap[r.id]} />)}
       </div>
     </div>
   );
