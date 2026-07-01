@@ -116,9 +116,9 @@ export function Pinboard({ resources = [], isMobile = false }) {
     .filter(c => c.resource)
     .slice(0, SLOTS);
 
-  // Nothing to show yet (and nothing pinned) — hide the whole section rather than
-  // render an empty board.
-  if (loaded && cards.length === 0) return null;
+  // Until the pins query resolves, render nothing — this avoids the board
+  // flashing on screen and then vanishing once we learn there are no pins.
+  if (!loaded) return null;
 
   return (
     <div style={{ marginBottom: 52 }}>
@@ -149,17 +149,33 @@ export function Pinboard({ resources = [], isMobile = false }) {
           </div>
         </div>
 
-        {/* The tacked-up cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${isMobile ? 2 : SLOTS}, 1fr)`,
-          gap: isMobile ? 18 : 22,
-          alignItems: 'start',
-        }}>
-          {cards.map(c => (
-            <PinCard key={c.pin.id} pin={c.pin} resource={c.resource} isMobile={isMobile} />
-          ))}
-        </div>
+        {/* The tacked-up cards — or a friendly invite when the board is empty */}
+        {cards.length > 0 ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${isMobile ? 2 : SLOTS}, 1fr)`,
+            gap: isMobile ? 18 : 22,
+            alignItems: 'start',
+          }}>
+            {cards.map(c => (
+              <PinCard key={c.pin.id} pin={c.pin} resource={c.resource} isMobile={isMobile} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ position: 'relative', maxWidth: 340, margin: '8px auto 4px',
+            background: '#fffdf7', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 3,
+            padding: '22px 20px 18px', textAlign: 'center', transform: 'rotate(-1.2deg)',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.22)' }}>
+            <Thumbtack />
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY, marginBottom: 6 }}>
+              The board is empty
+            </div>
+            <div style={{ fontSize: 12.5, color: '#6b6257', lineHeight: 1.5 }}>
+              Be the first to tack something up — open any resource and tap
+              <span style={{ fontWeight: 600, color: GREEN }}> 📌 Pin to community board</span>.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
