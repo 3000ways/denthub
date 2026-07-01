@@ -4,7 +4,7 @@ A running wish list of features and improvements. Plain English, no code require
 Move items between sections as work progresses. When an item is ready to actually
 build, we can promote it to a GitHub Issue.
 
-_Last updated: 2026-06-15_
+_Last updated: 2026-07-01_
 
 ---
 
@@ -292,7 +292,7 @@ it's expressive but *structurally* safe. Flavors, safest → riskiest:
    safety comes from curated building blocks (can't spell something vile). Whimsical, on-brand.
    **Use an all-DENTAL word set** (e.g. molar, apex, occlusion, floss, gutta-percha, canine,
    plaque…) so the poetry is playful *and* in-world for dentists.
-2. **Pin-a-resource (safest + most useful)** — pin one resource from the catalog; home shows
+2. **Pin-a-resource (safest + most useful)** ✅ _Built._ — pin one resource from the catalog; home shows
    "📌 Pinned by a periodontist in Ohio" until the next person re-pins. Almost no unmoderated
    content (the pinned thing is already vetted); reinforces discovery. **Visual treatment:**
    a distinct **cork-board "Pinboard" section**, cards held up by little **thumbtacks** —
@@ -410,15 +410,18 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 - **Native mobile apps (iOS + Android) with CarPlay / Android Auto** (see theme above) —
   the flagship in-car listen-and-earn-CE experience. Biggest bet on the roadmap; reuses the
   Supabase backend; build cross-platform (React Native/Expo); sequence after web foundations.
-- **Community Home Page — trace left by the last visitor** (see theme above) — build BOTH: a
-  cork-board **thumbtack Pinboard** ("📌 Pinned by a periodontist in Ohio") first, then a
-  **dental-word fridge-magnet board**. Safety via constrained input + sign-in + moderation.
+- **Community Home Page — trace left by the last visitor** (see theme above) — ✅ _Thumbtack
+  Pinboard built._ Still to do: the **dental-word fridge-magnet board**. Safety via constrained
+  input + sign-in + moderation.
 - Extend the user-account system toward **voting**
   (now built on Supabase/Google sign-in → add NPI-verified voting).
 - Bayesian vote confidence adjustment to prevent score gaming.
 
 ## ✅ Done
 
+- **Thumbtack Pinboard** — community "pin-a-resource" feature on the home page. Signed-in users
+  pin any resource; the home page shows who pinned what until the next person re-pins. Backed by
+  `pins` table in Supabase; `components/Pinboard.js` + `components/PinButton.js`.
 - **Google Analytics 4** tracking (`G-NHEQGSKG9D`) wired into `_app.js` via
   `next/script`. _(PR #5, merged)_
 - **Login-required bookmarks** (Google sign-in + Supabase) — bookmark resources,
