@@ -865,9 +865,9 @@ export default function Home({ initialResources }) {
       <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}` }}>
         <div style={{ height:3, background:GREEN }} />
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:56 }}>
-          {/* Small logo — always visible as home link */}
-          <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
-            <img src="/wide-logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
+          {/* Nav logo — cropped to remove blank padding in the image file */}
+          <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0, overflow:'hidden', height:44 }}>
+            <img src="/wide-logo.png" alt="The Dental Commute" style={{ height:90, width:'auto', marginTop:-23, marginBottom:-23 }} />
           </a>
           {/* Right-side nav links */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20 }}>
