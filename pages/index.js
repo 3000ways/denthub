@@ -868,7 +868,7 @@ export default function Home({ initialResources }) {
           </a>
           {/* Right-side nav links */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20 }}>
-            {!isMobile && <a href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</a>}
+            {!isMobile && <Link href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</Link>}
             <button onClick={openSubmitModal} style={{ fontSize:12, padding: isMobile ? '7px 12px' : '7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
               {isMobile ? 'Submit' : 'Submit a resource'}
             </button>
@@ -899,16 +899,16 @@ export default function Home({ initialResources }) {
                 </button>
                 {showUserMenu && (
                   <div style={{ position:'absolute', top:'calc(100% + 10px)', right:0, background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, boxShadow:'0 4px 20px rgba(0,0,0,0.08)', minWidth:150, zIndex:200, overflow:'hidden' }}>
-                    <a href="/my-listening" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
+                    <Link href="/my-listening" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
                       onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
                       onMouseLeave={e => e.currentTarget.style.background='#fff'}>
                       🎧 My Listening
-                    </a>
-                    <a href="/profile" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
+                    </Link>
+                    <Link href="/profile" style={{ display:'block', padding:'11px 16px', fontSize:13, color:'#333', textDecoration:'none', fontFamily:FONT_BODY, borderBottom:`1px solid ${BORDER}` }}
                       onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
                       onMouseLeave={e => e.currentTarget.style.background='#fff'}>
                       Profile settings
-                    </a>
+                    </Link>
                     <button
                       onClick={async () => { setShowUserMenu(false); await signOut(); router.push('/'); }}
                       style={{ display:'block', width:'100%', textAlign:'left', padding:'11px 16px', fontSize:13, color:'#c0392b', background:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY }}
