@@ -950,9 +950,17 @@ export default function Home({ initialResources }) {
             <h1 style={{ fontSize: isMobile ? 32 : 54, fontWeight:900, color:'#111', lineHeight:1.05, margin:'0 0 20px', letterSpacing: isMobile ? -1 : -2.2, fontFamily:FONT_DISPLAY }}>
               Turn every commute<br/>into a <em style={{ color:GREEN, fontStyle:'italic' }}>masterclass.</em>
             </h1>
-            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, margin:'0 0 24px', fontWeight:400 }}>
+            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, margin:'0 0 16px', fontWeight:400 }}>
               Discover the best podcasts, YouTube channels, books, CE courses, coaching, and communities — ranked and curated for dentists.
             </p>
+
+            {/* CE tracking badge */}
+            <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#E8F5F0', border:'1px solid #0F6E56', borderRadius:20, padding:'5px 14px 5px 10px', marginBottom:24 }}>
+              <div style={{ width:16, height:16, background:'#0F6E56', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <span style={{ fontSize:12, fontWeight:600, color:'#0a5240', letterSpacing:'0.02em' }}>CE tracking built in</span>
+            </div>
 
             {/* Stat band — the scale of what we've indexed */}
             {(() => {
