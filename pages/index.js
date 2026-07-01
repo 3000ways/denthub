@@ -1162,15 +1162,6 @@ export default function Home({ initialResources }) {
             {/* Featured Books */}
             <FeaturedBooks isMobile={isMobile} />
 
-            {/* Editor's Picks — compact list, after the live content */}
-            {editorsPicks.length > 0 && (
-              <EditorsPick
-                picks={editorsPicks}
-                onOpen={(id) => router.push(`/resource/${id}`)}
-                onSignInRequired={() => setShowSignIn(true)}
-              />
-            )}
-
             {/* New this week */}
             {recentlyAdded.length > 0 && (
               <div style={{ marginBottom:48 }}>
