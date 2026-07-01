@@ -27,7 +27,6 @@ const TYPE_LABELS = {
   Course: 'Saved CE Courses',
   Coaching: 'Saved Coaching',
   Community: 'Saved Communities',
-  Conference: 'Saved Conferences',
   Software: 'Saved Software',
   Mastermind: 'Saved Masterminds',
   Website: 'Saved Websites',

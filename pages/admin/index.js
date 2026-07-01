@@ -6,7 +6,7 @@ const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
 const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings'];
 
-const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Conference', 'Other'];
+const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Other'];
 
 const CATEGORIES = [
   'General Dentistry Podcasts','Endodontic Podcasts','Orthodontic Podcasts','Periodontic Podcasts',
@@ -14,7 +14,7 @@ const CATEGORIES = [
   'Dental Student Podcasts','Practice Management Podcasts','Dental Technology Podcasts',
   'General Dentistry YouTube','Endodontic YouTube','Orthodontic YouTube','Periodontic YouTube',
   'Oral Surgery YouTube','Dental Student YouTube',
-  'Continuing Education Websites','Dental Books','Dental Conferences','Dental Communities',
+  'Continuing Education Websites','Dental Books','Dental Communities',
   'Dental Forums','Dental Coaching','Mastermind Groups','Dental Software','Dental AI Tools',
   'Other',
 ];
@@ -142,7 +142,7 @@ function AddResource() {
 // ══════════════════════════════════════════
 const VALID_SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
 const VALID_TOPICS      = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
-const VALID_TYPES_RQ    = ['Podcast','YouTube','Book','Course','Software','Community','Conference','Coaching','Mastermind','Other'];
+const VALID_TYPES_RQ    = ['Podcast','YouTube','Book','Course','Software','Community','Coaching','Mastermind','Other'];
 
 function TagToggle({ label, active, onToggle }) {
   return (
@@ -775,7 +775,7 @@ After searching, return ONLY a valid JSON array of objects, each with:
 - Name (string)
 - URL (string — verified homepage URL)
 - Description (string — 1-2 sentences on what makes it valuable)
-- Type (one of: Podcast, YouTube, Website, Book, Course, Software, Community, Conference, Other)
+- Type (one of: Podcast, YouTube, Website, Book, Course, Software, Community, Other)
 - ExpertScore (number 0–100)
 - CommunityScore (number 0–100)
 - PopularityScore (number 0–100)
@@ -1476,7 +1476,7 @@ function EpisodeArchive() {
 // ══════════════════════════════════════════
 //  TAB — Featured Content
 // ══════════════════════════════════════════
-const FEATURED_SECTIONS = ['Books', 'Podcasts', 'YouTube', 'CE Courses', 'Coaching', 'Communities', 'Conferences'];
+const FEATURED_SECTIONS = ['Books', 'Podcasts', 'YouTube', 'CE Courses', 'Coaching', 'Communities'];
 
 function FeaturedContent() {
   const [section, setSection] = useState('Books');

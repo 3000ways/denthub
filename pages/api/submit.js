@@ -3,7 +3,7 @@ const TABLE_ID = 'tblBlou0rXbImoQ75';
 
 const VALID_SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
 const VALID_TOPICS      = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
-const VALID_TYPES       = ['Podcast','YouTube','Book','Course','Software','Community','Conference','Coaching','Mastermind','Other'];
+const VALID_TYPES       = ['Podcast','YouTube','Book','Course','Software','Community','Coaching','Mastermind','Other'];
 
 async function verifyTurnstile(token, ip) {
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -25,7 +25,7 @@ Visit the page and research this resource online. Then return a JSON object (no 
 {
   "Name": "the resource's title",
   "Description": "1-2 sentences on what it is and why it's valuable to dental professionals",
-  "Type": "one of: Podcast, YouTube, Book, Course, Software, Community, Conference, Coaching, Mastermind, Other — do NOT use 'Website'; if the resource is a coaching or consulting program use 'Coaching', if it's a mastermind group use 'Mastermind', if it's a CE platform use 'Course', if it's a dental community/forum use 'Community'",
+  "Type": "one of: Podcast, YouTube, Book, Course, Software, Community, Coaching, Mastermind, Other — do NOT use 'Website'; if the resource is a coaching or consulting program use 'Coaching', if it's a mastermind group use 'Mastermind', if it's a CE platform use 'Course', if it's a dental community/forum use 'Community'",
   "Author": "author, host, or creator name (or empty string if unknown)",
   "RSSFeedURL": "the RSS feed URL if this is a podcast, otherwise empty string",
   "ImageURL": "a direct URL to the resource's cover art, book cover, channel avatar, or logo (or empty string if not found)",

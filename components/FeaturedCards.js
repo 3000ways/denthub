@@ -16,7 +16,6 @@ const SECTION_CONFIG = {
   'CE Courses': { accent: '#1a56a0', badge: 'CE',         icon: '🎓' },
   Coaching:     { accent: '#7c3aed', badge: 'Coaching',   icon: '🏆' },
   Communities:  { accent: '#d97706', badge: 'Community',  icon: '👥' },
-  Conferences:  { accent: '#0e7490', badge: 'Conference', icon: '📅' },
 };
 
 function ResourceCard({ record, artworkUrl, onSignInRequired }) {

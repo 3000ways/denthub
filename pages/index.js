@@ -19,7 +19,6 @@ const CATEGORIES = [
   { label:'YouTube',     types:['YouTube'] },
   { label:'Books',       types:['Book'] },
   { label:'CE Courses',  types:['CE Website','Course'] },
-  { label:'Conferences', types:['Conference'] },
   { label:'Communities', types:['Community','Forum','Association'] },
   { label:'Coaching',    types:['Coaching','Mastermind','Mentorship'] },
 ];
@@ -1189,7 +1188,6 @@ export default function Home({ initialResources }) {
             <FeaturedCards section="CE Courses"  title="Featured CE Courses"        subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedCards section="Coaching"    title="Featured Coaching Programs"  subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedCards section="Communities" title="Featured Communities"       subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="Conferences" title="Featured Conferences"       subtitle="Editor's picks" isMobile={isMobile} />
 
             {/* New this week */}
             {recentlyAdded.length > 0 && (
