@@ -178,16 +178,27 @@ export default function About() {
           {/* ── Card 4: Contact ── */}
           <div style={card}>
             <SectionLabel>Get in touch</SectionLabel>
-            <p style={{ fontSize:14, color:'#777', lineHeight:1.65, margin:'0 0 16px' }}>
+            <p style={{ fontSize:14, color:'#777', lineHeight:1.65, margin:'0 0 20px' }}>
               Questions, feedback, or partnership inquiries — reach out directly.
             </p>
-            <a href="mailto:hello@thedentalcommute.com"
-              style={{ fontSize:14, color:GREEN, fontWeight:600, textDecoration:'none' }}>
-              hello@thedentalcommute.com
-            </a>
-
-            <p style={{ fontSize:13, color:'#aaa', lineHeight:1.65, margin:'20px 0 0', fontStyle:'italic' }}>
-              📬 Suggestions and positive feedback go to Dr. Ionescu. Complaints go directly to YODA_Bot, who will process them with patience, wisdom, and zero emotional response.
+            <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:20 }}>
+              <div style={{ fontSize:14, color:'#555' }}>
+                📬 Suggestions & positive feedback →{' '}
+                <a href="mailto:drionescu@thedentalcommute.com"
+                  style={{ color:GREEN, fontWeight:600, textDecoration:'none' }}>
+                  drionescu@thedentalcommute.com
+                </a>
+              </div>
+              <div style={{ fontSize:14, color:'#555' }}>
+                😤 Complaints →{' '}
+                <a href="mailto:YODA_Bot@thedentalcommute.com"
+                  style={{ color:'#aaa', fontWeight:600, textDecoration:'none' }}>
+                  YODA_Bot@thedentalcommute.com
+                </a>
+              </div>
+            </div>
+            <p style={{ fontSize:13, color:'#aaa', lineHeight:1.65, margin:0, fontStyle:'italic' }}>
+              YODA_Bot will process all complaints with patience, wisdom, and zero emotional response.
             </p>
           </div>
 
