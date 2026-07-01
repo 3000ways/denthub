@@ -867,7 +867,7 @@ export default function Home({ initialResources }) {
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:56 }}>
           {/* Small logo — always visible as home link */}
           <a href="/" style={{ display:'flex', alignItems:'center', textDecoration:'none', flexShrink:0 }}>
-            <img src="/logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
+            <img src="/wide-logo.png" alt="The Dental Commute" style={{ height:44, width:'auto' }} />
           </a>
           {/* Right-side nav links */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20 }}>
