@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/recompute-scores",
-      "schedule": "0 7 * * *"
+      "schedule": "0 7 * * 1"
     }
   ]
 }

@@ -92,6 +92,12 @@ Weighted composite score shown on each resource card with a hover tooltip:
 - Bayesian vote confidence adjustment is planned (to prevent gaming)
 - Auth roadmap: launch as aggregator → add Google/Apple sign-in → NPI-verified voting
 
+### Automated scoring engine
+- **Scores are computed from real signals, not hand-set or AI-guessed.** `Final Score` is an Airtable **formula** (read-only); the engine only writes the five sub-scores. Math in `lib/scoring.js` (pure, unit-tested), orchestration in `lib/score-engine.js`.
+- **Recency** — podcasts: episode archive (`resource_recency_signals` view); YouTube: recent upload dates; books: publication year. **Popularity** — YouTube subscriber count, podcast back-catalog size (weak reach proxy), book ratings count. **Community** — on-site votes + comments + bookmarks + pins. Each is percentile-ranked *within its type* and Bayesian-shrunk toward a neutral 50 for thin data. Unmeasurable types (coaching/software/…) get a neutral 50 for Recency/Popularity rather than a fabricated number.
+- **Expert & Clinical Depth** are still their old values — an AI-judge pass (rubric + cited evidence into Editor Notes) is the next phase.
+- Runs **weekly** via Vercel Cron (`/api/cron/recompute-scores`, guarded by `CRON_SECRET`); also triggerable from the admin **Scoring** tab (Preview = no write, Recompute now = write). Migrations `0006`/`0007`.
+
 ---
 
 ## UI / Design North Star

@@ -60,9 +60,10 @@ function parseRecentVideos(xml) {
     videos.push({
       videoId,
       title,
-      url:       `https://www.youtube.com/watch?v=${videoId}`,
-      thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
-      date:      published ? new Date(published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+      url:         `https://www.youtube.com/watch?v=${videoId}`,
+      thumbnail:   thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+      date:        published ? new Date(published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+      publishedAt: published || null,   // raw ISO — used by the scoring engine
     });
   }
   return videos;
@@ -137,6 +138,9 @@ export default async function handler(req, res) {
         subscribers: fmtCount(item.statistics?.subscriberCount),
         videos:      fmtCount(item.statistics?.videoCount),
         views:       fmtCount(item.statistics?.viewCount),
+        // Raw numbers for the scoring engine (formatted strings above are for display).
+        subscribersRaw: item.statistics?.subscriberCount ? parseInt(item.statistics.subscriberCount, 10) : null,
+        videosRaw:      item.statistics?.videoCount ? parseInt(item.statistics.videoCount, 10) : null,
       };
     }
   }
@@ -164,6 +168,8 @@ export default async function handler(req, res) {
       avatar:      yt.avatar       || null,
       subscribers: yt.subscribers  || null,
       videos:      yt.videos       || null,
+      subscribersRaw: yt.subscribersRaw ?? null,
+      videosRaw:      yt.videosRaw ?? null,
       recentVideos: recentVids,
       latest:      recentVids[0]   || null,
     };

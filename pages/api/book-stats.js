@@ -38,6 +38,9 @@ async function lookupBook(title, author) {
     year:        info.publishedDate ? info.publishedDate.slice(0, 4) : null,
     publisher:   info.publisher   || null,
     isbn:        info.industryIdentifiers?.find(i => i.type === 'ISBN_13')?.identifier || null,
+    // Popularity signals for the scoring engine (often sparse on Google Books).
+    ratingsCount:  info.ratingsCount  || 0,
+    averageRating: info.averageRating || null,
   };
 }
 

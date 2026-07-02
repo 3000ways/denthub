@@ -924,12 +924,23 @@ function ScoringTab() {
   return (
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Automated Scoring</h2>
-      <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
-        Recomputes ranking scores from real signals — <strong>Recency</strong> from the episode archive and
-        <strong> Community</strong> from on-site engagement (votes, comments, bookmarks, pins) — and writes them back
-        to Airtable. Final Score recomputes automatically. Runs nightly on its own; use these to run it now.
-        <br /><span style={{ color: '#bbb' }}>Popularity and the AI-judged Expert / Clinical Depth scores are coming in the next passes.</span>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
+        Every ranking score is computed from <strong>real, measurable signals</strong> instead of being guessed — then
+        written back to Airtable, where the <strong>Final Score</strong> formula recombines them
+        (Expert&nbsp;25% + Community&nbsp;25% + Popularity&nbsp;20% + Recency&nbsp;15% + Clinical&nbsp;Depth&nbsp;15%).
+        It runs on its own <strong>weekly</strong>; the buttons below run it now.
       </p>
+
+      <div style={{ background: '#f7f7f5', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '14px 16px', marginBottom: 20, fontSize: 12.5, color: '#555', lineHeight: 1.65 }}>
+        <div style={{ fontWeight: 700, color: '#333', marginBottom: 8 }}>How each score is computed</div>
+        <div style={{ marginBottom: 7 }}><strong style={{ color: GREEN }}>Recency</strong> — how fresh and active the resource is. Podcasts: days since the last episode + how many episodes in the last 90 days (from our archive). YouTube: recent upload dates. Books: publication year (gentle decay — a classic doesn&rsquo;t go stale like a dormant podcast).</div>
+        <div style={{ marginBottom: 7 }}><strong style={{ color: GREEN }}>Popularity</strong> — audience size. YouTube: subscriber count. Podcasts: back-catalog size as a reach proxy (no public listener count exists, so this is the weakest signal and is heavily damped). Books: ratings count.</div>
+        <div style={{ marginBottom: 7 }}><strong style={{ color: GREEN }}>Community</strong> — engagement on <em>this</em> site: votes, comments, bookmarks, and pins. Near-neutral until dentists start engaging, then it sharpens on its own.</div>
+        <div style={{ marginBottom: 10 }}><strong style={{ color: '#999' }}>Expert &amp; Clinical Depth</strong> — coming next: an AI judge that reads a show&rsquo;s actual episode topics and the host&rsquo;s credentials against a fixed rubric and must cite its evidence (saved to Editor Notes). Until then these keep their existing values.</div>
+        <div style={{ paddingTop: 8, borderTop: `1px solid ${BORDER}`, color: '#777' }}>
+          <strong>Two fairness rules:</strong> each resource is ranked by <em>percentile against its own type</em> (a podcast vs. podcasts, a channel vs. channels — never on the same absolute axis), and thin data is pulled toward a neutral 50 (<em>Bayesian shrinkage</em>) so a brand-new resource with a handful of data points can&rsquo;t rocket to the top. Types we can&rsquo;t measure (coaching, software, communities…) get a neutral 50 for Recency &amp; Popularity rather than a fabricated number.
+        </div>
+      </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         <button onClick={() => run(true)} disabled={busy} style={{ flex: 1, padding: '12px', background: '#fff', color: GREEN, border: `1px solid ${GREEN}`, borderRadius: 6, cursor: busy ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: busy ? 0.6 : 1 }}>
@@ -946,14 +957,14 @@ function ScoringTab() {
         <div>
           <div style={{ padding: '12px 16px', background: '#d1fae5', borderRadius: 8, fontSize: 13, color: '#065f46', marginBottom: 16 }}>
             {result.previewed ? 'Previewed' : `✓ Wrote ${result.written} updates`} · {result.resources} resources ·
-            {' '}{result.recencyScored} recency-scored · {result.communityScored} community-scored
+            {' '}{result.recencyScored} recency · {result.popularityScored} popularity · {result.communityScored} community
           </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Top by recency (sample):</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Top by popularity (sample):</div>
           <div style={{ display: 'grid', gap: 6 }}>
             {(result.sample || []).map((s, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '8px 12px', fontSize: 13 }}>
                 <span style={{ color: '#111' }}>{s.name} <span style={{ color: '#bbb', fontSize: 11 }}>{s.type}</span></span>
-                <span style={{ color: '#666', fontSize: 12 }}>recency {s.recency} · community {s.community}</span>
+                <span style={{ color: '#666', fontSize: 12 }}>pop {s.popularity} · rec {s.recency} · com {s.community}</span>
               </div>
             ))}
           </div>
