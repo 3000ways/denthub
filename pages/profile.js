@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { supabase } from '../lib/supabase';
 import SiteNav from '../components/SiteNav';
+import { OnboardingModal } from '../components/AuthModal';
 import { CAREER_STAGES, FOCUS_OPTIONS, MAX_FOCUS } from '../lib/onboarding';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
@@ -61,6 +62,7 @@ export default function ProfilePage() {
   const [savedResources, setSavedResources] = useState([]);
   const [listenStats, setListenStats] = useState(null);
   const [deleteStep, setDeleteStep]   = useState(0); // 0=idle, 1=confirm, 2=deleting
+  const [showQuiz, setShowQuiz]       = useState(false); // retake the onboarding quiz
 
   useEffect(() => {
     if (!user) return;
@@ -257,6 +259,13 @@ export default function ProfilePage() {
                     );
                   })}
                 </div>
+                {/* Re-opens the onboarding quiz pre-filled with current answers —
+                    a guided alternative to editing the fields above directly. */}
+                <button type="button" onClick={() => setShowQuiz(true)}
+                  style={{ fontSize:12, color:GREEN, fontWeight:500, background:'none', border:'none',
+                    cursor:'pointer', fontFamily:FONT_BODY, padding:0, marginTop:10 }}>
+                  Retake the welcome quiz →
+                </button>
               </div>
 
               <div style={{ display:'flex', alignItems:'center', gap:16 }}>
@@ -431,6 +440,10 @@ export default function ProfilePage() {
           <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
         </div>
       </div>
+      {/* Retake quiz — mounts fresh each open, pre-filled from the profile.
+          Saving inside the quiz refreshes the auth context, which re-syncs the
+          form fields above automatically. */}
+      {showQuiz && <OnboardingModal onClose={() => setShowQuiz(false)} />}
     </>
   );
 }

@@ -60,11 +60,13 @@ function Pill({ label, active, onClick, small }) {
 // and drive the homepage "Recommended for you" strip. Skippable at any point —
 // either way we stamp onboarding_completed_at so it never shows twice.
 export function OnboardingModal({ onClose }) {
-  const { updateProfile } = useAuth();
+  const { profile, updateProfile } = useAuth();
   const [step, setStep] = useState(0); // 0=career, 1=specialty, 2=focus
-  const [careerStage, setCareerStage] = useState('');
-  const [specialty, setSpecialty] = useState('');
-  const [focus, setFocus] = useState([]); // array of focus labels
+  // Pre-fill from the profile so a retake (from profile settings) starts from
+  // the person's previous answers rather than blank.
+  const [careerStage, setCareerStage] = useState(profile?.career_stage || '');
+  const [specialty, setSpecialty] = useState(profile?.specialty || '');
+  const [focus, setFocus] = useState(profile?.focus_areas || []); // array of focus labels
   const [saving, setSaving] = useState(false);
 
   const TOTAL = 3;
