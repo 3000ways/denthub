@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth-context';
+import { CAREER_STAGES, QUIZ_SPECIALTIES, FOCUS_OPTIONS, MAX_FOCUS } from '../lib/onboarding';
 
 const FONT = "'Inter', sans-serif";
 const GREEN = '#2D6A4F';
 const BORDER = '#e5e7eb';
 
-const ROLES = ['Dentist', 'Specialist', 'Dental Student', 'Dental Staff', 'Other'];
-const SPECIALTIES = ['General Dentistry', 'Endodontics', 'Orthodontics', 'Periodontics', 'Oral Surgery', 'Prosthodontics', 'Pediatric Dentistry', 'Oral Radiology', 'Dental Anesthesiology', 'Pain'];
-
 function Overlay({ onClose, children }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 32, width: '100%', maxWidth: 420, fontFamily: FONT }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 32, width: '100%', maxWidth: 460, fontFamily: FONT }}>
         {children}
       </div>
     </div>
@@ -44,61 +42,154 @@ export function SignInModal({ onClose }) {
   );
 }
 
+// Small pill button used throughout the quiz.
+function Pill({ label, active, onClick, small }) {
+  return (
+    <button onClick={onClick} style={{
+      fontSize: small ? 12 : 13, padding: small ? '6px 13px' : '8px 16px', borderRadius: 20,
+      border: `1px solid ${active ? GREEN : BORDER}`,
+      background: active ? GREEN : '#fff',
+      color: active ? '#fff' : '#555',
+      cursor: 'pointer', fontFamily: FONT, fontWeight: active ? 600 : 400, transition: 'all 0.12s',
+    }}>{label}</button>
+  );
+}
+
+// Three-question onboarding quiz shown once, right after a person's first
+// sign-in. Answers write to the profile (career_stage, specialty, focus_areas)
+// and drive the homepage "Recommended for you" strip. Skippable at any point —
+// either way we stamp onboarding_completed_at so it never shows twice.
 export function OnboardingModal({ onClose }) {
   const { updateProfile } = useAuth();
-  const [role, setRole] = useState('');
+  const [step, setStep] = useState(0); // 0=career, 1=specialty, 2=focus
+  const [careerStage, setCareerStage] = useState('');
   const [specialty, setSpecialty] = useState('');
+  const [focus, setFocus] = useState([]); // array of focus labels
   const [saving, setSaving] = useState(false);
 
-  async function save() {
-    if (!role) return;
+  const TOTAL = 3;
+
+  function toggleFocus(label) {
+    setFocus(prev => {
+      if (prev.includes(label)) return prev.filter(f => f !== label);
+      if (prev.length >= MAX_FOCUS) return prev; // cap at 3
+      return [...prev, label];
+    });
+  }
+
+  async function finish() {
     setSaving(true);
-    await updateProfile({ role, specialty: specialty || null });
+    await updateProfile({
+      career_stage: careerStage || null,
+      specialty: specialty || null,
+      focus_areas: focus.length ? focus : null,
+      onboarding_completed_at: new Date().toISOString(),
+    });
     onClose();
   }
 
+  // Skip records completion (so we don't nag again) but saves whatever was
+  // answered so far — no wasted input.
+  async function skip() {
+    setSaving(true);
+    await updateProfile({
+      career_stage: careerStage || null,
+      specialty: specialty || null,
+      focus_areas: focus.length ? focus : null,
+      onboarding_completed_at: new Date().toISOString(),
+    });
+    onClose();
+  }
+
+  const canNext = step === 0 ? !!careerStage : step === 1 ? !!specialty : true;
+  const isLast = step === TOTAL - 1;
+
   return (
     <Overlay onClose={() => {}}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6 }}>Welcome! One quick question</div>
-      <div style={{ fontSize: 14, color: '#666', marginBottom: 24 }}>This helps us show you the most relevant resources.</div>
-
-      <div style={{ fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 10 }}>What best describes you?</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-        {ROLES.map(r => (
-          <button key={r} onClick={() => setRole(r)} style={{
-            fontSize: 13, padding: '7px 16px', borderRadius: 20,
-            border: `1px solid ${role === r ? GREEN : BORDER}`,
-            background: role === r ? GREEN : '#fff',
-            color: role === r ? '#fff' : '#555',
-            cursor: 'pointer', fontFamily: FONT, fontWeight: role === r ? 600 : 400,
-          }}>{r}</button>
+      {/* Progress dots */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
+        {Array.from({ length: TOTAL }).map((_, i) => (
+          <div key={i} style={{
+            height: 4, flex: 1, borderRadius: 2,
+            background: i <= step ? GREEN : '#eceae4', transition: 'background 0.2s',
+          }} />
         ))}
       </div>
 
-      {(role === 'Dentist' || role === 'Specialist') && (
+      {step === 0 && (
         <>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 10 }}>Your specialty</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-            {SPECIALTIES.map(s => (
-              <button key={s} onClick={() => setSpecialty(s)} style={{
-                fontSize: 12, padding: '5px 12px', borderRadius: 20,
-                border: `1px solid ${specialty === s ? GREEN : BORDER}`,
-                background: specialty === s ? GREEN : '#fff',
-                color: specialty === s ? '#fff' : '#555',
-                cursor: 'pointer', fontFamily: FONT, fontWeight: specialty === s ? 600 : 400,
-              }}>{s}</button>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: "'Playfair Display', Georgia, serif" }}>What describes you?</div>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 22 }}>We&rsquo;ll tune your homepage to where you are in your career.</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+            {CAREER_STAGES.map(c => (
+              <Pill key={c} label={c} active={careerStage === c} onClick={() => setCareerStage(c)} />
             ))}
           </div>
         </>
       )}
 
-      <button onClick={save} disabled={!role || saving} style={{
-        width: '100%', padding: '13px', borderRadius: 8, border: 'none',
-        background: role ? GREEN : '#e5e7eb', color: role ? '#fff' : '#aaa',
-        fontSize: 15, fontWeight: 700, cursor: role ? 'pointer' : 'default', fontFamily: FONT,
-      }}>
-        {saving ? 'Saving…' : 'Get started →'}
-      </button>
+      {step === 1 && (
+        <>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: "'Playfair Display', Georgia, serif" }}>What&rsquo;s your focus?</div>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 22 }}>Your specialty helps us surface the right clinical resources.</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+            {QUIZ_SPECIALTIES.map(s => (
+              <Pill key={s.value} label={s.label} active={specialty === s.value} onClick={() => setSpecialty(s.value)} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: "'Playfair Display', Georgia, serif" }}>What are you working on right now?</div>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 22 }}>Pick up to 3 &mdash; these move matching resources to the top of your homepage.</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            {FOCUS_OPTIONS.map(o => {
+              const active = focus.includes(o.label);
+              const atCap = !active && focus.length >= MAX_FOCUS;
+              return (
+                <button key={o.label} onClick={() => toggleFocus(o.label)} disabled={atCap} style={{
+                  fontSize: 13, padding: '8px 16px', borderRadius: 20,
+                  border: `1px solid ${active ? GREEN : BORDER}`,
+                  background: active ? GREEN : '#fff',
+                  color: active ? '#fff' : atCap ? '#bbb' : '#555',
+                  cursor: atCap ? 'not-allowed' : 'pointer', fontFamily: FONT, fontWeight: active ? 600 : 400,
+                  transition: 'all 0.12s',
+                }}>{active ? '✓ ' : ''}{o.label}</button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 12, color: '#aaa' }}>{focus.length}/{MAX_FOCUS} selected</div>
+        </>
+      )}
+
+      {/* Footer: back / skip on the left, next / finish on the right */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {step > 0 && (
+            <button onClick={() => setStep(s => s - 1)} disabled={saving} style={{
+              fontSize: 13, color: '#888', background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT, padding: 0,
+            }}>← Back</button>
+          )}
+          <button onClick={skip} disabled={saving} style={{
+            fontSize: 13, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT, padding: 0,
+          }}>Skip for now</button>
+        </div>
+
+        {isLast ? (
+          <button onClick={finish} disabled={saving} style={{
+            padding: '11px 24px', borderRadius: 8, border: 'none', background: GREEN, color: '#fff',
+            fontSize: 15, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: FONT, opacity: saving ? 0.7 : 1,
+          }}>{saving ? 'Saving…' : 'See my picks →'}</button>
+        ) : (
+          <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext} style={{
+            padding: '11px 24px', borderRadius: 8, border: 'none',
+            background: canNext ? GREEN : '#e5e7eb', color: canNext ? '#fff' : '#aaa',
+            fontSize: 15, fontWeight: 700, cursor: canNext ? 'pointer' : 'default', fontFamily: FONT,
+          }}>Next →</button>
+        )}
+      </div>
     </Overlay>
   );
 }
