@@ -684,7 +684,12 @@ export default function Home({ initialResources }) {
   }, []);
 
   useEffect(() => {
-    if (user && profile && !profile.onboarding_completed_at) setShowOnboarding(true);
+    // The 'in' check makes deploys order-independent: until migration 0011 adds
+    // the column, the profile row won't have the key at all and the quiz stays
+    // off (answers couldn't be saved yet). It activates once the migration runs.
+    if (user && profile && 'onboarding_completed_at' in profile && !profile.onboarding_completed_at) {
+      setShowOnboarding(true);
+    }
   }, [user, profile]);
   const [ytStats, setYtStats] = useState({});
   const [podStats, setPodStats] = useState({});
