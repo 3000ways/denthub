@@ -10,6 +10,7 @@
 // many episodes are stored per show without kicking off a harvest.
 
 import { harvestBatch, getCoverage, getStats } from '../../../lib/harvester';
+import { tagUntaggedEpisodes } from '../../../lib/episode-tagger';
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 
 // Give the harvester room to work. Vercel caps this at the plan limit
@@ -44,7 +45,20 @@ export default async function handler(req, res) {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 75, 200);
     const summary = await harvestBatch({ limit, timeBudgetMs: 38000 });
-    return res.status(200).json({ ok: true, ...summary });
+
+    // Tag just-harvested (and any other still-untagged) episodes. Kept small
+    // and best-effort: harvestBatch may have already used most of the 60s
+    // budget, and a tagging hiccup should never fail the harvest response —
+    // the bulk of the archive is caught up separately via the admin backfill
+    // (pages/api/admin/tag-episodes-batch.js), which isn't cron-time-boxed.
+    let tagging = null;
+    try {
+      tagging = await tagUntaggedEpisodes({ claimSize: 150, trigger: 'harvest' });
+    } catch (tagErr) {
+      tagging = { status: 'error', error: String(tagErr.message || tagErr) };
+    }
+
+    return res.status(200).json({ ok: true, ...summary, tagging });
   } catch (err) {
     console.error('[harvest-episodes] error:', err.message);
     return res.status(500).json({ error: String(err.message || err) });
