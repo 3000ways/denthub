@@ -349,6 +349,14 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 📋 Next (planned, not started)
 
+- **"All Episodes" on resource pages — browse + search the full back-catalog.**
+  Each podcast resource page shows *every* episode (Load More pagination), not just
+  the recent handful, plus a show-scoped search box on larger catalogs. Feeds off the
+  existing Supabase episode archive (38.6k episodes already harvested; the 2,540-episode
+  Dentalpreneur case is fully covered). Keep the live RSS "Recent Episodes" on top for
+  freshness; server-render the first page for SEO. Podcasts only for now. Full spec +
+  harvest-coverage findings in **`docs/all-episodes-pagination-spec.md`**. Code → branch
+  (`claude/resource-episode-pagination-mf29w5`) + PR.
 - **Home page → carousel layout** (see "Primary layout" under the home-page theme) —
   vertical feed of horizontal category carousels (Netflix/Spotify-style), responsive.
   Open decision: show cards vs episode cards. A meaningful design-north-star shift.
