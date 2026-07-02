@@ -7,7 +7,7 @@ import { useBookmarks } from '../lib/bookmarks-context';
 import { supabase } from '../lib/supabase';
 import SiteNav from '../components/SiteNav';
 import { OnboardingModal } from '../components/AuthModal';
-import { CAREER_STAGES, FOCUS_OPTIONS, MAX_FOCUS } from '../lib/onboarding';
+import { QUESTION_KEYS, MAX_PICKS, fetchQuizOptions } from '../lib/onboarding';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -56,13 +56,16 @@ export default function ProfilePage() {
   const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const router = useRouter();
 
-  const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '', province_state: '', career_stage: '', focus_areas: [] });
+  const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '', province_state: '', career_stage: '', interests: [], focus_areas: [] });
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
   const [savedResources, setSavedResources] = useState([]);
   const [listenStats, setListenStats] = useState(null);
   const [deleteStep, setDeleteStep]   = useState(0); // 0=idle, 1=confirm, 2=deleting
   const [showQuiz, setShowQuiz]       = useState(false); // retake the onboarding quiz
+  const [quizOptions, setQuizOptions] = useState(null); // { career_stage, interest, working_on }
+
+  useEffect(() => { fetchQuizOptions().then(setQuizOptions); }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -105,17 +108,20 @@ export default function ProfilePage() {
         avatar_url:     profile.avatar_url     || user?.user_metadata?.avatar_url || '',
         province_state: profile.province_state || '',
         career_stage:   profile.career_stage   || '',
+        interests:      profile.interests      || [],
         focus_areas:    profile.focus_areas    || [],
       });
     }
   }, [profile]);
 
-  function toggleFocus(label) {
+  // Shared toggle for both pick-lists (interests, working-on) — `field` is
+  // whichever form key holds that list, `max` its pick cap.
+  function togglePick(field, label, max) {
     setForm(f => {
-      const cur = f.focus_areas || [];
-      if (cur.includes(label)) return { ...f, focus_areas: cur.filter(x => x !== label) };
-      if (cur.length >= MAX_FOCUS) return f;
-      return { ...f, focus_areas: [...cur, label] };
+      const cur = f[field] || [];
+      if (cur.includes(label)) return { ...f, [field]: cur.filter(x => x !== label) };
+      if (cur.length >= max) return f;
+      return { ...f, [field]: [...cur, label] };
     });
   }
 
@@ -230,31 +236,52 @@ export default function ProfilePage() {
                 </select>
               </div>
 
-              {/* Career stage — from the onboarding quiz (Q1) */}
+              {/* Career stage — from the onboarding quiz (Q1). Options come live
+                  from quiz_options (admin-editable), not a hardcoded list. */}
               <div style={{ marginBottom:28 }}>
                 <label style={labelStyle}>Career stage</label>
                 <select value={form.career_stage} onChange={e => setForm(f => ({ ...f, career_stage: e.target.value }))} style={{ ...inputStyle, maxWidth:260 }}>
                   <option value="">Select career stage</option>
-                  {CAREER_STAGES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {(quizOptions?.[QUESTION_KEYS.CAREER_STAGE] || []).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
-              {/* Focus areas — from the onboarding quiz (Q3). Drives the
-                  "Recommended for you" strip on the homepage. */}
-              <div style={{ marginBottom:28 }}>
-                <label style={labelStyle}>What you&rsquo;re focused on <span style={{ color:'#aaa', fontWeight:400 }}>(up to {MAX_FOCUS} — powers your recommendations)</span></label>
+              {/* Interest + working-on — from the onboarding quiz (Q2). Drive
+                  the "Recommended for you" strip on the homepage. */}
+              <div style={{ marginBottom:20 }}>
+                <label style={labelStyle}>Your interest <span style={{ color:'#aaa', fontWeight:400 }}>(up to {MAX_PICKS[QUESTION_KEYS.INTEREST]})</span></label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:2 }}>
-                  {FOCUS_OPTIONS.map(o => {
-                    const active = (form.focus_areas || []).includes(o.label);
-                    const atCap = !active && (form.focus_areas || []).length >= MAX_FOCUS;
+                  {(quizOptions?.[QUESTION_KEYS.INTEREST] || []).map(label => {
+                    const active = (form.interests || []).includes(label);
+                    const atCap = !active && (form.interests || []).length >= MAX_PICKS[QUESTION_KEYS.INTEREST];
                     return (
-                      <button key={o.label} type="button" onClick={() => toggleFocus(o.label)} disabled={atCap}
+                      <button key={label} type="button" onClick={() => togglePick('interests', label, MAX_PICKS[QUESTION_KEYS.INTEREST])} disabled={atCap}
                         style={{ fontSize:12, padding:'6px 13px', borderRadius:20,
                           border:`1px solid ${active ? GREEN : BORDER}`,
                           background: active ? GREEN : '#fff',
                           color: active ? '#fff' : atCap ? '#bbb' : '#555',
                           cursor: atCap ? 'not-allowed' : 'pointer', fontFamily:FONT_BODY, fontWeight: active ? 600 : 400 }}>
-                        {active ? '✓ ' : ''}{o.label}
+                        {active ? '✓ ' : ''}{label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ marginBottom:28 }}>
+                <label style={labelStyle}>What you&rsquo;re working on <span style={{ color:'#aaa', fontWeight:400 }}>(up to {MAX_PICKS[QUESTION_KEYS.WORKING_ON]})</span></label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:2 }}>
+                  {(quizOptions?.[QUESTION_KEYS.WORKING_ON] || []).map(label => {
+                    const active = (form.focus_areas || []).includes(label);
+                    const atCap = !active && (form.focus_areas || []).length >= MAX_PICKS[QUESTION_KEYS.WORKING_ON];
+                    return (
+                      <button key={label} type="button" onClick={() => togglePick('focus_areas', label, MAX_PICKS[QUESTION_KEYS.WORKING_ON])} disabled={atCap}
+                        style={{ fontSize:12, padding:'6px 13px', borderRadius:20,
+                          border:`1px solid ${active ? GREEN : BORDER}`,
+                          background: active ? GREEN : '#fff',
+                          color: active ? '#fff' : atCap ? '#bbb' : '#555',
+                          cursor: atCap ? 'not-allowed' : 'pointer', fontFamily:FONT_BODY, fontWeight: active ? 600 : 400 }}>
+                        {active ? '✓ ' : ''}{label}
                       </button>
                     );
                   })}

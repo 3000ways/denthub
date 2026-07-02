@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { CAREER_STAGES, QUIZ_SPECIALTIES, FOCUS_OPTIONS, MAX_FOCUS } from '../lib/onboarding';
+import { QUESTION_KEYS, MAX_PICKS, fetchQuizOptions } from '../lib/onboarding';
 
 const FONT = "'Inter', sans-serif";
 const GREEN = '#2D6A4F';
@@ -55,56 +55,56 @@ function Pill({ label, active, onClick, small }) {
   );
 }
 
-// Three-question onboarding quiz shown once, right after a person's first
-// sign-in. Answers write to the profile (career_stage, specialty, focus_areas)
-// and drive the homepage "Recommended for you" strip. Skippable at any point —
-// either way we stamp onboarding_completed_at so it never shows twice.
+// Two-question onboarding quiz shown once, right after a person's first
+// sign-in: career stage, then clinical interest + what they're working on
+// (two clusters on one screen). Answers write to the profile and drive the
+// homepage "Recommended for you" strip. Skippable at any point — either way we
+// stamp onboarding_completed_at so it never shows twice. Options are fetched
+// live from quiz_options (admin-editable), not hardcoded.
 export function OnboardingModal({ onClose }) {
   const { profile, updateProfile } = useAuth();
-  const [step, setStep] = useState(0); // 0=career, 1=specialty, 2=focus
+  const [options, setOptions] = useState(null); // { career_stage, interest, working_on }
+  const [step, setStep] = useState(0); // 0 = career stage, 1 = interest + working on
   // Pre-fill from the profile so a retake (from profile settings) starts from
   // the person's previous answers rather than blank.
   const [careerStage, setCareerStage] = useState(profile?.career_stage || '');
-  const [specialty, setSpecialty] = useState(profile?.specialty || '');
-  const [focus, setFocus] = useState(profile?.focus_areas || []); // array of focus labels
+  const [interests, setInterests] = useState(profile?.interests || []);
+  const [workingOn, setWorkingOn] = useState(profile?.focus_areas || []);
   const [saving, setSaving] = useState(false);
 
-  const TOTAL = 3;
+  useEffect(() => { fetchQuizOptions().then(setOptions); }, []);
 
-  function toggleFocus(label) {
-    setFocus(prev => {
-      if (prev.includes(label)) return prev.filter(f => f !== label);
-      if (prev.length >= MAX_FOCUS) return prev; // cap at 3
+  const TOTAL = 2;
+
+  function toggle(list, setList, label, max) {
+    setList(prev => {
+      if (prev.includes(label)) return prev.filter(x => x !== label);
+      if (prev.length >= max) return prev;
       return [...prev, label];
     });
   }
 
-  async function finish() {
+  async function save() {
     setSaving(true);
     await updateProfile({
       career_stage: careerStage || null,
-      specialty: specialty || null,
-      focus_areas: focus.length ? focus : null,
+      interests: interests.length ? interests : null,
+      focus_areas: workingOn.length ? workingOn : null,
       onboarding_completed_at: new Date().toISOString(),
     });
     onClose();
   }
 
-  // Skip records completion (so we don't nag again) but saves whatever was
-  // answered so far — no wasted input.
-  async function skip() {
-    setSaving(true);
-    await updateProfile({
-      career_stage: careerStage || null,
-      specialty: specialty || null,
-      focus_areas: focus.length ? focus : null,
-      onboarding_completed_at: new Date().toISOString(),
-    });
-    onClose();
-  }
-
-  const canNext = step === 0 ? !!careerStage : step === 1 ? !!specialty : true;
+  const canNext = step === 0 ? !!careerStage : true;
   const isLast = step === TOTAL - 1;
+
+  if (!options) {
+    return (
+      <Overlay onClose={() => {}}>
+        <div style={{ textAlign: 'center', padding: '20px 0', color: '#aaa', fontSize: 14 }}>Loading…</div>
+      </Overlay>
+    );
+  }
 
   return (
     <Overlay onClose={() => {}}>
@@ -123,7 +123,7 @@ export function OnboardingModal({ onClose }) {
           <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: "'Playfair Display', Georgia, serif" }}>What describes you?</div>
           <div style={{ fontSize: 14, color: '#666', marginBottom: 22 }}>We&rsquo;ll tune your homepage to where you are in your career.</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-            {CAREER_STAGES.map(c => (
+            {options[QUESTION_KEYS.CAREER_STAGE].map(c => (
               <Pill key={c} label={c} active={careerStage === c} onClick={() => setCareerStage(c)} />
             ))}
           </div>
@@ -133,36 +133,49 @@ export function OnboardingModal({ onClose }) {
       {step === 1 && (
         <>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: "'Playfair Display', Georgia, serif" }}>What&rsquo;s your focus?</div>
-          <div style={{ fontSize: 14, color: '#666', marginBottom: 22 }}>Your specialty helps us surface the right clinical resources.</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-            {QUIZ_SPECIALTIES.map(s => (
-              <Pill key={s.value} label={s.label} active={specialty === s.value} onClick={() => setSpecialty(s.value)} />
-            ))}
-          </div>
-        </>
-      )}
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 18 }}>Pick whatever applies &mdash; these decide which episodes show up in your recommendations.</div>
 
-      {step === 2 && (
-        <>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: "'Playfair Display', Georgia, serif" }}>What are you working on right now?</div>
-          <div style={{ fontSize: 14, color: '#666', marginBottom: 22 }}>Pick up to 3 &mdash; these move matching resources to the top of your homepage.</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>
+            Your interest <span style={{ color: '#aaa', fontWeight: 400 }}>(up to {MAX_PICKS[QUESTION_KEYS.INTEREST]})</span>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-            {FOCUS_OPTIONS.map(o => {
-              const active = focus.includes(o.label);
-              const atCap = !active && focus.length >= MAX_FOCUS;
+            {options[QUESTION_KEYS.INTEREST].map(label => {
+              const active = interests.includes(label);
+              const atCap = !active && interests.length >= MAX_PICKS[QUESTION_KEYS.INTEREST];
               return (
-                <button key={o.label} onClick={() => toggleFocus(o.label)} disabled={atCap} style={{
-                  fontSize: 13, padding: '8px 16px', borderRadius: 20,
+                <button key={label} onClick={() => toggle(interests, setInterests, label, MAX_PICKS[QUESTION_KEYS.INTEREST])} disabled={atCap} style={{
+                  fontSize: 12, padding: '6px 13px', borderRadius: 20,
                   border: `1px solid ${active ? GREEN : BORDER}`,
                   background: active ? GREEN : '#fff',
                   color: active ? '#fff' : atCap ? '#bbb' : '#555',
                   cursor: atCap ? 'not-allowed' : 'pointer', fontFamily: FONT, fontWeight: active ? 600 : 400,
                   transition: 'all 0.12s',
-                }}>{active ? '✓ ' : ''}{o.label}</button>
+                }}>{active ? '✓ ' : ''}{label}</button>
               );
             })}
           </div>
-          <div style={{ fontSize: 12, color: '#aaa' }}>{focus.length}/{MAX_FOCUS} selected</div>
+          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 20 }}>{interests.length}/{MAX_PICKS[QUESTION_KEYS.INTEREST]} selected</div>
+
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>
+            What you&rsquo;re working on <span style={{ color: '#aaa', fontWeight: 400 }}>(up to {MAX_PICKS[QUESTION_KEYS.WORKING_ON]})</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            {options[QUESTION_KEYS.WORKING_ON].map(label => {
+              const active = workingOn.includes(label);
+              const atCap = !active && workingOn.length >= MAX_PICKS[QUESTION_KEYS.WORKING_ON];
+              return (
+                <button key={label} onClick={() => toggle(workingOn, setWorkingOn, label, MAX_PICKS[QUESTION_KEYS.WORKING_ON])} disabled={atCap} style={{
+                  fontSize: 12, padding: '6px 13px', borderRadius: 20,
+                  border: `1px solid ${active ? GREEN : BORDER}`,
+                  background: active ? GREEN : '#fff',
+                  color: active ? '#fff' : atCap ? '#bbb' : '#555',
+                  cursor: atCap ? 'not-allowed' : 'pointer', fontFamily: FONT, fontWeight: active ? 600 : 400,
+                  transition: 'all 0.12s',
+                }}>{active ? '✓ ' : ''}{label}</button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 11, color: '#aaa' }}>{workingOn.length}/{MAX_PICKS[QUESTION_KEYS.WORKING_ON]} selected</div>
         </>
       )}
 
@@ -174,13 +187,13 @@ export function OnboardingModal({ onClose }) {
               fontSize: 13, color: '#888', background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT, padding: 0,
             }}>← Back</button>
           )}
-          <button onClick={skip} disabled={saving} style={{
+          <button onClick={save} disabled={saving} style={{
             fontSize: 13, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT, padding: 0,
           }}>Skip for now</button>
         </div>
 
         {isLast ? (
-          <button onClick={finish} disabled={saving} style={{
+          <button onClick={save} disabled={saving} style={{
             padding: '11px 24px', borderRadius: 8, border: 'none', background: GREEN, color: '#fff',
             fontSize: 15, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: FONT, opacity: saving ? 0.7 : 1,
           }}>{saving ? 'Saving…' : 'See my picks →'}</button>
