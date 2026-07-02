@@ -5,8 +5,8 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/recompute-scores",
-      "schedule": "0 7 * * 1"
+      "path": "/api/cron/scoring",
+      "schedule": "0 7 * * *"
     }
   ]
 }

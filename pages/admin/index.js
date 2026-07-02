@@ -910,15 +910,44 @@ function ScoringTab() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [status, setStatus] = useState(null);
+  const [judging, setJudging] = useState(false);
+  const [judgeResult, setJudgeResult] = useState(null);
+
+  async function loadStatus() {
+    try { const r = await fetch('/api/admin/scoring-status'); const d = await r.json(); if (!d.error) setStatus(d); } catch { /* ignore */ }
+  }
+  useEffect(() => { loadStatus(); }, []);
+
+  function ago(iso) {
+    if (!iso) return 'never';
+    const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }
 
   async function run(preview) {
     setBusy(true); setError(''); setResult(null);
     try {
       const r = await fetch(`/api/cron/recompute-scores${preview ? '?preview=1' : ''}`);
       const d = await r.json();
-      if (d.error) setError(d.error); else setResult({ ...d, previewed: preview });
+      if (d.error) setError(d.error); else { setResult({ ...d, previewed: preview }); if (!preview) loadStatus(); }
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
+  }
+
+  async function runJudge() {
+    setJudging(true); setError(''); setJudgeResult(null);
+    try {
+      const r = await fetch('/api/cron/judge-scores');
+      const d = await r.json();
+      if (d.error) setError(d.error); else { setJudgeResult(d); loadStatus(); }
+    } catch (e) { setError(e.message); }
+    finally { setJudging(false); }
   }
 
   return (
@@ -936,20 +965,57 @@ function ScoringTab() {
         <div style={{ marginBottom: 7 }}><strong style={{ color: GREEN }}>Recency</strong> — how fresh and active the resource is. Podcasts: days since the last episode + how many episodes in the last 90 days (from our archive). YouTube: recent upload dates. Books: publication year (gentle decay — a classic doesn&rsquo;t go stale like a dormant podcast).</div>
         <div style={{ marginBottom: 7 }}><strong style={{ color: GREEN }}>Popularity</strong> — audience size. YouTube: subscriber count. Podcasts: back-catalog size as a reach proxy (no public listener count exists, so this is the weakest signal and is heavily damped). Books: ratings count.</div>
         <div style={{ marginBottom: 7 }}><strong style={{ color: GREEN }}>Community</strong> — engagement on <em>this</em> site: votes, comments, bookmarks, and pins. Near-neutral until dentists start engaging, then it sharpens on its own.</div>
-        <div style={{ marginBottom: 10 }}><strong style={{ color: '#999' }}>Expert &amp; Clinical Depth</strong> — coming next: an AI judge that reads a show&rsquo;s actual episode topics and the host&rsquo;s credentials against a fixed rubric and must cite its evidence (saved to Editor Notes). Until then these keep their existing values.</div>
+        <div style={{ marginBottom: 10 }}><strong style={{ color: GREEN }}>Expert &amp; Clinical Depth</strong> — an AI judge reads the resource&rsquo;s actual recent content (episode/video titles) and web-searches the host&rsquo;s credentials, scores both against a fixed rubric, and must cite its evidence (saved to the <em>Score Rationale</em> field). It runs a rotating batch daily so the whole catalogue gets judged and refreshed over time.</div>
         <div style={{ paddingTop: 8, borderTop: `1px solid ${BORDER}`, color: '#777' }}>
           <strong>Two fairness rules:</strong> each resource is ranked by <em>percentile against its own type</em> (a podcast vs. podcasts, a channel vs. channels — never on the same absolute axis), and thin data is pulled toward a neutral 50 (<em>Bayesian shrinkage</em>) so a brand-new resource with a handful of data points can&rsquo;t rocket to the top. Types we can&rsquo;t measure (coaching, software, communities…) get a neutral 50 for Recency &amp; Popularity rather than a fabricated number.
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+      {/* Last-run status — check weekly whether the system ran */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#999', fontWeight: 600, marginBottom: 4 }}>Data scores · last run</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: status?.dataRun ? '#111' : '#bbb' }}>{status ? ago(status.dataRun?.ran_at) : '…'}</div>
+          {status?.dataRun?.summary && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>wrote {status.dataRun.summary.written} · {status.dataRun.summary.recencyScored} rec · {status.dataRun.summary.popularityScored} pop</div>}
+        </div>
+        <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#999', fontWeight: 600, marginBottom: 4 }}>AI judge · last run</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: status?.judgeRun ? '#111' : '#bbb' }}>{status ? ago(status.judgeRun?.ran_at) : '…'}</div>
+          {status?.judgeRun?.summary && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>judged {status.judgeRun.summary.judged} · {status.judgeRun.summary.neverJudgedRemaining} left to reach</div>}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
         <button onClick={() => run(true)} disabled={busy} style={{ flex: 1, padding: '12px', background: '#fff', color: GREEN, border: `1px solid ${GREEN}`, borderRadius: 6, cursor: busy ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: busy ? 0.6 : 1 }}>
           {busy ? '…' : 'Preview (no write)'}
         </button>
         <button onClick={() => run(false)} disabled={busy} style={{ flex: 1, padding: '12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: busy ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: busy ? 0.6 : 1 }}>
-          {busy ? 'Recomputing…' : '↻ Recompute now'}
+          {busy ? 'Recomputing…' : '↻ Recompute data scores'}
         </button>
       </div>
+
+      <button onClick={runJudge} disabled={judging} style={{ width: '100%', padding: '12px', background: '#fff', color: '#7c3aed', border: '1px solid #7c3aed', borderRadius: 6, cursor: judging ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: judging ? 0.6 : 1, marginBottom: 20 }}>
+        {judging ? '🤖 Judging… (~30s)' : '🤖 Run AI judge (next batch)'}
+      </button>
+
+      {judgeResult && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ padding: '12px 16px', background: '#f3e8ff', borderRadius: 8, fontSize: 13, color: '#6b21a8', marginBottom: 12 }}>
+            ✓ Judged {judgeResult.judged} of {judgeResult.attempted} · {judgeResult.neverJudgedRemaining} still never-judged (of {judgeResult.totalPublished} published)
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {(judgeResult.sample || []).map((s, i) => (
+              <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '9px 12px', fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#111', fontWeight: 500 }}>{s.name} <span style={{ color: '#bbb', fontSize: 11 }}>{s.type}</span></span>
+                  <span style={{ color: '#7c3aed', fontSize: 12 }}>expert {s.expert} · clinical {s.clinical}</span>
+                </div>
+                {s.rationale && <div style={{ fontSize: 11.5, color: '#888', marginTop: 3, lineHeight: 1.4 }}>{s.rationale}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
 
