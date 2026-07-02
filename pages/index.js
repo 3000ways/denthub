@@ -13,6 +13,7 @@ import { FeaturedBooks } from '../components/FeaturedBooks';
 import { FeaturedCards } from '../components/FeaturedCards';
 import { CommunitySection } from '../components/Community';
 import { Pinboard } from '../components/Pinboard';
+import { recommendResources } from '../lib/onboarding';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -289,6 +290,58 @@ function EssentialsSection({ items, isMobile, onOpen, onSignInRequired }) {
               <div style={{ fontSize:13, fontWeight:600, color:'#ddd', fontFamily:FONT_DISPLAY, width:24, flexShrink:0, textAlign:'right' }}>
                 {String(i + 1).padStart(2, '0')}
               </div>
+              <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:15, fontWeight:600, color:'#111', marginBottom:3, fontFamily:FONT_DISPLAY, letterSpacing:-0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
+                <div style={{ fontSize:11, color:'#bbb', display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
+                  {f['Host or Author'] && <><span>&middot;</span><span>{f['Host or Author']}</span></>}
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
+                <ScoreBadge score={score} fields={f} />
+                {!isMobile && <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// "Recommended for you" — personalized strip driven by the onboarding quiz.
+// Shows resources whose Topic/Specialty match the person's focus areas + specialty
+// (see lib/onboarding.js). Renders nothing unless there are matches to show.
+function RecommendedForYou({ items, profile, isMobile, onOpen, onSignInRequired }) {
+  if (!items.length) return null;
+
+  // A short, human sentence describing why these were chosen.
+  const focusLabels = (profile?.focus_areas || []).slice(0, 3);
+  const bits = [];
+  if (profile?.specialty) bits.push(profile.specialty);
+  if (focusLabels.length) bits.push(focusLabels.join(', ').toLowerCase());
+  const because = bits.length ? `Based on your interest in ${bits.join(' · ')}` : 'Picked for you';
+
+  return (
+    <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 12px' : '28px 28px 20px', border:`1px solid ${GREEN}`, boxShadow:'0 1px 6px rgba(15,110,86,0.08)' }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:6, paddingBottom:14, borderBottom:'2px solid #111', flexWrap:'wrap' }}>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Recommended for You</div>
+        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600 }}>Personalized</div>
+        <Link href="/profile" style={{ marginLeft:'auto', fontSize:12, color:'#aaa', textDecoration:'none', fontWeight:500 }}>Edit interests →</Link>
+      </div>
+      <div style={{ fontSize:12, color:'#999', marginBottom:16 }}>{because}</div>
+      <div style={{ borderTop:`1px solid ${BORDER}` }}>
+        {items.map(r => {
+          const f = r.fields;
+          const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
+          return (
+            <div key={r.id}
+              onClick={() => onOpen(r.id)}
+              style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+              onMouseLeave={e => e.currentTarget.style.background='transparent'}
+            >
               <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:600, color:'#111', marginBottom:3, fontFamily:FONT_DISPLAY, letterSpacing:-0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
@@ -631,7 +684,12 @@ export default function Home({ initialResources }) {
   }, []);
 
   useEffect(() => {
-    if (user && profile && !profile.role) setShowOnboarding(true);
+    // The 'in' check makes deploys order-independent: until migration 0011 adds
+    // the column, the profile row won't have the key at all and the quiz stays
+    // off (answers couldn't be saved yet). It activates once the migration runs.
+    if (user && profile && 'onboarding_completed_at' in profile && !profile.onboarding_completed_at) {
+      setShowOnboarding(true);
+    }
   }, [user, profile]);
   const [ytStats, setYtStats] = useState({});
   const [podStats, setPodStats] = useState({});
@@ -825,6 +883,10 @@ export default function Home({ initialResources }) {
       if (ao == null && bo != null) return 1;
       return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
     });
+
+  // Personalized picks from the onboarding quiz (focus areas + specialty).
+  // Empty for signed-out users or anyone who hasn't answered.
+  const recommended = recommendResources(displayResources, profile, 6);
 
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0, visibleCount);
@@ -1122,6 +1184,15 @@ export default function Home({ initialResources }) {
 
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
+
+            {/* Recommended for You — personalized from the onboarding quiz answers */}
+            <RecommendedForYou
+              items={recommended}
+              profile={profile}
+              isMobile={isMobile}
+              onOpen={(id) => router.push(`/resource/${id}`)}
+              onSignInRequired={() => setShowSignIn(true)}
+            />
 
             {/* The Essentials — curated foundational resources, ordered by "Essential Order" */}
             {essentials.length > 0 && (

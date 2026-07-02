@@ -6,6 +6,8 @@ import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { supabase } from '../lib/supabase';
 import SiteNav from '../components/SiteNav';
+import { OnboardingModal } from '../components/AuthModal';
+import { CAREER_STAGES, FOCUS_OPTIONS, MAX_FOCUS } from '../lib/onboarding';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -54,12 +56,13 @@ export default function ProfilePage() {
   const { bookmarkIds, count: bookmarkCount } = useBookmarks();
   const router = useRouter();
 
-  const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '', province_state: '' });
+  const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '', province_state: '', career_stage: '', focus_areas: [] });
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
   const [savedResources, setSavedResources] = useState([]);
   const [listenStats, setListenStats] = useState(null);
   const [deleteStep, setDeleteStep]   = useState(0); // 0=idle, 1=confirm, 2=deleting
+  const [showQuiz, setShowQuiz]       = useState(false); // retake the onboarding quiz
 
   useEffect(() => {
     if (!user) return;
@@ -101,9 +104,20 @@ export default function ProfilePage() {
         role:           profile.role           || '',
         avatar_url:     profile.avatar_url     || user?.user_metadata?.avatar_url || '',
         province_state: profile.province_state || '',
+        career_stage:   profile.career_stage   || '',
+        focus_areas:    profile.focus_areas    || [],
       });
     }
   }, [profile]);
+
+  function toggleFocus(label) {
+    setForm(f => {
+      const cur = f.focus_areas || [];
+      if (cur.includes(label)) return { ...f, focus_areas: cur.filter(x => x !== label) };
+      if (cur.length >= MAX_FOCUS) return f;
+      return { ...f, focus_areas: [...cur, label] };
+    });
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -214,6 +228,44 @@ export default function ProfilePage() {
                     {CA_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
                   </optgroup>
                 </select>
+              </div>
+
+              {/* Career stage — from the onboarding quiz (Q1) */}
+              <div style={{ marginBottom:28 }}>
+                <label style={labelStyle}>Career stage</label>
+                <select value={form.career_stage} onChange={e => setForm(f => ({ ...f, career_stage: e.target.value }))} style={{ ...inputStyle, maxWidth:260 }}>
+                  <option value="">Select career stage</option>
+                  {CAREER_STAGES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Focus areas — from the onboarding quiz (Q3). Drives the
+                  "Recommended for you" strip on the homepage. */}
+              <div style={{ marginBottom:28 }}>
+                <label style={labelStyle}>What you&rsquo;re focused on <span style={{ color:'#aaa', fontWeight:400 }}>(up to {MAX_FOCUS} — powers your recommendations)</span></label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:2 }}>
+                  {FOCUS_OPTIONS.map(o => {
+                    const active = (form.focus_areas || []).includes(o.label);
+                    const atCap = !active && (form.focus_areas || []).length >= MAX_FOCUS;
+                    return (
+                      <button key={o.label} type="button" onClick={() => toggleFocus(o.label)} disabled={atCap}
+                        style={{ fontSize:12, padding:'6px 13px', borderRadius:20,
+                          border:`1px solid ${active ? GREEN : BORDER}`,
+                          background: active ? GREEN : '#fff',
+                          color: active ? '#fff' : atCap ? '#bbb' : '#555',
+                          cursor: atCap ? 'not-allowed' : 'pointer', fontFamily:FONT_BODY, fontWeight: active ? 600 : 400 }}>
+                        {active ? '✓ ' : ''}{o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Re-opens the onboarding quiz pre-filled with current answers —
+                    a guided alternative to editing the fields above directly. */}
+                <button type="button" onClick={() => setShowQuiz(true)}
+                  style={{ fontSize:12, color:GREEN, fontWeight:500, background:'none', border:'none',
+                    cursor:'pointer', fontFamily:FONT_BODY, padding:0, marginTop:10 }}>
+                  Retake the welcome quiz →
+                </button>
               </div>
 
               <div style={{ display:'flex', alignItems:'center', gap:16 }}>
@@ -388,6 +440,10 @@ export default function ProfilePage() {
           <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
         </div>
       </div>
+      {/* Retake quiz — mounts fresh each open, pre-filled from the profile.
+          Saving inside the quiz refreshes the auth context, which re-syncs the
+          form fields above automatically. */}
+      {showQuiz && <OnboardingModal onClose={() => setShowQuiz(false)} />}
     </>
   );
 }
