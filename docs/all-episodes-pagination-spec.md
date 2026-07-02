@@ -1,6 +1,11 @@
 # Spec: "All Episodes" on resource pages (browse + search the full back-catalog)
 
-_Status: Approved for build (not yet built). Owner: Andrei. Drafted: 2026-07-02._
+_Status: ✅ Built (2026-07-02). Owner: Andrei._
+
+_Shipped: `lib/resource-episodes.js` (shared query helper), `pages/api/resource-episodes.js`
+(browse + search endpoint), `components/EpisodeCard.js` (extracted for reuse),
+`components/AllEpisodes.js` (the section), wired into `pages/resource/[id].js` with the
+first page server-rendered in `getStaticProps`._
 
 ## The idea in one line
 
@@ -36,6 +41,13 @@ feature is mostly wiring existing pieces together, not new invention.
 6. **Undated episodes** (no publish date) group at the **bottom**, never silently
    dropped. Pagination uses the episode `id` as a tiebreaker so it never skips or
    repeats a row when many episodes share a date.
+
+   _Build note:_ shipped with **offset pagination** (`.range()`), not keyset. At this
+   scale (largest catalog ~2,500 indexed rows) offset is fast and — unlike a
+   nulls-last keyset cursor in PostgREST — obviously correct across the dated/undated
+   boundary. New episodes only land on the daily harvest, so the offset "row shifts
+   mid-scroll" pitfall is a near-zero, once-a-day risk. Keyset stays a future
+   optimization if catalogs ever get dramatically larger.
 7. **Server-render the first page** so episode titles are real, indexable content
    pointing at the `/episode/[id]` pages — an SEO win for a directory site.
 8. **Scope: podcasts only.** YouTube "episodes" (videos) aren't in the `episodes`
@@ -68,7 +80,13 @@ Confirmed the archive is in great shape — Andrei's instinct was right.
   marks the other a "duplicate" with 0 episodes — so a *duplicate* resource page
   can look empty even though the show is fully archived under its twin. This
   reinforces the existing roadmap item **"Remove duplicates in the admin portal"**;
-  worth a cleanup pass, but the empty state covers it safely in the meantime.
+  worth a cleanup pass, but this is handled safely in the meantime (see the build
+  note below).
+
+  _Build note:_ shipped so a show with **0 archived episodes simply omits** the "All
+  Episodes" section — cleaner than a "coming soon" placeholder on ~45 mostly
+  dead-feed/duplicate shows. The in-section empty state still handles a search that
+  returns no matches ("No episodes match …").
 - **One show (The Jocko Podcast) has all 871 episodes undated** — its feed exposes
   no parseable dates. That's ~871 of the 880 undated rows site-wide, i.e. undated
   episodes are rare and concentrated. Still, it proves the "all-undated show" edge

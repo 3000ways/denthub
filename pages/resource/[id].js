@@ -7,11 +7,12 @@ import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
 import { BookmarkButton } from '../../components/BookmarkButton';
 import { ShareButton } from '../../components/ShareButton';
-import { EpisodeBookmarkButton } from '../../components/EpisodeBookmarkButton';
 import { PinButton } from '../../components/PinButton';
 import { ClaimButton } from '../../components/ClaimButton';
-import { usePlayer } from '../../lib/player-context';
+import { EpisodeCard } from '../../components/EpisodeCard';
+import { AllEpisodes } from '../../components/AllEpisodes';
 import { supabase } from '../../lib/supabase';
+import { fetchResourceEpisodes, EPISODES_PAGE_SIZE } from '../../lib/resource-episodes';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -136,7 +137,22 @@ export async function getStaticProps({ params }) {
       } catch {}
     }
 
-    return { props: { record, related, ytData, bookData, ogImage: ogImage || null }, revalidate: 300 };
+    // Server-render the first page of the full episode archive (podcasts only),
+    // so episode titles are indexable content and the "All Episodes" section
+    // paints instantly. Subsequent pages/search load client-side.
+    let initialEpisodes = [];
+    let episodeTotal = 0;
+    if (type === 'Podcast') {
+      try {
+        const { episodes, total } = await fetchResourceEpisodes({
+          id: params.id, sort: 'newest', offset: 0, limit: EPISODES_PAGE_SIZE, withCount: true,
+        });
+        initialEpisodes = episodes;
+        episodeTotal = total ?? 0;
+      } catch {}
+    }
+
+    return { props: { record, related, ytData, bookData, ogImage: ogImage || null, initialEpisodes, episodeTotal }, revalidate: 300 };
   } catch {
     return { notFound: true, revalidate: 60 };
   }
@@ -193,130 +209,7 @@ function SmallLogo({ url, name, imageUrl, size = 40 }) {
   return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />;
 }
 
-function EpisodeCard({ ep, isNew, onSignInRequired }) {
-  const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
-  // Guard: currentEpisode must be non-null. Compare by id when available,
-  // fall back to audio_url so un-archived episodes don't all match (undefined === undefined).
-  const isActive = !!(currentEpisode && (
-    (ep.id && currentEpisode.id && ep.id === currentEpisode.id) ||
-    (!ep.id && ep.audio_url && currentEpisode.audio_url === ep.audio_url)
-  ));
-  const isListened = ep.id && completedIds?.has(ep.id);
-
-  async function handlePlay(e) {
-    e.preventDefault();
-    if (isActive) {
-      isPlaying ? pause() : resume();
-      return;
-    }
-    // If this episode isn't in our Supabase archive yet, upsert it now so
-    // progress tracking works immediately without waiting for the nightly harvest.
-    let enriched = ep;
-    if (!ep.id && ep.guid && ep.show_resource_id && ep.audio_url) {
-      try {
-        const res = await fetch('/api/upsert-episode', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            guid:             ep.guid,
-            show_resource_id: ep.show_resource_id,
-            show_name:        ep.show_name,
-            title:            ep.title,
-            description:      ep.description,
-            audio_url:        ep.audio_url,
-            image:            ep.image,
-            published_at:     ep.publishedAt,
-            duration_seconds: ep.durationSeconds,
-          }),
-        });
-        if (res.ok) {
-          const { id } = await res.json();
-          enriched = { ...ep, id };
-        }
-      } catch {}
-    }
-    play(enriched);
-  }
-
-  return (
-    <div
-      style={{ display: 'flex', gap: 12, alignItems: 'center', background: '#fff',
-        border: `1px solid ${isActive ? GREEN : BORDER}`, borderRadius: 8, padding: '10px 12px', transition: 'border-color 0.15s' }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = GREEN}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = BORDER; }}>
-
-      {/* Artwork / play button */}
-      <div onClick={handlePlay} style={{ position: 'relative', flexShrink: 0, cursor: 'pointer' }}>
-        {ep.image
-          ? <img src={ep.image} alt={ep.title} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
-          : <div style={{ width: 44, height: 44, borderRadius: 6, background: '#f0ede8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ccc' }}>🎙</div>
-        }
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 6, background: 'rgba(0,0,0,0.32)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          opacity: isActive ? 1 : 0, transition: 'opacity 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
-          onMouseLeave={e => { if (!isActive) e.currentTarget.style.opacity = '0'; }}>
-          <span style={{ color: '#fff', fontSize: 14 }}>{isActive && isPlaying ? '⏸' : '▶'}</span>
-        </div>
-      </div>
-
-      {/* Text */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {ep.id ? (
-          <Link href={`/episode/${ep.id}`} title="View episode"
-            style={{ fontSize: 13, fontWeight: 600, color: isActive ? GREEN : '#111', lineHeight: 1.3, marginBottom: 2, textDecoration: 'none',
-              overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
-            onMouseEnter={e => e.currentTarget.style.textDecoration='underline'}
-            onMouseLeave={e => e.currentTarget.style.textDecoration='none'}>
-            {ep.title}
-          </Link>
-        ) : (
-          <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? GREEN : '#111', lineHeight: 1.3, marginBottom: 2,
-            overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-            {ep.title}
-          </div>
-        )}
-        {ep.description && (
-          <div style={{ fontSize: 11, color: '#888', lineHeight: 1.4, overflow: 'hidden',
-            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
-            {ep.description}
-          </div>
-        )}
-        <div style={{ fontSize: 11, color: '#bbb', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
-          {isNew && <span style={{ color: GREEN, fontWeight: 600 }}>New</span>}
-          {ep.date && <span>{ep.date}</span>}
-          {isListened && (
-            <span style={{ color: GREEN, fontWeight: 600, background: '#E8F5F0', borderRadius: 4, padding: '1px 5px', fontSize: 10 }}>
-              ✓ Listened
-            </span>
-          )}
-          {isActive && isPlaying && <span style={{ color: GREEN, fontWeight: 600 }}>▶ Playing</span>}
-        </div>
-      </div>
-
-      {/* Save this episode */}
-      {ep.id && (
-        <EpisodeBookmarkButton episodeId={ep.id} onSignInRequired={onSignInRequired} />
-      )}
-
-      {/* Play / open actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
-        <button onClick={handlePlay}
-          style={{ fontSize: 11, color: GREEN, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
-          {isActive && isPlaying ? 'Pause' : isActive ? 'Resume' : '▶ Play'}
-        </button>
-        {(ep.link || ep.audioUrl) && (
-          <a href={ep.link || ep.audioUrl} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 10, color: '#ccc', textDecoration: 'none' }}>
-            {ep.link ? 'Show notes →' : 'Open →'}
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function ResourcePage({ record, related, ytData, bookData, ogImage }) {
+export default function ResourcePage({ record, related, ytData, bookData, ogImage, initialEpisodes = [], episodeTotal = 0 }) {
   const f = record.fields;
   const { user, profile } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
@@ -652,6 +545,17 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                 })}
               </div>
             </div>
+          )}
+
+          {/* All Episodes — full back-catalog from the archive, paginated + searchable */}
+          {isPodcast && episodeTotal > 0 && (
+            <AllEpisodes
+              showResourceId={record.id}
+              showName={f.Name}
+              initialEpisodes={initialEpisodes}
+              initialTotal={episodeTotal}
+              onSignInRequired={() => setShowSignIn(true)}
+            />
           )}
 
           {/* Score breakdown */}
