@@ -13,7 +13,7 @@ import { FeaturedBooks } from '../components/FeaturedBooks';
 import { FeaturedCards } from '../components/FeaturedCards';
 import { CommunitySection } from '../components/Community';
 import { Pinboard } from '../components/Pinboard';
-import { recommendResources, FOCUS_OPTIONS } from '../lib/onboarding';
+import { recommendResources } from '../lib/onboarding';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
