@@ -51,11 +51,18 @@ export default async function handler(req, res) {
     // budget, and a tagging hiccup should never fail the harvest response —
     // the bulk of the archive is caught up separately via the admin backfill
     // (pages/api/admin/tag-episodes-batch.js), which isn't cron-time-boxed.
+    // Skip tagging this run if the harvest already ate most of the 60s budget —
+    // it'll simply catch up next run; the archive backlog is handled separately
+    // by the (non-time-boxed) admin backfill, so there's no urgency here.
     let tagging = null;
-    try {
-      tagging = await tagUntaggedEpisodes({ claimSize: 150, trigger: 'harvest' });
-    } catch (tagErr) {
-      tagging = { status: 'error', error: String(tagErr.message || tagErr) };
+    if (summary.elapsedMs < 45000) {
+      try {
+        tagging = await tagUntaggedEpisodes({ claimSize: 150, trigger: 'harvest' });
+      } catch (tagErr) {
+        tagging = { status: 'error', error: String(tagErr.message || tagErr) };
+      }
+    } else {
+      tagging = { status: 'skipped_low_time_budget', elapsedMs: summary.elapsedMs };
     }
 
     return res.status(200).json({ ok: true, ...summary, tagging });
