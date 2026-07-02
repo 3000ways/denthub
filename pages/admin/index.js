@@ -4,7 +4,7 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings', 'Scoring'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings', 'Scoring', 'Claims'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Other'];
 
@@ -1036,6 +1036,257 @@ function ScoringTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  TAB 11 — Claims (Claim Your Profile review queue)
+// ══════════════════════════════════════════
+function ClaimsTab() {
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(null); // claim id currently being approved/rejected
+  const [mailtoFor, setMailtoFor] = useState(null); // { claimId, href, label }
+  const [showInvite, setShowInvite] = useState(false);
+  const [resources, setResources] = useState([]);
+  const [inviteSearch, setInviteSearch] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePicked, setInvitePicked] = useState(null);
+
+  const [proposals, setProposals] = useState([]);
+  const [proposalsLoading, setProposalsLoading] = useState(true);
+  const [actingProposal, setActingProposal] = useState(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/claims');
+      const d = await r.json();
+      setClaims(Array.isArray(d.claims) ? d.claims : []);
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function loadProposals() {
+    setProposalsLoading(true);
+    try {
+      const r = await fetch('/api/admin/edit-proposals');
+      const d = await r.json();
+      setProposals(Array.isArray(d.proposals) ? d.proposals : []);
+    } finally { setProposalsLoading(false); }
+  }
+  useEffect(() => { loadProposals(); }, []);
+
+  async function actProposal(proposalId, action) {
+    setActingProposal(proposalId);
+    try {
+      const r = await fetch('/api/admin/edit-proposals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposalId, action }),
+      });
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      setProposals(prev => prev.map(p => p.id === proposalId ? { ...p, status: d.proposal.status } : p));
+    } finally { setActingProposal(null); }
+  }
+
+  const pendingProposals = proposals.filter(p => p.status === 'pending');
+  const resolvedProposals = proposals.filter(p => p.status !== 'pending');
+
+  // Lazily load the resource list only when the invite panel is opened.
+  useEffect(() => {
+    if (!showInvite || resources.length) return;
+    fetch('/api/admin/resources').then(r => r.json()).then(d => setResources(Array.isArray(d) ? d : []));
+  }, [showInvite]);
+
+  async function act(claimId, action) {
+    setActing(claimId);
+    try {
+      const r = await fetch('/api/admin/claims', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claimId, action }),
+      });
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      setClaims(prev => prev.map(c => c.id === claimId ? { ...c, status: d.claim.status } : c));
+      setMailtoFor({ claimId, href: d.mailto, label: action === 'approve' ? 'Email the owner: welcome' : 'Email the owner: more info needed' });
+    } finally { setActing(null); }
+  }
+
+  const pending = claims.filter(c => c.status === 'pending');
+  const resolved = claims.filter(c => c.status !== 'pending');
+  const inviteMatches = resources.filter(r => {
+    const q = inviteSearch.toLowerCase();
+    return q.length > 1 && (r.fields.Name || '').toLowerCase().includes(q);
+  }).slice(0, 8);
+
+  function inviteMailto() {
+    if (!invitePicked || !inviteEmail.trim()) return null;
+    const site = 'https://thedentalcommute.com';
+    const name = invitePicked.fields.Name;
+    return `mailto:${encodeURIComponent(inviteEmail.trim())}?subject=${encodeURIComponent(`Claim your listing for "${name}" on The Dental Commute`)}&body=${encodeURIComponent(
+      `Hi,\n\nI'm Andrei, founder of The Dental Commute — a ranked directory of dental podcasts, books, and resources. "${name}" is listed on the site, and I wanted to invite you to claim the page:\n\n${site}/resource/${invitePicked.id}\n\nClaiming lets you correct details, add your links and logo, feature your favorite episodes, and add a short creator bio — and you can see exactly how your score is calculated. Just sign in with Google on the page and click "Claim this page."\n\nLet me know if you have any questions!\n\nAndrei`
+    )}`;
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>Claim Your Profile</h2>
+        <button onClick={() => setShowInvite(s => !s)} style={{ fontSize: 12, color: GREEN, background: 'none', border: `1px solid ${GREEN}`, borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontFamily: FONT, fontWeight: 600 }}>
+          {showInvite ? 'Close' : '+ Invite an owner'}
+        </button>
+      </div>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
+        Podcast owners can claim their listing to correct details, add a bio, and feature episodes. Every claim is
+        reviewed manually here — nothing publishes until you approve it. Approving or rejecting drafts an email for
+        you to review and send yourself.
+      </p>
+
+      {showInvite && (
+        <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: 16, marginBottom: 24, background: '#f7f7f5' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Invite an owner to claim a resource</div>
+          <input value={inviteSearch} onChange={e => { setInviteSearch(e.target.value); setInvitePicked(null); }}
+            placeholder="Search resources by name…" style={{ ...inp(), marginBottom: 6 }} />
+          {inviteSearch.length > 1 && !invitePicked && (
+            <div style={{ border: `1px solid ${BORDER}`, borderRadius: 6, marginBottom: 8, maxHeight: 160, overflowY: 'auto', background: '#fff' }}>
+              {inviteMatches.length === 0 && <div style={{ padding: 10, fontSize: 12, color: '#bbb' }}>No matches</div>}
+              {inviteMatches.map(r => (
+                <div key={r.id} onClick={() => { setInvitePicked(r); setInviteSearch(r.fields.Name); }}
+                  style={{ padding: '8px 10px', fontSize: 13, cursor: 'pointer', borderBottom: `1px solid ${BORDER}` }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                  {r.fields.Name} <span style={{ color: '#bbb', fontSize: 11 }}>{r.fields.Type}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="owner@example.com"
+            style={{ ...inp(), marginBottom: 10 }} />
+          <a href={inviteMailto() || undefined}
+            onClick={e => { if (!inviteMailto()) e.preventDefault(); }}
+            style={{
+              display: 'inline-block', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 6,
+              background: inviteMailto() ? GREEN : '#ddd', color: '#fff', textDecoration: 'none', fontFamily: FONT,
+              cursor: inviteMailto() ? 'pointer' : 'default',
+            }}>
+            Draft invite email ✉
+          </a>
+        </div>
+      )}
+
+      {mailtoFor && (
+        <div style={{ padding: '12px 16px', background: '#e0f2fe', border: '1px solid #7dd3fc', borderRadius: 8, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 13, color: '#075985' }}>Ready to notify the owner.</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a href={mailtoFor.href} style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: '#0284c7', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>{mailtoFor.label} ✉</a>
+            <button onClick={() => setMailtoFor(null)} style={{ fontSize: 12, color: '#075985', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? <div style={{ color: '#888', fontSize: 14 }}>Loading…</div> : (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#999', marginBottom: 10 }}>
+            Pending ({pending.length})
+          </div>
+          {pending.length === 0 && <div style={{ fontSize: 13, color: '#bbb', marginBottom: 24 }}>No pending claims.</div>}
+          <div style={{ display: 'grid', gap: 10, marginBottom: 28 }}>
+            {pending.map(c => (
+              <div key={c.id} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+                  <a href={`/resource/${c.resource_id}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, fontWeight: 700, color: GREEN, textDecoration: 'none' }}>{c.resourceName} ↗</a>
+                  <span style={{ fontSize: 11, color: '#bbb', whiteSpace: 'nowrap' }}>{new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </div>
+                <div style={{ fontSize: 13, color: '#333', marginBottom: 2 }}>
+                  <strong>{c.claimant_name || 'Unnamed'}</strong>{c.claimant_role ? ` · ${c.claimant_role}` : ''}
+                </div>
+                <div style={{ fontSize: 12, color: '#888', marginBottom: c.message ? 8 : 12 }}>{c.contact_email}</div>
+                {c.message && <div style={{ fontSize: 12, color: '#666', background: '#f7f7f5', borderRadius: 6, padding: '8px 10px', marginBottom: 12, lineHeight: 1.5 }}>{c.message}</div>}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => act(c.id, 'approve')} disabled={acting === c.id} style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '8px', borderRadius: 6, border: 'none', background: GREEN, color: '#fff', cursor: 'pointer', fontFamily: FONT }}>
+                    {acting === c.id ? '…' : '✓ Approve'}
+                  </button>
+                  <button onClick={() => act(c.id, 'reject')} disabled={acting === c.id} style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '8px', borderRadius: 6, border: `1px solid ${BORDER}`, background: '#fff', color: '#c0392b', cursor: 'pointer', fontFamily: FONT }}>
+                    {acting === c.id ? '…' : '✕ Needs info'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {resolved.length > 0 && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#999', marginBottom: 10 }}>Resolved</div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {resolved.map(c => (
+                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '8px 12px', fontSize: 12.5 }}>
+                    <span style={{ color: '#555' }}>{c.resourceName} <span style={{ color: '#bbb' }}>· {c.claimant_name || c.contact_email}</span></span>
+                    <span style={{ color: c.status === 'approved' ? GREEN : '#c0392b', fontWeight: 600 }}>{c.status === 'approved' ? '✓ Approved' : '⚠ Needs info'}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── Listing corrections (factual edits owners have proposed) ── */}
+      <div style={{ marginTop: 40, paddingTop: 24, borderTop: `1px solid ${BORDER}` }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Listing Corrections</h2>
+        <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Factual edits claimed owners have proposed (Name, URL, Description, logo, host, RSS). Approving applies them to Airtable immediately.</p>
+
+        {proposalsLoading ? <div style={{ color: '#888', fontSize: 14 }}>Loading…</div> : (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#999', marginBottom: 10 }}>
+              Pending ({pendingProposals.length})
+            </div>
+            {pendingProposals.length === 0 && <div style={{ fontSize: 13, color: '#bbb', marginBottom: 24 }}>No pending corrections.</div>}
+            <div style={{ display: 'grid', gap: 10, marginBottom: 28 }}>
+              {pendingProposals.map(p => (
+                <div key={p.id} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <a href={`/resource/${p.resource_id}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, fontWeight: 700, color: GREEN, textDecoration: 'none' }}>{p.resourceName} ↗</a>
+                    <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                  <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+                    {Object.entries(p.changes || {}).map(([field, diff]) => (
+                      <div key={field} style={{ fontSize: 12.5 }}>
+                        <div style={{ fontWeight: 600, color: '#555', marginBottom: 2 }}>{field}</div>
+                        <div style={{ color: '#c0392b', textDecoration: 'line-through', opacity: 0.7 }}>{diff.old || '(empty)'}</div>
+                        <div style={{ color: GREEN }}>{diff.new || '(empty)'}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => actProposal(p.id, 'approve')} disabled={actingProposal === p.id} style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '8px', borderRadius: 6, border: 'none', background: GREEN, color: '#fff', cursor: 'pointer', fontFamily: FONT }}>
+                      {actingProposal === p.id ? '…' : '✓ Apply to Airtable'}
+                    </button>
+                    <button onClick={() => actProposal(p.id, 'reject')} disabled={actingProposal === p.id} style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '8px', borderRadius: 6, border: `1px solid ${BORDER}`, background: '#fff', color: '#c0392b', cursor: 'pointer', fontFamily: FONT }}>
+                      {actingProposal === p.id ? '…' : '✕ Reject'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {resolvedProposals.length > 0 && (
+              <>
+                <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#999', marginBottom: 10 }}>Resolved</div>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {resolvedProposals.map(p => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '8px 12px', fontSize: 12.5 }}>
+                      <span style={{ color: '#555' }}>{p.resourceName} <span style={{ color: '#bbb' }}>· {Object.keys(p.changes || {}).join(', ')}</span></span>
+                      <span style={{ color: p.status === 'approved' ? GREEN : '#c0392b', fontWeight: 600 }}>{p.status === 'approved' ? '✓ Applied' : '✕ Rejected'}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -2171,6 +2422,7 @@ export default function AdminPage() {
         {tab === 8 && <FeaturedContent />}
         {tab === 9 && <Settings />}
         {tab === 10 && <ScoringTab />}
+        {tab === 11 && <ClaimsTab />}
       </div>
     </div>
   );

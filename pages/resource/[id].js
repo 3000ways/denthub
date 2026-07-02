@@ -9,6 +9,7 @@ import { BookmarkButton } from '../../components/BookmarkButton';
 import { ShareButton } from '../../components/ShareButton';
 import { EpisodeBookmarkButton } from '../../components/EpisodeBookmarkButton';
 import { PinButton } from '../../components/PinButton';
+import { ClaimButton } from '../../components/ClaimButton';
 import { usePlayer } from '../../lib/player-context';
 import { supabase } from '../../lib/supabase';
 
@@ -326,6 +327,27 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
   const isPodcast = f.Type === 'Podcast';
   const isYouTube = f.Type === 'YouTube';
   const isBook    = f.Type === 'Book';
+  const [isClaimed, setIsClaimed] = useState(false);
+  const [ownerContent, setOwnerContent] = useState(null);
+  const [featuredEpisodes, setFeaturedEpisodes] = useState([]);
+
+  // Claim Your Profile: is this listing claimed, and did its owner add a bio,
+  // vision, or feature any episodes? Public-read, so this shows to everyone.
+  useEffect(() => {
+    supabase.from('resource_claims').select('id').eq('resource_id', record.id).eq('status', 'approved').limit(1)
+      .then(({ data }) => setIsClaimed(!!data?.length));
+    supabase.from('resource_owner_content').select('bio, vision, featured_episode_ids').eq('resource_id', record.id).maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setOwnerContent(data);
+        if (data.featured_episode_ids?.length) {
+          supabase.from('episodes').select('id, title, show_name, show_resource_id, image, audio_url, duration_seconds')
+            .in('id', data.featured_episode_ids)
+            .then(({ data: eps }) => setFeaturedEpisodes(eps || []));
+        }
+      });
+  }, [record.id]);
+
   // Map of audio_url -> Supabase episode id, built from our archive
   const [episodeIdMap, setEpisodeIdMap] = useState({});
 
@@ -427,6 +449,9 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: '#e8f5f0', padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.Type}</span>
                   {f.Specialty && <span style={{ fontSize: 11, color: '#888', background: '#f0f0f0', padding: '3px 10px', borderRadius: 20 }}>{f.Specialty}</span>}
+                  {isClaimed && (
+                    <span title="This listing is managed by its creator" style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '3px 10px', borderRadius: 20 }}>✓ Claimed</span>
+                  )}
                 </div>
                 <h1 style={{ fontSize: 26, fontWeight: 700, color: '#111', margin: '0 0 4px', fontFamily: FONT_DISPLAY, letterSpacing: -0.5, lineHeight: 1.2 }}>{f.Name}</h1>
                 {f['Host or Author'] && <div style={{ fontSize: 13, color: '#888', marginBottom: 10 }}>{f['Host or Author']}</div>}
@@ -478,6 +503,30 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
               <PinButton resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
             </div>
           </div>
+
+          {/* From the creator — owner-controlled, clearly separate from editorial scoring */}
+          {ownerContent && (ownerContent.bio || ownerContent.vision) && (
+            <div style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid #e9d5ff', borderRadius: 14, padding: '24px 28px', marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: 14 }}>From the creator</div>
+              {ownerContent.bio && <p style={{ fontSize: 14, color: '#333', lineHeight: 1.65, margin: '0 0 14px' }}>{ownerContent.bio}</p>}
+              {ownerContent.vision && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>Their vision for dentistry</div>
+                  <p style={{ fontSize: 14, color: '#333', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>&ldquo;{ownerContent.vision}&rdquo;</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Featured episodes — hand-picked by the creator */}
+          {featuredEpisodes.length > 0 && (
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: 16 }}>★ Featured by the creator</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {featuredEpisodes.map(ep => <EpisodeCard key={ep.id} ep={{ ...ep, audio_url: ep.audio_url }} isNew={false} onSignInRequired={() => setShowSignIn(true)} />)}
+              </div>
+            </div>
+          )}
 
           {/* YouTube section */}
           {isYouTube && ytData && (
@@ -648,19 +697,10 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
 
           {/* Claim this page */}
           <div style={{ marginTop: 40, textAlign: 'center' }}>
-            <span style={{ fontSize: 12, color: '#aaa' }}>
-              Are you the creator of {f.Name}? You can correct the info, add your links, or ask us to remove this page.{' '}
-            </span>
-            <a
-              href={`mailto:hello@thedentalcommute.com?subject=${encodeURIComponent(`Claim page: ${f.Name}`)}&body=${encodeURIComponent(
-                `Hi,\n\nMy name is [Your Name] and my email is [Your Email].\n\nI'm the creator/owner of ${f.Name}. I'd like to:\n\n- [ ] Correct information on this page\n- [ ] Add or update my links (website, subscribe, support/Patreon)\n- [ ] Request removal from The Dental Commute\n\nDetails:\n\n`
-              )}`}
-              style={{ fontSize: 12, fontWeight: 600, color: '#999', textDecoration: 'none', borderBottom: '1px solid #e0e0e0', paddingBottom: 1, whiteSpace: 'nowrap' }}
-              onMouseEnter={e => e.currentTarget.style.color = GREEN}
-              onMouseLeave={e => e.currentTarget.style.color = '#999'}
-            >
-              Claim this page →
-            </a>
+            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 10 }}>
+              Are you the creator of {f.Name}? Claim this page to correct the info, add your links, and feature your favorite episodes.
+            </div>
+            <ClaimButton resourceId={record.id} resourceName={f.Name} onSignInRequired={() => setShowSignIn(true)} />
           </div>
 
         </div>
