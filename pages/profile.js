@@ -59,6 +59,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '', province_state: '', career_stage: '', interests: [], focus_areas: [] });
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
+  const [saveError, setSaveError]     = useState(false);
   const [listenStats, setListenStats] = useState(null);
   const [deleteStep, setDeleteStep]   = useState(0); // 0=idle, 1=confirm, 2=deleting
   const [quizOptions, setQuizOptions] = useState(null); // { career_stage, interest, working_on }
@@ -116,10 +117,15 @@ export default function ProfilePage() {
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
-    await updateProfile(form);
+    setSaveError(false);
+    const result = await updateProfile(form);
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    if (result) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } else {
+      setSaveError(true); // real failure — don't lie with a green checkmark
+    }
   }
 
   async function handleDeleteAccount() {
@@ -284,6 +290,7 @@ export default function ProfilePage() {
                   {saving ? 'Saving…' : 'Save changes'}
                 </button>
                 {saved && <span style={{ fontSize:13, color:GREEN, fontWeight:500 }}>Saved ✓</span>}
+                {saveError && <span style={{ fontSize:13, color:'#c0392b', fontWeight:500 }}>Couldn&rsquo;t save — please try again.</span>}
               </div>
             </form>
 
