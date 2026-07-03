@@ -14,11 +14,13 @@ const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN  = '#0F6E56';
 const BORDER = '#e8e8e8';
 
+// ADA-recognized specialties (+ General Dentistry / Other). "Dental Student"
+// is intentionally NOT here — that identity lives in Role, not Specialty.
 const SPECIALTIES = [
   'General Dentistry', 'Endodontics', 'Orthodontics', 'Periodontics',
   'Oral & Maxillofacial Surgery', 'Prosthodontics', 'Pediatric Dentistry',
   'Oral Medicine', 'Oral Pathology', 'Dental Public Health', 'Dental Anesthesiology',
-  'Dental Student', 'Other',
+  'Other',
 ];
 
 const ROLES = ['Dentist', 'Dental Student', 'Dental Hygienist', 'Dental Assistant', 'Practice Manager', 'Other'];
