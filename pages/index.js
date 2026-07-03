@@ -13,7 +13,7 @@ import { FeaturedBooks } from '../components/FeaturedBooks';
 import { FeaturedCards } from '../components/FeaturedCards';
 import { CommunitySection } from '../components/Community';
 import { Pinboard } from '../components/Pinboard';
-import { recommendResources } from '../lib/onboarding';
+import { recommendEpisodes } from '../lib/onboarding';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -311,17 +311,31 @@ function EssentialsSection({ items, isMobile, onOpen, onSignInRequired }) {
 }
 
 // "Recommended for you" — personalized strip driven by the onboarding quiz.
-// Shows resources whose Topic/Specialty match the person's focus areas + specialty
-// (see lib/onboarding.js). Renders nothing unless there are matches to show.
-function RecommendedForYou({ items, profile, isMobile, onOpen, onSignInRequired }) {
-  if (!items.length) return null;
+// Episodes are matched by AI-assigned quiz_tags (lib/episode-tagger.js reads
+// each episode's own title/description), not resource-level Topic/Specialty
+// tags — see recommendEpisodes in lib/onboarding.js. Renders as a row of
+// episode cards (reusing SpotlightCard), nothing if there's no match yet.
+function RecommendedForYou({ episodes, profile, isMobile }) {
+  if (!episodes.length) return null;
 
   // A short, human sentence describing why these were chosen.
-  const focusLabels = (profile?.focus_areas || []).slice(0, 3);
   const bits = [];
-  if (profile?.specialty) bits.push(profile.specialty);
-  if (focusLabels.length) bits.push(focusLabels.join(', ').toLowerCase());
+  if (profile?.career_stage) bits.push(profile.career_stage.toLowerCase());
+  if (profile?.interests?.length) bits.push(profile.interests.slice(0, 2).join(', ').toLowerCase());
+  if (profile?.focus_areas?.length) bits.push(profile.focus_areas.slice(0, 2).join(', ').toLowerCase());
   const because = bits.length ? `Based on your interest in ${bits.join(' · ')}` : 'Picked for you';
+
+  const cards = episodes.map(ep => ({
+    type: 'podcast',
+    url: ep.audio_url,
+    show: ep.show_name,
+    title: ep.title,
+    image: ep.image,
+    description: ep.description,
+    date: ep.published_at ? new Date(ep.published_at).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : null,
+    resourceId: ep.show_resource_id,
+    guid: ep.guid,
+  }));
 
   return (
     <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 12px' : '28px 28px 20px', border:`1px solid ${GREEN}`, boxShadow:'0 1px 6px rgba(15,110,86,0.08)' }}>
@@ -331,32 +345,8 @@ function RecommendedForYou({ items, profile, isMobile, onOpen, onSignInRequired 
         <Link href="/profile" style={{ marginLeft:'auto', fontSize:12, color:'#aaa', textDecoration:'none', fontWeight:500 }}>Edit interests →</Link>
       </div>
       <div style={{ fontSize:12, color:'#999', marginBottom:16 }}>{because}</div>
-      <div style={{ borderTop:`1px solid ${BORDER}` }}>
-        {items.map(r => {
-          const f = r.fields;
-          const score = ((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score'] || 0);
-          return (
-            <div key={r.id}
-              onClick={() => onOpen(r.id)}
-              style={{ display:'flex', alignItems:'center', gap:16, padding:'13px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
-              onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
-              onMouseLeave={e => e.currentTarget.style.background='transparent'}
-            >
-              <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:15, fontWeight:600, color:'#111', marginBottom:3, fontFamily:FONT_DISPLAY, letterSpacing:-0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
-                <div style={{ fontSize:11, color:'#bbb', display:'flex', alignItems:'center', gap:6 }}>
-                  <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
-                  {f['Host or Author'] && <><span>&middot;</span><span>{f['Host or Author']}</span></>}
-                </div>
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e => e.stopPropagation()}>
-                <ScoreBadge score={score} fields={f} />
-                {!isMobile && <BookmarkButton resourceId={r.id} onSignInRequired={onSignInRequired} />}
-              </div>
-            </div>
-          );
-        })}
+      <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
+        {cards.map((item, i) => <SpotlightCard key={item.guid || i} item={item} />)}
       </div>
     </div>
   );
@@ -691,6 +681,19 @@ export default function Home({ initialResources }) {
       setShowOnboarding(true);
     }
   }, [user, profile]);
+
+  // Personalized "Recommended for You" episodes — a live query against the
+  // episode archive's AI-assigned quiz_tags (see recommendEpisodes in
+  // lib/onboarding.js), not the already-loaded Airtable resources. Empty for
+  // signed-out users, anyone who hasn't answered the quiz, or while the
+  // AI tagging backfill hasn't reached matching episodes yet.
+  const [recommendedEpisodes, setRecommendedEpisodes] = useState([]);
+  useEffect(() => {
+    if (!profile) { setRecommendedEpisodes([]); return; }
+    let cancelled = false;
+    recommendEpisodes(profile, 8).then(eps => { if (!cancelled) setRecommendedEpisodes(eps); });
+    return () => { cancelled = true; };
+  }, [profile]);
   const [ytStats, setYtStats] = useState({});
   const [podStats, setPodStats] = useState({});
   const [bookStats, setBookStats] = useState({});
@@ -883,10 +886,6 @@ export default function Home({ initialResources }) {
       if (ao == null && bo != null) return 1;
       return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
     });
-
-  // Personalized picks from the onboarding quiz (focus areas + specialty).
-  // Empty for signed-out users or anyone who hasn't answered.
-  const recommended = recommendResources(displayResources, profile, 6);
 
   const top2 = filtered.slice(0,2);
   const ranked = filtered.slice(0, visibleCount);
@@ -1187,11 +1186,9 @@ export default function Home({ initialResources }) {
 
             {/* Recommended for You — personalized from the onboarding quiz answers */}
             <RecommendedForYou
-              items={recommended}
+              episodes={recommendedEpisodes}
               profile={profile}
               isMobile={isMobile}
-              onOpen={(id) => router.push(`/resource/${id}`)}
-              onSignInRequired={() => setShowSignIn(true)}
             />
 
             {/* The Essentials — curated foundational resources, ordered by "Essential Order" */}

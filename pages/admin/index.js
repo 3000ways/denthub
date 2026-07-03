@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Auto-Tag', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings', 'Scoring', 'Claims'];
+const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings', 'Scoring', 'Claims', 'Episode Tagging', 'Quiz Questions'];
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Other'];
 
@@ -1292,119 +1292,6 @@ function ClaimsTab() {
 }
 
 // ══════════════════════════════════════════
-//  TAB 5 — Auto-Tag (AI-assisted Goals/Career tagging)
-// ══════════════════════════════════════════
-function AutoTag() {
-  const [remaining, setRemaining] = useState(null);
-  const [batchSize, setBatchSize] = useState(12);
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState('');
-  const [done, setDone] = useState(false);
-  const [results, setResults] = useState([]); // most-recent batch first
-  const [totalTagged, setTotalTagged] = useState(0);
-
-  async function loadRemaining() {
-    try {
-      const r = await fetch('/api/admin/suggest-tags');
-      const d = await r.json();
-      if (typeof d.remaining === 'number') setRemaining(d.remaining);
-    } catch { /* ignore */ }
-  }
-
-  useEffect(() => { loadRemaining(); }, []);
-
-  async function runBatch() {
-    setRunning(true); setError(''); setDone(false);
-    try {
-      const r = await fetch('/api/admin/suggest-tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: batchSize }),
-      });
-      const d = await r.json();
-      if (d.status === 'no_ai_key') { setError(d.message); return; }
-      if (d.error) { setError(d.error); return; }
-      setResults(prev => [...(d.results || []), ...prev]);
-      setTotalTagged(t => t + (d.processed || 0));
-      if (typeof d.remaining === 'number') setRemaining(d.remaining);
-      if (d.done || d.processed === 0) setDone(true);
-    } catch (e) { setError(e.message); }
-    finally { setRunning(false); }
-  }
-
-  const Chips = ({ values, color, bg }) => (
-    !values || values.length === 0
-      ? <span style={{ fontSize: 11, color: '#bbb' }}>—</span>
-      : <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
-          {values.map(v => (
-            <span key={v} style={{ fontSize: 11, fontWeight: 600, color, background: bg, padding: '2px 8px', borderRadius: 10 }}>{v}</span>
-          ))}
-        </span>
-  );
-
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>AI Auto-Tagger</h2>
-        <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, textDecoration: 'none', fontWeight: 500 }}>Check Perplexity credits ↗</a>
-      </div>
-      <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
-        Reads each resource's description and suggests <strong>Goals / Outcomes</strong> and <strong>Career Stage</strong> tags
-        (only from the fixed lists — no made-up tags). Suggestions are saved with <strong>Needs Tag Review</strong> turned on,
-        so nothing is final until you check it. Review in Airtable by filtering on <em>Needs Tag Review = checked</em>, fix the
-        chips, then uncheck the box.
-      </p>
-
-      <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '18px 20px', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ fontSize: 13, color: '#555' }}>
-            Untagged resources remaining:{' '}
-            <strong style={{ color: '#111' }}>{remaining == null ? '…' : remaining}</strong>
-            {totalTagged > 0 && <span style={{ color: '#999' }}> · tagged this session: {totalTagged}</span>}
-          </div>
-          <label style={{ fontSize: 12, color: '#555', display: 'flex', alignItems: 'center', gap: 6 }}>
-            Batch size
-            <input type="number" min={1} max={25} value={batchSize}
-              onChange={e => setBatchSize(Math.min(25, Math.max(1, parseInt(e.target.value, 10) || 1)))}
-              style={{ ...inp(), width: 64, padding: '6px 8px' }} />
-          </label>
-        </div>
-      </div>
-
-      {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
-      {done && remaining === 0 && <div style={{ marginBottom: 12, padding: '10px 14px', background: '#d1fae5', color: '#065f46', borderRadius: 6, fontSize: 13 }}>✓ All published resources have been tagged. Review them in Airtable.</div>}
-
-      <button onClick={runBatch} disabled={running || remaining === 0} style={{ width: '100%', padding: '13px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: (running || remaining === 0) ? 0.6 : 1 }}>
-        {running ? '🏷️ Tagging… (takes ~20–40s)' : `🏷️ Tag next ${batchSize}`}
-      </button>
-
-      {results.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 10 }}>Tagged this session ({results.length})</div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {results.map((r, i) => (
-              <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '12px 16px', background: '#fff' }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 8 }}>{r.name}</div>
-                <div style={{ display: 'grid', gap: 6 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', minWidth: 70 }}>Goals</span>
-                    <Chips values={r.goals} color="#065f46" bg="#d1fae5" />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', minWidth: 70 }}>Career</span>
-                    <Chips values={r.careerStages} color="#5b21b6" bg="#ede9fe" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════
 //  TAB 6 — Deduplication
 // ══════════════════════════════════════════
 function Deduplication() {
@@ -2365,6 +2252,222 @@ function Login({ onLogin }) {
 }
 
 // ══════════════════════════════════════════
+//  TAB — Episode Tagging (AI tagging visibility + backfill)
+// ══════════════════════════════════════════
+function EpisodeTaggingTab() {
+  const [status, setStatus] = useState(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState('');
+  const stopRef = useRef(false);
+
+  async function loadStatus() {
+    try {
+      const r = await fetch('/api/admin/tagging-status', { cache: 'no-store' });
+      const d = await r.json();
+      if (!d.error) setStatus(d);
+    } finally { setLoadingStatus(false); }
+  }
+  useEffect(() => { loadStatus(); }, []);
+
+  function ago(iso) {
+    if (!iso) return 'never';
+    const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }
+
+  // Self-looping: one click starts it, each batch fetch chains straight into
+  // the next (no cron cadence involved), until nothing's left to claim or the
+  // admin hits Stop. Progress is saved to the database after every batch, so
+  // stopping (or closing the tab) never loses ground.
+  async function runBackfill() {
+    setRunning(true); setError(''); stopRef.current = false;
+    try {
+      while (!stopRef.current) {
+        const r = await fetch('/api/admin/tag-episodes-batch?claimSize=300', { method: 'POST', cache: 'no-store' });
+        const d = await r.json();
+        if (d.error) { setError(d.error); break; }
+        if (d.status === 'no_ai_key') { setError('PERPLEXITY_API_KEY is not configured in Vercel — tagging can\'t run yet.'); break; }
+        if (d.status === 'no_taxonomy') { setError('No active quiz options found to tag against.'); break; }
+        await loadStatus();
+        if (!d.attempted || d.remaining === 0) break; // nothing left to claim
+      }
+    } catch (e) { setError(e.message); }
+    finally { setRunning(false); }
+  }
+
+  const pct = status && status.total > 0 ? Math.round((status.tagged / status.total) * 100) : 0;
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Episode Tagging</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
+        An AI reads each episode&rsquo;s title and description and checks it against the quiz&rsquo;s own answer options (career stage, clinical interest, what someone&rsquo;s working on), so the homepage can recommend the right <em>episodes</em> to the right person — not just resources tagged for a whole show.
+      </p>
+
+      <div style={{ background: '#f7f7f5', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '14px 16px', marginBottom: 20, fontSize: 12.5, color: '#555', lineHeight: 1.65 }}>
+        <div style={{ fontWeight: 700, color: '#333', marginBottom: 8 }}>How it works</div>
+        <div>Each batch is claimed atomically (two overlapping runs can never tag the same episode twice), sent to the AI in chunks of ~20 episodes per call, then saved. New episodes get tagged automatically inside the daily harvest job — this backfill is only for catching the existing archive up fast, run it until &ldquo;Remaining&rdquo; hits 0.</div>
+      </div>
+
+      {loadingStatus ? (
+        <div style={{ color: '#aaa', fontSize: 13 }}>Loading…</div>
+      ) : status && (
+        <>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#666', marginBottom: 6 }}>
+              <span>{status.tagged.toLocaleString()} / {status.total.toLocaleString()} tagged</span>
+              <span>{pct}%</span>
+            </div>
+            <div style={{ height: 10, background: '#eee', borderRadius: 6, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: GREEN, transition: 'width 0.3s' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+            <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#999', fontWeight: 600, marginBottom: 4 }}>Last run</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: status.lastRun ? '#111' : '#bbb' }}>{ago(status.lastRun?.ran_at)}</div>
+              {status.lastRun && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>{status.lastRun.trigger} · tagged {status.lastRun.tagged_count}</div>}
+            </div>
+            <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#999', fontWeight: 600, marginBottom: 4 }}>Remaining</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>{status.remaining.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+            {!running ? (
+              <button onClick={runBackfill} disabled={status.remaining === 0} style={{ flex: 1, padding: '12px', background: status.remaining === 0 ? '#e5e7eb' : GREEN, color: status.remaining === 0 ? '#999' : '#fff', border: 'none', borderRadius: 6, cursor: status.remaining === 0 ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT }}>
+                {status.remaining === 0 ? '✓ Fully tagged' : '▶ Start backfill'}
+              </button>
+            ) : (
+              <button onClick={() => { stopRef.current = true; }} style={{ flex: 1, padding: '12px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT }}>
+                ■ Stop (progress is saved)
+              </button>
+            )}
+          </div>
+
+          {error && <div style={{ marginBottom: 16, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+
+          {status.recentSample?.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Recently tagged (sample)</div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {status.recentSample.map((s, i) => (
+                  <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '9px 12px', fontSize: 12.5 }}>
+                    <div style={{ color: '#111', fontWeight: 500, marginBottom: 3 }}>{s.title} <span style={{ color: '#bbb', fontSize: 11 }}>{s.show_name}</span></div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {(s.quiz_tags || []).length ? s.quiz_tags.map(t => (
+                        <span key={t} style={{ fontSize: 10, background: '#e8f5f0', color: GREEN, padding: '2px 7px', borderRadius: 10, fontWeight: 600 }}>{t}</span>
+                      )) : <span style={{ fontSize: 11, color: '#bbb' }}>(no tags matched)</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  TAB — Quiz Questions (admin-editable quiz_options)
+// ══════════════════════════════════════════
+const QUESTION_GROUPS = [
+  { key: 'career_stage', label: 'Q1 — What describes you?' },
+  { key: 'interest', label: "Q2 — Your interest" },
+  { key: 'working_on', label: "Q2 — What you're working on" },
+];
+
+function QuizOptionsTab() {
+  const [options, setOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newLabel, setNewLabel] = useState({});
+  const [saving, setSaving] = useState(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/quiz-options');
+      const d = await r.json();
+      setOptions(Array.isArray(d.options) ? d.options : []);
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function addOption(question_key) {
+    const label = (newLabel[question_key] || '').trim();
+    if (!label) return;
+    setSaving(question_key);
+    try {
+      const r = await fetch('/api/admin/quiz-options', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question_key, label }) });
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      setOptions(prev => [...prev, d.option]);
+      setNewLabel(prev => ({ ...prev, [question_key]: '' }));
+    } finally { setSaving(null); }
+  }
+
+  async function toggleActive(opt) {
+    setSaving(opt.id);
+    try {
+      const r = await fetch('/api/admin/quiz-options', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: opt.id, active: !opt.active }) });
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      setOptions(prev => prev.map(o => o.id === opt.id ? d.option : o));
+    } finally { setSaving(null); }
+  }
+
+  if (loading) return <div style={{ color: '#888', fontSize: 14 }}>Loading…</div>;
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Quiz Questions</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 24, lineHeight: 1.6 }}>
+        Add or retire the onboarding quiz&rsquo;s answer options. Changes take effect immediately for the quiz and profile settings. Retiring an option (rather than deleting) keeps it safe for anyone who already picked it — it just won&rsquo;t be offered to new answers. The AI episode tagger reads this same list, so a newly added option needs a tagging pass (Episode Tagging tab) before matching episodes show up for it.
+      </p>
+
+      {QUESTION_GROUPS.map(group => {
+        const groupOptions = options.filter(o => o.question_key === group.key).sort((a, b) => a.sort_order - b.sort_order);
+        return (
+          <div key={group.key} style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 10 }}>{group.label}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {groupOptions.map(o => (
+                <button key={o.id} onClick={() => toggleActive(o)} disabled={saving === o.id}
+                  title={o.active ? 'Click to retire' : 'Click to reactivate'}
+                  style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: `1px solid ${o.active ? GREEN : BORDER}`,
+                    background: o.active ? '#e8f5f0' : '#f3f4f6', color: o.active ? GREEN : '#999',
+                    cursor: 'pointer', fontFamily: FONT, fontWeight: 500, textDecoration: o.active ? 'none' : 'line-through', opacity: saving === o.id ? 0.5 : 1 }}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={newLabel[group.key] || ''} onChange={e => setNewLabel(prev => ({ ...prev, [group.key]: e.target.value }))}
+                onKeyDown={e => e.key === 'Enter' && addOption(group.key)}
+                placeholder="Add a new option…" style={{ ...inp(), flex: 1 }} />
+              <button onClick={() => addOption(group.key)} disabled={saving === group.key || !newLabel[group.key]?.trim()}
+                style={{ padding: '9px 16px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: saving === group.key ? 0.6 : 1 }}>
+                + Add
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
 //  MAIN ADMIN PAGE
 // ══════════════════════════════════════════
 export default function AdminPage() {
@@ -2415,14 +2518,15 @@ export default function AdminPage() {
         {tab === 1 && <ReviewQueue />}
         {tab === 2 && <AllResources />}
         {tab === 3 && <RunResearch />}
-        {tab === 4 && <AutoTag />}
-        {tab === 5 && <Deduplication />}
-        {tab === 6 && <Users />}
-        {tab === 7 && <EpisodeArchive />}
-        {tab === 8 && <FeaturedContent />}
-        {tab === 9 && <Settings />}
-        {tab === 10 && <ScoringTab />}
-        {tab === 11 && <ClaimsTab />}
+        {tab === 4 && <Deduplication />}
+        {tab === 5 && <Users />}
+        {tab === 6 && <EpisodeArchive />}
+        {tab === 7 && <FeaturedContent />}
+        {tab === 8 && <Settings />}
+        {tab === 9 && <ScoringTab />}
+        {tab === 10 && <ClaimsTab />}
+        {tab === 11 && <EpisodeTaggingTab />}
+        {tab === 12 && <QuizOptionsTab />}
       </div>
     </div>
   );
