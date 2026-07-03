@@ -7,7 +7,6 @@ import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { supabase } from '../lib/supabase';
 import SiteNav from '../components/SiteNav';
-import { OnboardingModal } from '../components/AuthModal';
 import { QUESTION_KEYS, MAX_PICKS, fetchQuizOptions } from '../lib/onboarding';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
@@ -41,8 +40,6 @@ const CA_PROVINCES = [
   'Nunavut','Ontario','Prince Edward Island','Quebec','Saskatchewan','Yukon',
 ];
 
-function getDomain(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return null; } }
-
 function SectionHeader({ label }) {
   return (
     <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.10em', textTransform:'uppercase',
@@ -54,35 +51,24 @@ function SectionHeader({ label }) {
 
 export default function ProfilePage() {
   const { user, profile, loading, updateProfile, signOut } = useAuth();
-  const { bookmarkIds, count: bookmarkCount } = useBookmarks();
+  const { count: bookmarkCount } = useBookmarks();
   const router = useRouter();
 
   const [form, setForm] = useState({ full_name: '', specialty: '', role: '', avatar_url: '', province_state: '', career_stage: '', interests: [], focus_areas: [] });
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
-  const [savedResources, setSavedResources] = useState([]);
   const [listenStats, setListenStats] = useState(null);
   const [deleteStep, setDeleteStep]   = useState(0); // 0=idle, 1=confirm, 2=deleting
-  const [showQuiz, setShowQuiz]       = useState(false); // retake the onboarding quiz
   const [quizOptions, setQuizOptions] = useState(null); // { career_stage, interest, working_on }
 
   useEffect(() => { fetchQuizOptions().then(setQuizOptions); }, []);
 
   useEffect(() => {
     if (!user) return;
-    fetch('/api/airtable?table=Resources')
-      .then(r => r.json())
-      .then(res => setSavedResources(res.records || []))
-      .catch(() => setSavedResources([]));
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
     supabase
       .from('listening_progress')
-      .select(`completed, position_seconds, duration_seconds, completed_at, listened_at, episodes ( id, title, show_name, image )`)
+      .select('completed, duration_seconds')
       .eq('user_id', user.id)
-      .order('listened_at', { ascending: false })
       .then(({ data }) => {
         if (!data) return;
         const completed   = data.filter(r => r.completed);
@@ -93,7 +79,6 @@ export default function ProfilePage() {
           inProgressCount: inProgress.length,
           totalHours: Math.floor(totalSeconds / 3600),
           totalMins:  Math.floor((totalSeconds % 3600) / 60),
-          recent: completed.slice(0, 3),
         });
       });
   }, [user]);
@@ -287,13 +272,6 @@ export default function ProfilePage() {
                     );
                   })}
                 </div>
-                {/* Re-opens the onboarding quiz pre-filled with current answers —
-                    a guided alternative to editing the fields above directly. */}
-                <button type="button" onClick={() => setShowQuiz(true)}
-                  style={{ fontSize:12, color:GREEN, fontWeight:500, background:'none', border:'none',
-                    cursor:'pointer', fontFamily:FONT_BODY, padding:0, marginTop:10 }}>
-                  Retake the welcome quiz →
-                </button>
               </div>
 
               <div style={{ display:'flex', alignItems:'center', gap:16 }}>
@@ -320,55 +298,13 @@ export default function ProfilePage() {
               </div>
 
               {listenStats && listenStats.completedCount > 0 ? (
-                <>
-                  <div style={{ display:'flex', gap:12, marginBottom:24, flexWrap:'wrap' }}>
-                    <div style={{ background:'#E8F5F0', borderRadius:8, padding:'14px 20px', minWidth:100, flex:1 }}>
-                      <div style={{ fontSize:24, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1 }}>{listenStats.completedCount}</div>
-                      <div style={{ fontSize:11, color:'#555', marginTop:4 }}>Episodes listened</div>
-                    </div>
-                    {(listenStats.totalHours > 0 || listenStats.totalMins > 0) && (
-                      <div style={{ background:'#f9f9f9', borderRadius:8, padding:'14px 20px', minWidth:100, flex:1 }}>
-                        <div style={{ fontSize:24, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>
-                          {listenStats.totalHours > 0 ? `${listenStats.totalHours}h ${listenStats.totalMins}m` : `${listenStats.totalMins}m`}
-                        </div>
-                        <div style={{ fontSize:11, color:'#555', marginTop:4 }}>Total time listened</div>
-                      </div>
-                    )}
-                    {listenStats.inProgressCount > 0 && (
-                      <div style={{ background:'#f9f9f9', borderRadius:8, padding:'14px 20px', minWidth:100, flex:1 }}>
-                        <div style={{ fontSize:24, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>{listenStats.inProgressCount}</div>
-                        <div style={{ fontSize:11, color:'#555', marginTop:4 }}>In progress</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {listenStats.recent.length > 0 && (
-                    <div style={{ borderTop:`1px solid ${BORDER}` }}>
-                      <div style={{ fontSize:11, color:'#aaa', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', padding:'12px 0 10px' }}>Recently listened</div>
-                      {listenStats.recent.map((row, i) => {
-                        const ep = row.episodes;
-                        if (!ep) return null;
-                        const date = row.completed_at ? new Date(row.completed_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null;
-                        return (
-                          <div key={i} style={{ display:'flex', gap:12, alignItems:'center', padding:'10px 0', borderBottom:`0.5px solid ${BORDER}` }}>
-                            {ep.image
-                              ? <img src={ep.image} alt={ep.title} style={{ width:36, height:36, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
-                              : <div style={{ width:36, height:36, borderRadius:5, background:'#f0ede8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>🎙</div>
-                            }
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:13, fontWeight:500, color:'#111', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>{ep.title}</div>
-                              <div style={{ fontSize:11, color:'#888' }}>{ep.show_name}{date ? ` · ${date}` : ''}</div>
-                            </div>
-                            <span style={{ fontSize:10, color:GREEN, fontWeight:600, background:'#E8F5F0', borderRadius:4, padding:'2px 7px', flexShrink:0 }}>✓</span>
-                          </div>
-                        );
-                      })}
-                      <Link href="/my-listening" style={{ display:'block', fontSize:12, color:GREEN, fontWeight:500, textDecoration:'none', padding:'14px 0 2px' }}>
-                        View full history & CE log →
-                      </Link>
-                    </div>
+                <div style={{ fontSize:14, color:'#555', fontFamily:FONT_BODY }}>
+                  <strong style={{ color:'#111', fontWeight:700 }}>{listenStats.completedCount}</strong> episodes listened
+                  {(listenStats.totalHours > 0 || listenStats.totalMins > 0) && (
+                    <> · {listenStats.totalHours > 0 ? `${listenStats.totalHours}h ${listenStats.totalMins}m` : `${listenStats.totalMins}m`} total</>
                   )}
-                </>
+                  {listenStats.inProgressCount > 0 && <> · {listenStats.inProgressCount} in progress</>}
+                </div>
               ) : (
                 <div style={{ fontSize:13, color:'#aaa' }}>
                   No listening history yet.{' '}
@@ -382,7 +318,7 @@ export default function ProfilePage() {
           <div style={{ background:'rgba(255,255,255,0.85)', border:`1px solid ${BORDER}`, borderRadius:12,
             boxShadow:'0 1px 6px rgba(0,0,0,0.05)', padding:'32px 32px 28px', marginBottom:16 }}>
               <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:20 }}>
-                <SectionHeader label={`Saved Resources${bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}`} />
+                <SectionHeader label="Saved Resources" />
                 {bookmarkCount > 0 && (
                   <Link href="/saved" style={{ fontSize:12, color:GREEN, fontWeight:500, textDecoration:'none', marginTop:-14 }}>View all →</Link>
                 )}
@@ -393,25 +329,8 @@ export default function ProfilePage() {
                   Nothing saved yet. Tap the bookmark icon on any resource to save it here.
                 </div>
               ) : (
-                <div style={{ borderTop:`1px solid ${BORDER}` }}>
-                  {savedResources.filter(r => bookmarkIds.has(r.id)).slice(0, 5).map(r => {
-                    const f = r.fields;
-                    const domain = getDomain(f.URL);
-                    const logo = f['Image URL'] || (domain ? `/api/airtable?logo=${domain}` : null);
-                    return (
-                      <Link key={r.id} href={`/resource/${r.id}`}
-                        style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, textDecoration:'none', color:'inherit' }}>
-                        {logo
-                          ? <img src={logo} alt={f.Name} style={{ width:34, height:34, borderRadius:6, objectFit:'contain', background:'#fafafa', border:`0.5px solid ${BORDER}`, flexShrink:0 }} />
-                          : <div style={{ width:34, height:34, borderRadius:6, background:'#E8F5F0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:600, color:GREEN, flexShrink:0 }}>{(f.Name||'?')[0]}</div>
-                        }
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
-                          <div style={{ fontSize:11, color:GREEN, fontWeight:500, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                <div style={{ fontSize:14, color:'#555' }}>
+                  <strong style={{ color:'#111', fontWeight:700 }}>{bookmarkCount}</strong> {bookmarkCount === 1 ? 'resource' : 'resources'} saved
                 </div>
               )}
 
@@ -464,10 +383,6 @@ export default function ProfilePage() {
         </div>
       </div>
       <Footer />
-      {/* Retake quiz — mounts fresh each open, pre-filled from the profile.
-          Saving inside the quiz refreshes the auth context, which re-syncs the
-          form fields above automatically. */}
-      {showQuiz && <OnboardingModal onClose={() => setShowQuiz(false)} />}
     </>
   );
 }
