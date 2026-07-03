@@ -230,14 +230,27 @@ export default function ProfilePage() {
                 </select>
               </div>
 
-              {/* Career stage — from the onboarding quiz (Q1). Options come live
-                  from quiz_options (admin-editable), not a hardcoded list. */}
+              {/* What describes you? — single-select pills (matches the interest /
+                  working-on groups below and the admin quiz editor). Options come
+                  live from quiz_options (admin-editable). */}
               <div style={{ marginBottom:28 }}>
-                <label style={labelStyle}>Career stage</label>
-                <select value={form.career_stage} onChange={e => setForm(f => ({ ...f, career_stage: e.target.value }))} style={{ ...inputStyle, maxWidth:260 }}>
-                  <option value="">Select career stage</option>
-                  {(quizOptions?.[QUESTION_KEYS.CAREER_STAGE] || []).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <label style={labelStyle}>What describes you?</label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:2 }}>
+                  {(quizOptions?.[QUESTION_KEYS.CAREER_STAGE] || []).map(label => {
+                    const active = form.career_stage === label;
+                    return (
+                      <button key={label} type="button"
+                        onClick={() => setForm(f => ({ ...f, career_stage: active ? '' : label }))}
+                        style={{ fontSize:12, padding:'6px 13px', borderRadius:20,
+                          border:`1px solid ${active ? GREEN : BORDER}`,
+                          background: active ? GREEN : '#fff',
+                          color: active ? '#fff' : '#555',
+                          cursor:'pointer', fontFamily:FONT_BODY, fontWeight: active ? 600 : 400 }}>
+                        {active ? '✓ ' : ''}{label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Interest + working-on — from the onboarding quiz (Q2). Drive
