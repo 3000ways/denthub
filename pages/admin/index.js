@@ -735,89 +735,109 @@ function AllResources() {
 // ══════════════════════════════════════════
 //  TAB 4 — Run Research
 // ══════════════════════════════════════════
+function timeAgo(iso) {
+  if (!iso) return null;
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 90) return 'just now';
+  const m = s / 60; if (m < 60) return `${Math.round(m)} min ago`;
+  const h = m / 60; if (h < 24) return `${Math.round(h)} hour${Math.round(h) === 1 ? '' : 's'} ago`;
+  const d = h / 24; if (d < 30) return `${Math.round(d)} day${Math.round(d) === 1 ? '' : 's'} ago`;
+  return `${Math.round(d / 30)} month${Math.round(d / 30) === 1 ? '' : 's'} ago`;
+}
+
+const FLAG_STYLE = {
+  never: { bg: '#fee2e2', color: '#991b1b', label: 'Never' },
+  thin:  { bg: '#fef3c7', color: '#92400e', label: 'Thin' },
+  stale: { bg: '#fef3c7', color: '#92400e', label: 'Stale' },
+  good:  { bg: '#d1fae5', color: '#065f46', label: 'Good' },
+};
+
 function RunResearch() {
-  const [category, setCategory] = useState('');
-  const [theme, setTheme] = useState('');
+  const [planMap, setPlanMap] = useState({});      // group → [labels]
+  const [groups, setGroups] = useState([]);
+  const [group, setGroup] = useState('');
+  const [status, setStatus] = useState(null);
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState(null);
+  const [noKey, setNoKey] = useState(false);
   const [error, setError] = useState('');
-  const [customPrompt, setCustomPrompt] = useState('');
-  const [promptEdited, setPromptEdited] = useState(false);
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [progress, setProgress] = useState({ current: '', completed: 0, total: 0 });
+  const [counters, setCounters] = useState({ added: 0, duplicates: 0, dead_links: 0, directories: 0 });
+  const [feed, setFeed] = useState([]);
 
-  const THEMES = ['Learning & Education', 'Technology & Software', 'Coaching & Mentorship', 'Community & Network', 'Specialty Resources', 'Training & Career', 'Practice & Business', 'Wellbeing & Lifestyle'];
+  const loadStatus = useCallback(async () => {
+    try {
+      const r = await fetch('/api/admin/research-status');
+      const d = await r.json();
+      if (!d.error) setStatus(d);
+    } catch { /* non-fatal */ }
+  }, []);
 
-  function buildDefaultPrompt(cat, th) {
-    if (!cat) return '';
-    return `You are a dental industry researcher. Search the web to find 10 high-quality, currently active resources in the category "${cat}"${th ? ` (theme: "${th}")` : ''} for dental professionals.
-
-Use your web search to verify each resource is real and active. Search for things like "best ${cat} for dentists" to find genuine results.
-
-Requirements:
-- Only include resources confirmed via web search to exist and be currently active.
-- Be specific to the category — a general dentistry podcast does not belong in "Orthodontic Podcasts".
-- Prefer resources with real audiences: listed on Apple Podcasts/Spotify, active YouTube channels with subscribers, established websites.
-- Include the direct homepage or podcast page URL, not a search result link.
-- [Existing resources in your database will be excluded automatically]
-
-For each resource, also score it on these 5 dimensions (0–100 scale):
-- ExpertScore: reputation among dental experts and peers
-- CommunityScore: community engagement and user sentiment
-- PopularityScore: reach and audience size
-- RecencyScore: how current and actively maintained it is
-- ClinicalDepthScore: depth of clinical relevance and practical application
-
-For each resource, also assign:
-- Specialty: an array of dental specialties this resource targets (use only values from this list, must have at least one): ["General Dentistry","Endodontics","Orthodontics","Periodontics","Oral Surgery","Prosthodontics","Pediatric Dentistry","Oral Radiology","Dental Anesthesiology","Pain"]. If the resource is relevant to all dentists or is cross-specialty, include every specialty it applies to — do NOT leave this empty.
-- Topic: an array of business/professional topics this resource covers (use only values from this list, can be multiple, must have at least one): ["Clinical","Technology","Leadership","Marketing","Finance & Investment","Practice Growth","Team & HR","Wellness"]
-
-After searching, return ONLY a valid JSON array of objects, each with:
-- Name (string)
-- URL (string — verified homepage URL)
-- Description (string — 1-2 sentences on what makes it valuable)
-- Type (one of: Podcast, YouTube, Website, Book, Course, Software, Community, Other)
-- ExpertScore (number 0–100)
-- CommunityScore (number 0–100)
-- PopularityScore (number 0–100)
-- RecencyScore (number 0–100)
-- ClinicalDepthScore (number 0–100)
-- Specialty (array of strings from the list above, or empty array)
-- Topic (array of strings from the list above, at least one)
-
-Return ONLY the JSON array, no other text.`;
-  }
-
-  function handleCategoryChange(val) {
-    setCategory(val);
-    if (!promptEdited) setCustomPrompt(buildDefaultPrompt(val, theme));
-  }
-
-  function handleThemeChange(val) {
-    setTheme(val);
-    if (!promptEdited) setCustomPrompt(buildDefaultPrompt(category, val));
-  }
-
-  function handlePromptChange(val) {
-    setCustomPrompt(val);
-    setPromptEdited(true);
-  }
-
-  function resetPrompt() {
-    setCustomPrompt(buildDefaultPrompt(category, theme));
-    setPromptEdited(false);
-  }
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/admin/research');
+        const d = await r.json();
+        if (d.groups) {
+          const map = {};
+          d.groups.forEach(g => { map[g.group] = g.subcategories; });
+          setPlanMap(map);
+          setGroups(d.groups.map(g => g.group));
+          setGroup(g => g || d.groups[0]?.group || '');
+        }
+      } catch { /* non-fatal */ }
+    })();
+    loadStatus();
+  }, [loadStatus]);
 
   async function run() {
-    if (!category) { setError('Select a category'); return; }
-    setRunning(true); setResult(null); setError('');
+    if (!group) return;
+    const labels = planMap[group] || [];
+    const total = labels.length;
+    if (!total) return;
+    setRunning(true); setError(''); setNoKey(false); setFeed([]);
+    setCounters({ added: 0, duplicates: 0, dead_links: 0, directories: 0 });
+    setProgress({ current: labels[0], completed: 0, total });
+    const batchId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     try {
-      const r = await fetch('/api/admin/research', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category, theme, customPrompt: promptEdited ? customPrompt : undefined }) });
-      const d = await r.json();
-      if (d.error) { setError(d.error); return; }
-      setResult(d);
-    } catch (e) { setError(e.message); }
-    finally { setRunning(false); }
+      for (let index = 0; index < total; index++) {
+        setProgress({ current: labels[index], completed: index, total });
+        let d;
+        try {
+          const r = await fetch('/api/admin/research', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group, index, batchId }) });
+          d = await r.json();
+        } catch (e) {
+          setFeed(f => [{ kind: 'error', name: labels[index], detail: 'network error — skipped' }, ...f]);
+          continue;
+        }
+        if (d.status === 'no_ai_key') { setNoKey(true); break; }
+        if (d.error) {
+          setFeed(f => [{ kind: 'error', name: labels[index], detail: d.error }, ...f]);
+          continue;
+        }
+        setCounters(c => ({
+          added: c.added + (d.added || 0),
+          duplicates: c.duplicates + (d.counts?.duplicates || 0),
+          dead_links: c.dead_links + (d.counts?.dead_links || 0),
+          directories: c.directories + (d.counts?.directories || 0),
+        }));
+        setFeed(f => [
+          ...(d.found || []).map(x => ({ kind: 'added', name: x.Name, detail: x.hasRss ? 'queued · RSS captured' : 'queued' })),
+          ...(d.skipped || []).slice(0, 3).map(s => ({ kind: 'skip', name: s.name, detail: s.reason })),
+          ...f,
+        ].slice(0, 60));
+        setProgress({ current: labels[index], completed: index + 1, total });
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setRunning(false);
+      setProgress(p => ({ ...p, current: '' }));
+      loadStatus();
+    }
   }
+
+  const pct = progress.total ? Math.round((progress.completed / progress.total) * 100) : 0;
+  const lb = status?.lastBatch;
 
   return (
     <div>
@@ -825,80 +845,104 @@ Return ONLY the JSON array, no other text.`;
         <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>AI Research Agent</h2>
         <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: GREEN, textDecoration: 'none', fontWeight: 500 }}>Check Perplexity credits ↗</a>
       </div>
-      <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>Choose a category and let the AI find new resources. Results land in the Review Queue as <strong>🤖 AI Agent / Pending</strong> for your approval.</p>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Pick a resource type; the agent cycles through its subcategories, finds new resources, and drops them in the Review Queue as <strong>🤖 AI Agent / Pending</strong>. Scores and tags are handled by the scoring and episode-tagging agents after you approve.</p>
 
-      <div style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-          Category *
-          <select value={category} onChange={e => handleCategoryChange(e.target.value)} style={{ ...inp(), marginTop: 4 }}>
-            <option value="">— select a category —</option>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: '#555', flex: '1 1 200px' }}>
+          Research
+          <select value={group} onChange={e => setGroup(e.target.value)} disabled={running} style={{ ...inp(), marginTop: 4 }}>
+            {groups.map(g => <option key={g} value={g}>{g} — {(planMap[g] || []).length} subcategories</option>)}
           </select>
         </label>
-        <label style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-          Theme (optional)
-          <select value={theme} onChange={e => handleThemeChange(e.target.value)} style={{ ...inp(), marginTop: 4 }}>
-            <option value="">— any —</option>
-            {THEMES.map(t => <option key={t}>{t}</option>)}
-          </select>
-        </label>
-      </div>
-
-      {/* Collapsible prompt editor */}
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={() => setShowPrompt(s => !s)} style={{ fontSize: 12, color: '#888', background: 'none', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '7px 14px', cursor: 'pointer', fontFamily: FONT, width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Edit prompt{promptEdited ? ' (modified)' : ''}</span>
-          <span>{showPrompt ? '▲' : '▼'}</span>
+        <button onClick={run} disabled={running || !group} style={{ padding: '11px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: running ? 'default' : 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: running ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+          {running ? '🤖 Researching…' : '▶ Run research'}
         </button>
-        {showPrompt && (
-          <div style={{ marginTop: 8 }}>
-            {promptEdited && (
-              <button onClick={resetPrompt} style={{ fontSize: 11, padding: '4px 12px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#555', fontFamily: FONT, marginBottom: 8 }}>
-                ↺ Reset to default
-              </button>
-            )}
-            <textarea
-              value={customPrompt || (category ? buildDefaultPrompt(category, theme) : '')}
-              onChange={e => handlePromptChange(e.target.value)}
-              placeholder="Select a category above to generate the prompt…"
-              style={{ ...inp(), fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7, minHeight: 300, resize: 'vertical', color: category ? '#333' : '#bbb' }}
-            />
-          </div>
-        )}
       </div>
 
       {error && <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', color: '#dc2626', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+      {noKey && <div style={{ marginBottom: 12, padding: '16px', background: '#fef3c7', borderRadius: 8, fontSize: 13, color: '#92400e' }}><strong>No AI key configured.</strong> Add PERPLEXITY_API_KEY to Vercel environment variables to enable AI research.</div>}
 
-      <button onClick={run} disabled={running || !category} style={{ width: '100%', padding: '13px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: FONT, opacity: running ? 0.6 : 1 }}>
-        {running ? '🤖 Researching… (takes ~30s)' : '🤖 Run AI Research'}
-      </button>
-
-      {result && (
-        <div style={{ marginTop: 24 }}>
-          {result.status === 'no_ai_key' ? (
-            <div style={{ padding: '16px', background: '#fef3c7', borderRadius: 8, fontSize: 13, color: '#92400e' }}>
-              <strong>No AI key configured.</strong> {result.message}
-            </div>
-          ) : (
-            <div>
-              <div style={{ padding: '12px 16px', background: '#d1fae5', borderRadius: 8, fontSize: 13, color: '#065f46', marginBottom: 16 }}>
-                ✓ Found {result.added} resources — added to Review Queue as AI Agent / Pending.
-                {result.skipped?.length > 0 && <div style={{ marginTop: 6, fontSize: 12, color: '#047857' }}>Skipped {result.skipped.length}: {result.skipped.map(s => `${s.name} (${s.reason})`).join(', ')}</div>}
+      {/* Live run panel */}
+      {(running || feed.length > 0) && (
+        <div style={{ border: `1px solid ${running ? GREEN : BORDER}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20, background: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 13, fontWeight: 600, color: '#111' }}>
+            {running
+              ? <><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 8, background: GREEN }} />Searching {progress.current}<span style={{ color: '#aaa', fontWeight: 400 }}>· {Math.min(progress.completed + 1, progress.total)} of {progress.total}</span></>
+              : <>Last search complete<span style={{ color: '#aaa', fontWeight: 400 }}>· {progress.total} subcategories</span></>}
+          </div>
+          <div style={{ height: 6, background: '#f1f1f1', borderRadius: 99, overflow: 'hidden', marginBottom: 14 }}>
+            <div style={{ width: `${pct}%`, height: '100%', background: GREEN, transition: 'width .3s' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: feed.length ? 14 : 0 }}>
+            {[
+              { k: 'added', label: 'Added', color: '#065f46', bg: '#d1fae5' },
+              { k: 'duplicates', label: 'Duplicates', color: '#555', bg: '#f6f6f6' },
+              { k: 'dead_links', label: 'Dead links', color: '#555', bg: '#f6f6f6' },
+              { k: 'directories', label: 'Directories', color: '#555', bg: '#f6f6f6' },
+            ].map(c => (
+              <div key={c.k} style={{ background: c.bg, borderRadius: 6, padding: '8px 12px' }}>
+                <div style={{ fontSize: 11, color: c.color }}>{c.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: c.color }}>{counters[c.k]}</div>
               </div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {(result.found || []).map((r, i) => (
-                  <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '12px 16px', background: '#fff' }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 2 }}>{r.Name}</div>
-                    <a href={r.URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: GREEN, marginBottom: 4, display: 'block', textDecoration: 'none', wordBreak: 'break-all' }}>{r.URL}</a>
-                    <div style={{ fontSize: 12, color: '#777' }}>{r.Description}</div>
-                    <div style={{ fontSize: 11, color: '#bbb', marginTop: 4 }}>{r.Type}</div>
-                  </div>
-                ))}
-              </div>
+            ))}
+          </div>
+          {feed.length > 0 && (
+            <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+              {feed.map((f, i) => (
+                <div key={i} style={{ fontSize: 12.5, display: 'flex', gap: 8, alignItems: 'baseline', color: f.kind === 'added' ? '#111' : '#999' }}>
+                  <span style={{ color: f.kind === 'added' ? '#059669' : f.kind === 'error' ? '#dc2626' : '#ccc', flexShrink: 0 }}>{f.kind === 'added' ? '✓' : '✕'}</span>
+                  <span style={{ fontWeight: f.kind === 'added' ? 600 : 400 }}>{f.name}</span>
+                  <span style={{ color: '#bbb' }}>{f.detail}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
+
+      {/* Last-run summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 22 }}>
+        <div style={{ background: '#f7f7f5', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 12, color: '#888' }}>Last run</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginTop: 2 }}>{status?.lastRun ? timeAgo(status.lastRun.ran_at) : '—'}</div>
+          <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>{lb ? `${lb.group} · ${lb.subcategories} subcategories` : 'no runs yet'}</div>
+        </div>
+        <div style={{ background: '#f7f7f5', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 12, color: '#888' }}>Found last run</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginTop: 2 }}>{lb ? `${lb.added} queued` : '—'}</div>
+          <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>{lb ? `${lb.duplicates} dupes · ${lb.dead_links} dead links` : ''}</div>
+        </div>
+        <div style={{ background: status?.pendingTotal ? '#fef3c7' : '#f7f7f5', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ fontSize: 12, color: status?.pendingTotal ? '#92400e' : '#888' }}>Waiting on you</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: status?.pendingTotal ? '#92400e' : '#111', marginTop: 2 }}>{status ? `${status.pendingTotal} to review` : '—'}</div>
+          <div style={{ fontSize: 11, color: status?.pendingTotal ? '#b45309' : '#aaa', marginTop: 2 }}>in the Review Queue</div>
+        </div>
+      </div>
+
+      {/* Coverage — where to research next */}
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 2 }}>Where to research next</div>
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>Thinnest and stalest niches first. Counts are live resources by type and specialty.</div>
+      <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2.2fr .7fr .8fr 1.1fr', gap: 8, padding: '8px 14px', background: '#f7f7f5', fontSize: 11, color: '#888', fontWeight: 600 }}>
+          <span>Subcategory</span><span>Live</span><span>Pending</span><span>Last researched</span>
+        </div>
+        {(status?.coverage || []).map((c, i) => {
+          const fs = FLAG_STYLE[c.flag] || FLAG_STYLE.good;
+          return (
+            <div key={c.label} style={{ display: 'grid', gridTemplateColumns: '2.2fr .7fr .8fr 1.1fr', gap: 8, padding: '9px 14px', borderTop: `1px solid ${BORDER}`, fontSize: 12.5, alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 10, background: fs.bg, color: fs.color, padding: '2px 7px', borderRadius: 99, fontWeight: 600, flexShrink: 0 }}>{fs.label}</span>
+                <span style={{ color: '#333' }}>{c.label}</span>
+              </span>
+              <span style={{ color: '#333' }}>{c.live}</span>
+              <span style={{ color: c.pending ? '#b45309' : '#ccc' }}>{c.pending || 0}</span>
+              <span style={{ color: '#999' }}>{c.lastResearched ? timeAgo(c.lastResearched) : '—'}</span>
+            </div>
+          );
+        })}
+        {!status && <div style={{ padding: '14px', fontSize: 12, color: '#aaa' }}>Loading coverage…</div>}
+      </div>
     </div>
   );
 }
