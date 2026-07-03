@@ -23,7 +23,8 @@ export default function SiteNav() {
   return (
     <>
     <div style={{
-      position: 'sticky', top: 0, zIndex: 200,
+      // Sticky on desktop; on mobile it scrolls away with the page.
+      position: isMobile ? 'static' : 'sticky', top: 0, zIndex: 200,
       background: 'rgba(245,242,235,0.97)',
       backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       borderBottom: `1px solid ${BORDER}`,

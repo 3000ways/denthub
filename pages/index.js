@@ -939,8 +939,8 @@ export default function Home({ initialResources }) {
     </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
-      {/* Sticky nav bar — slim, logo bursts down on mobile */}
-      <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
+      {/* Nav bar — sticky on desktop; on mobile it scrolls away with the page. Logo bursts down on mobile. */}
+      <div style={{ position: isMobile ? 'static' : 'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
         <div style={{ height:3, background:GREEN }} />
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:56, position:'relative', overflow:'visible' }}>
           {/* Nav logo — breaks out downward on mobile, wide crop on desktop */}
