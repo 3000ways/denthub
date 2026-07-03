@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Footer from '../components/Footer';
 import Head from 'next/head';
 import SiteNav from '../components/SiteNav';
 
@@ -201,12 +202,7 @@ export default function About() {
 
         </div>
 
-        {/* Footer */}
-        <div style={{ borderTop:`1px solid ${BORDER}` }}>
-          <div style={{ maxWidth:720, margin:'0 auto', padding:'20px 20px' }}>
-            <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
-          </div>
-        </div>
+        <Footer maxWidth={720} />
 
       </div>
     </>
