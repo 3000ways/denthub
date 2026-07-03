@@ -135,22 +135,22 @@ export default function MyListening() {
             <>
               {/* Stats */}
               {!loading && rows.length > 0 && (
-                <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
-                  <div style={{ background: GREEN_LIGHT, borderRadius: 8, padding: '14px 20px', minWidth: 120 }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: GREEN, fontFamily: FONT_DISPLAY }}>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
+                  <div style={{ background: GREEN_LIGHT, borderRadius: 8, padding: '13px 12px', flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: GREEN, fontFamily: FONT_DISPLAY, whiteSpace: 'nowrap' }}>
                       {rows.filter(r => r.completed).length}
                     </div>
                     <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Episodes listened</div>
                   </div>
-                  <div style={{ background: '#f9f9f9', borderRadius: 8, padding: '14px 20px', minWidth: 120 }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY }}>
+                  <div style={{ background: '#f9f9f9', borderRadius: 8, padding: '13px 12px', flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY, whiteSpace: 'nowrap' }}>
                       {rows.filter(r => !r.completed).length}
                     </div>
                     <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>In progress</div>
                   </div>
                   {totalSeconds > 0 && (
-                    <div style={{ background: '#f9f9f9', borderRadius: 8, padding: '14px 20px', minWidth: 120 }}>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY }}>
+                    <div style={{ background: '#f9f9f9', borderRadius: 8, padding: '13px 12px', flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY, whiteSpace: 'nowrap' }}>
                         {totalHours > 0 ? `${totalHours}h ${totalMins}m` : `${totalMins}m`}
                       </div>
                       <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Total listened</div>

@@ -1019,7 +1019,7 @@ export default function Home({ initialResources }) {
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
-          <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 460, marginBottom:44, paddingTop: isMobile ? 120 : 16 }}>
+          <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 460, marginBottom:44, paddingTop: isMobile ? 84 : 16 }}>
             {/* Large logo — desktop only, in page flow, scrolls away */}
             {!isMobile && (
               <a href="/" style={{ position:'absolute', top:0, left:0, zIndex:10, textDecoration:'none' }}>
