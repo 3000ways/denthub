@@ -25,6 +25,18 @@ const CATEGORIES = [
   { label:'Coaching',    types:['Coaching','Mastermind','Mentorship'] },
 ];
 
+// Categories temporarily hidden from the home page (owner decision, 2026-07) until
+// there are real partnerships / a bigger user base to justify featuring them. This is
+// presentation-only — nothing is deleted from Airtable, and resource pages for these
+// items still work if someone has a direct link. Hides the category's nav tab, its
+// featured card row, and excludes its resource types from the ranked list, "New this
+// week", and search. To bring a category back, remove its label from this list.
+const HIDDEN_HOME_CATEGORIES = ['CE Courses', 'Communities', 'Coaching'];
+const VISIBLE_CATEGORIES = CATEGORIES.filter(c => !HIDDEN_HOME_CATEGORIES.includes(c.label));
+const HIDDEN_HOME_TYPES = new Set(
+  CATEGORIES.filter(c => HIDDEN_HOME_CATEGORIES.includes(c.label)).flatMap(c => c.types)
+);
+
 const SPECIALTIES = [
   { label: 'General',       value: 'General Dentistry' },
   { label: 'Endodontics',   value: 'Endodontics' },
@@ -831,7 +843,11 @@ export default function Home({ initialResources }) {
   const displayResources = resources.length > 0 ? resources : DEMO_RESOURCES;
   const isDemo = resources.length === 0 && !loading;
 
-  const filtered = displayResources.filter(r => {
+  // Everything the home page actually lists/searches/filters — excludes the
+  // temporarily-hidden categories above (see HIDDEN_HOME_TYPES).
+  const homeResources = displayResources.filter(r => !HIDDEN_HOME_TYPES.has(r.fields?.Type || ''));
+
+  const filtered = homeResources.filter(r => {
     const f = r.fields;
     const catTypes = activeCategory ? CATEGORIES.find(c => c.label === activeCategory)?.types : null;
     const matchCat = !catTypes || catTypes.some(t => (f.Type||'') === t);
@@ -845,10 +861,10 @@ export default function Home({ initialResources }) {
 
   const hlTerms = search ? search.toLowerCase().trim().split(/\s+/).filter(Boolean) : [];
 
-  const typeGroups = CATEGORIES.map(cat => ({
+  const typeGroups = VISIBLE_CATEGORIES.map(cat => ({
     label: cat.label,
     types: cat.types,
-    items: [...displayResources]
+    items: [...homeResources]
       .filter(r => cat.types.includes(r.fields.Type||''))
       .sort((a,b) => (b.fields['Final Score']||0) - (a.fields['Final Score']||0))
       .slice(0, 4),
@@ -856,11 +872,11 @@ export default function Home({ initialResources }) {
 
   const anyFilterActive = !!(activeCategory || activeSpecialty || activeTopic || search);
 
-  const sorted = [...displayResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
+  const sorted = [...homeResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
   const trending = sorted.slice(0,4);
 
   const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000);
-  const recentlyAdded = [...displayResources]
+  const recentlyAdded = [...homeResources]
     .filter(r => r.fields.createdAt && new Date(r.fields.createdAt) > sevenDaysAgo)
     .sort((a,b) => new Date(b.fields.createdAt) - new Date(a.fields.createdAt))
     .slice(0,4);
@@ -868,7 +884,7 @@ export default function Home({ initialResources }) {
   // Editor's Picks — Andrei's hand-picked features. Each needs the checkbox and a
   // blurb. Ordered by the "Editor's Pick Order" field (lower shows first); picks
   // without an order fall to the back, broken by Final Score.
-  const editorsPicks = [...displayResources]
+  const editorsPicks = [...homeResources]
     .filter(r => r.fields["Editor's Pick"] && (r.fields["Editor's Pick Blurb"] || '').trim())
     .sort((a, b) => {
       const ao = a.fields["Editor's Pick Order"], bo = b.fields["Editor's Pick Order"];
@@ -878,7 +894,7 @@ export default function Home({ initialResources }) {
       return (b.fields['Final Score'] || 0) - (a.fields['Final Score'] || 0);
     });
 
-  const essentials = [...displayResources]
+  const essentials = [...homeResources]
     .filter(r => r.fields['Essential'])
     .sort((a, b) => {
       const ao = a.fields['Essential Order'], bo = b.fields['Essential Order'];
@@ -1072,7 +1088,7 @@ export default function Home({ initialResources }) {
 
         {/* Category tabs */}
         <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:16, overflowX:'auto', scrollbarWidth:'none' }}>
-          {[{label:'All', key:null}, ...CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
+          {[{label:'All', key:null}, ...VISIBLE_CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
             const isActive = activeCategory === key;
             return (
               <button key={label} onClick={() => selectCategory(key)}
@@ -1250,13 +1266,20 @@ export default function Home({ initialResources }) {
             {/* Community Pinboard — resources fellow dentists tacked up */}
             <Pinboard resources={resources} isMobile={isMobile} />
 
-            {/* Featured sections — one per resource category */}
+            {/* Featured sections — one per resource category (skips categories in
+                HIDDEN_HOME_CATEGORIES, e.g. CE Courses/Coaching/Communities for now) */}
             <FeaturedCards section="Podcasts"    title="Featured Podcasts"          subtitle="Editor's picks" isMobile={isMobile} />
             <FeaturedBooks isMobile={isMobile} />
             <FeaturedCards section="YouTube"     title="Featured YouTube Channels"  subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="CE Courses"  title="Featured CE Courses"        subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="Coaching"    title="Featured Coaching Programs"  subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedCards section="Communities" title="Featured Communities"       subtitle="Editor's picks" isMobile={isMobile} />
+            {!HIDDEN_HOME_CATEGORIES.includes('CE Courses') && (
+              <FeaturedCards section="CE Courses"  title="Featured CE Courses"        subtitle="Editor's picks" isMobile={isMobile} />
+            )}
+            {!HIDDEN_HOME_CATEGORIES.includes('Coaching') && (
+              <FeaturedCards section="Coaching"    title="Featured Coaching Programs"  subtitle="Editor's picks" isMobile={isMobile} />
+            )}
+            {!HIDDEN_HOME_CATEGORIES.includes('Communities') && (
+              <FeaturedCards section="Communities" title="Featured Communities"       subtitle="Editor's picks" isMobile={isMobile} />
+            )}
 
             {/* New this week */}
             {recentlyAdded.length > 0 && (
