@@ -1000,7 +1000,7 @@ function ScoringTab() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Automated Scoring</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Score Resources</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
         Every ranking score is computed from <strong>real, measurable signals</strong> instead of being guessed — then
         written back to Airtable, where the <strong>Final Score</strong> formula recombines them
@@ -1441,7 +1441,7 @@ function Deduplication() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Deduplication</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Deduplicate</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>
         Scan all resources for duplicate entries — matched by URL or name. Archive or delete the copy, or dismiss false positives.
       </p>
@@ -2353,7 +2353,7 @@ function EpisodeTaggingTab() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Episode Tagging</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Tag Episodes</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
         An AI reads each episode&rsquo;s title and description and checks it against the quiz&rsquo;s own answer options (career stage, clinical interest, what someone&rsquo;s working on), so the homepage can recommend the right <em>episodes</em> to the right person — not just resources tagged for a whole show.
       </p>
@@ -2535,10 +2535,10 @@ const TAB_GROUPS = [
     group: 'AI Agents',
     tabs: [
       { label: 'Run Research',     Component: RunResearch },
-      { label: 'Deduplication',    Component: Deduplication },
+      { label: 'Deduplicate',      Component: Deduplication },
+      { label: 'Score Resources',  Component: ScoringTab },
       { label: 'Harvest Episodes', Component: EpisodeArchive },
-      { label: 'Scoring',          Component: ScoringTab },
-      { label: 'Episode Tagging',  Component: EpisodeTaggingTab },
+      { label: 'Tag Episodes',     Component: EpisodeTaggingTab },
     ],
   },
   {
