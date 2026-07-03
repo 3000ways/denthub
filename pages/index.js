@@ -13,6 +13,7 @@ import { FeaturedBooks } from '../components/FeaturedBooks';
 import { FeaturedCards } from '../components/FeaturedCards';
 import { CommunitySection } from '../components/Community';
 import { Pinboard } from '../components/Pinboard';
+import Footer from '../components/Footer';
 import { recommendEpisodes } from '../lib/onboarding';
 
 const CATEGORIES = [
@@ -1618,11 +1619,7 @@ export default function Home({ initialResources }) {
 
     {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
     {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
-      <div style={{ borderTop:'1px solid #e8e8e8', marginTop:40 }}>
-        <div style={{ maxWidth:1140, margin:'0 auto', padding:'20px 28px' }}>
-          <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
-        </div>
-      </div>
+      <Footer />
     </>
   );
 }
