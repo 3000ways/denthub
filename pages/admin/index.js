@@ -1632,7 +1632,7 @@ function EpisodeArchive() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Episode Archive</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Harvest Episodes</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
         Every podcast's episodes are harvested from its RSS feed and stored for instant search.
         This runs <strong>automatically every night</strong> — use <strong>Refresh now</strong> only to seed
@@ -2534,10 +2534,11 @@ const TAB_GROUPS = [
   {
     group: 'AI Agents',
     tabs: [
-      { label: 'Run Research',    Component: RunResearch },
-      { label: 'Deduplication',   Component: Deduplication },
-      { label: 'Scoring',         Component: ScoringTab },
-      { label: 'Episode Tagging', Component: EpisodeTaggingTab },
+      { label: 'Run Research',     Component: RunResearch },
+      { label: 'Deduplication',    Component: Deduplication },
+      { label: 'Harvest Episodes', Component: EpisodeArchive },
+      { label: 'Scoring',          Component: ScoringTab },
+      { label: 'Episode Tagging',  Component: EpisodeTaggingTab },
     ],
   },
   {
@@ -2550,9 +2551,8 @@ const TAB_GROUPS = [
   {
     group: 'System',
     tabs: [
-      { label: 'Episode Archive', Component: EpisodeArchive },
-      { label: 'Users',           Component: Users },
-      { label: 'Settings',        Component: Settings },
+      { label: 'Users',    Component: Users },
+      { label: 'Settings', Component: Settings },
     ],
   },
 ];
