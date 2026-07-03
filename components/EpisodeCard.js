@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePlayer } from '../lib/player-context';
 import { EpisodeBookmarkButton } from './EpisodeBookmarkButton';
@@ -13,6 +14,13 @@ const BORDER = '#e8e8e8';
 // identically.
 export function EpisodeCard({ ep, isNew, onSignInRequired }) {
   const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   // Guard: currentEpisode must be non-null. Compare by id when available,
   // fall back to audio_url so un-archived episodes don't all match (undefined === undefined).
   const isActive = !!(currentEpisode && (
@@ -58,8 +66,8 @@ export function EpisodeCard({ ep, isNew, onSignInRequired }) {
 
   return (
     <div
-      style={{ display: 'flex', gap: 12, alignItems: 'center', background: '#fff',
-        border: `1px solid ${isActive ? GREEN : BORDER}`, borderRadius: 8, padding: '10px 12px', transition: 'border-color 0.15s' }}
+      style={{ display: 'flex', gap: isMobile ? 8 : 12, alignItems: 'center', background: '#fff',
+        border: `1px solid ${isActive ? GREEN : BORDER}`, borderRadius: 8, padding: isMobile ? '8px 10px' : '10px 12px', transition: 'border-color 0.15s' }}
       onMouseEnter={e => e.currentTarget.style.borderColor = GREEN}
       onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = BORDER; }}>
 
@@ -100,9 +108,9 @@ export function EpisodeCard({ ep, isNew, onSignInRequired }) {
             {ep.description}
           </div>
         )}
-        <div style={{ fontSize: 11, color: '#bbb', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ fontSize: 11, color: '#bbb', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {isNew && <span style={{ color: GREEN, fontWeight: 600 }}>New</span>}
-          {ep.date && <span>{ep.date}</span>}
+          {ep.date && <span style={{ whiteSpace: 'nowrap' }}>{ep.date}</span>}
           {isListened && (
             <span style={{ color: GREEN, fontWeight: 600, background: '#E8F5F0', borderRadius: 4, padding: '1px 5px', fontSize: 10 }}>
               ✓ Listened

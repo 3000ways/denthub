@@ -21,6 +21,13 @@ export function AllEpisodes({ showResourceId, showName, initialEpisodes = [], in
   const [offset, setOffset] = useState(initialEpisodes.length);
   const [hasMore, setHasMore] = useState(initialEpisodes.length < initialTotal);
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const isSearching = term.trim().length >= 2;
   const showSearchBox = initialTotal >= EPISODE_SEARCH_THRESHOLD;
@@ -69,7 +76,7 @@ export function AllEpisodes({ showResourceId, showName, initialEpisodes = [], in
       .finally(() => setLoading(false));
   }
 
-  const cardStyle = { background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 };
+  const cardStyle = { background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 };
   const countLabel = isSearching
     ? `${total} ${total === 1 ? 'result' : 'results'}`
     : `${total} ${total === 1 ? 'episode' : 'episodes'}`;
