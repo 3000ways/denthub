@@ -16,6 +16,7 @@ import { Pinboard } from '../components/Pinboard';
 import Footer from '../components/Footer';
 import { SpotlightCard } from '../components/SpotlightCard';
 import { DiscoverFeed } from '../components/DiscoverFeed';
+import { PersonalFeed } from '../components/PersonalFeed';
 import { recommendEpisodes } from '../lib/onboarding';
 
 const CATEGORIES = [
@@ -1107,6 +1108,9 @@ export default function Home({ initialResources }) {
               profile={profile}
               isMobile={isMobile}
             />
+
+            {/* Personalized carousels — one per the signed-in dentist's own answers */}
+            {user && <PersonalFeed isMobile={isMobile} />}
 
             {/* The Essentials — curated foundational resources, ordered by "Essential Order" */}
             {essentials.length > 0 && (
