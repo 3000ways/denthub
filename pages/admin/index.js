@@ -4,7 +4,11 @@ const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
-const TABS = ['Add Resource', 'Review Queue', 'All Resources', 'Run Research', 'Deduplication', 'Users', 'Episode Archive', 'Featured Content', 'Settings', 'Scoring', 'Claims', 'Episode Tagging', 'Quiz Questions'];
+// Tabs are organized into labeled groups (rendered as sections in the top bar).
+// To add a tab, drop it into the right group below — the nav and the content
+// area are both driven off this one structure, so nothing else needs updating.
+// `Component` references are function declarations defined later in this file
+// (hoisted, so referencing them up here is fine).
 
 const RESOURCE_TYPES = ['Podcast', 'YouTube Channel', 'Website', 'Book', 'Course', 'Software', 'Community', 'Other'];
 
@@ -2512,12 +2516,58 @@ function QuizOptionsTab() {
 }
 
 // ══════════════════════════════════════════
+//  TAB GROUPS
+// ══════════════════════════════════════════
+// Each group becomes a labeled section in the top bar. Add new tabs by dropping
+// them into the appropriate group — the nav and the content area both render
+// from this single source of truth.
+const TAB_GROUPS = [
+  {
+    group: 'Resources',
+    tabs: [
+      { label: 'Add Resource',  Component: AddResource },
+      { label: 'Review Queue',  Component: ReviewQueue },
+      { label: 'All Resources', Component: AllResources },
+      { label: 'Claims',        Component: ClaimsTab },
+    ],
+  },
+  {
+    group: 'AI Agents',
+    tabs: [
+      { label: 'Run Research',    Component: RunResearch },
+      { label: 'Deduplication',   Component: Deduplication },
+      { label: 'Scoring',         Component: ScoringTab },
+      { label: 'Episode Tagging', Component: EpisodeTaggingTab },
+    ],
+  },
+  {
+    group: 'Site Content',
+    tabs: [
+      { label: 'Featured Content', Component: FeaturedContent },
+      { label: 'Quiz Questions',   Component: QuizOptionsTab },
+    ],
+  },
+  {
+    group: 'System',
+    tabs: [
+      { label: 'Episode Archive', Component: EpisodeArchive },
+      { label: 'Users',           Component: Users },
+      { label: 'Settings',        Component: Settings },
+    ],
+  },
+];
+
+// Flattened list, in visual order, so we can address tabs by a single index.
+const FLAT_TABS = TAB_GROUPS.flatMap(g => g.tabs);
+
+// ══════════════════════════════════════════
 //  MAIN ADMIN PAGE
 // ══════════════════════════════════════════
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
   const [tab, setTab] = useState(0);
+  const ActiveTab = (FLAT_TABS[tab] || FLAT_TABS[0]).Component;
 
   useEffect(() => {
     fetch('/api/admin/resources', { method: 'GET' })
@@ -2546,31 +2596,39 @@ export default function AdminPage() {
             <button onClick={logout} style={{ fontSize: 12, padding: '5px 12px', border: `1px solid ${BORDER}`, borderRadius: 5, background: '#fff', cursor: 'pointer', color: '#555', fontFamily: FONT }}>Log out</button>
           </div>
         </div>
-        {/* Row 2: tabs (scrollable) */}
+        {/* Row 2: tabs, organized into labeled groups (scrollable) */}
         <div style={{ display: 'flex', gap: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {TABS.map((t, i) => (
-            <button key={t} onClick={() => setTab(i)} style={{ padding: '10px 14px', background: 'none', border: 'none', borderBottom: tab === i ? `2px solid ${GREEN}` : '2px solid transparent', color: tab === i ? '#111' : '#aaa', fontWeight: tab === i ? 600 : 400, cursor: 'pointer', fontSize: 13, fontFamily: FONT, whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {t}
-            </button>
-          ))}
+          {TAB_GROUPS.map((g, gi) => {
+            // Running offset so each tab keeps a stable index into FLAT_TABS.
+            const base = TAB_GROUPS.slice(0, gi).reduce((n, x) => n + x.tabs.length, 0);
+            return (
+              <div key={g.group} style={{
+                display: 'flex', flexDirection: 'column', flexShrink: 0,
+                paddingLeft: gi === 0 ? 0 : 14, marginLeft: gi === 0 ? 0 : 14,
+                borderLeft: gi === 0 ? 'none' : `1px solid ${BORDER}`,
+              }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.09em', padding: '6px 4px 2px' }}>
+                  {g.group}
+                </div>
+                <div style={{ display: 'flex' }}>
+                  {g.tabs.map((t, ti) => {
+                    const i = base + ti;
+                    return (
+                      <button key={t.label} onClick={() => setTab(i)} style={{ padding: '6px 12px 10px', background: 'none', border: 'none', borderBottom: tab === i ? `2px solid ${GREEN}` : '2px solid transparent', color: tab === i ? '#111' : '#aaa', fontWeight: tab === i ? 600 : 400, cursor: 'pointer', fontSize: 13, fontFamily: FONT, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Content */}
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px 60px' }}>
-        {tab === 0 && <AddResource />}
-        {tab === 1 && <ReviewQueue />}
-        {tab === 2 && <AllResources />}
-        {tab === 3 && <RunResearch />}
-        {tab === 4 && <Deduplication />}
-        {tab === 5 && <Users />}
-        {tab === 6 && <EpisodeArchive />}
-        {tab === 7 && <FeaturedContent />}
-        {tab === 8 && <Settings />}
-        {tab === 9 && <ScoringTab />}
-        {tab === 10 && <ClaimsTab />}
-        {tab === 11 && <EpisodeTaggingTab />}
-        {tab === 12 && <QuizOptionsTab />}
+        <ActiveTab />
       </div>
     </div>
   );
