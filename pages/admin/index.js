@@ -2263,7 +2263,7 @@ function EpisodeTaggingTab() {
 
   async function loadStatus() {
     try {
-      const r = await fetch('/api/admin/tagging-status');
+      const r = await fetch('/api/admin/tagging-status', { cache: 'no-store' });
       const d = await r.json();
       if (!d.error) setStatus(d);
     } finally { setLoadingStatus(false); }
@@ -2289,7 +2289,7 @@ function EpisodeTaggingTab() {
     setRunning(true); setError(''); stopRef.current = false;
     try {
       while (!stopRef.current) {
-        const r = await fetch('/api/admin/tag-episodes-batch?claimSize=300');
+        const r = await fetch('/api/admin/tag-episodes-batch?claimSize=300', { method: 'POST', cache: 'no-store' });
         const d = await r.json();
         if (d.error) { setError(d.error); break; }
         if (d.status === 'no_ai_key') { setError('PERPLEXITY_API_KEY is not configured in Vercel — tagging can\'t run yet.'); break; }
