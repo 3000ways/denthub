@@ -17,6 +17,8 @@ import Footer from '../components/Footer';
 import { SpotlightCard } from '../components/SpotlightCard';
 import { DiscoverFeed } from '../components/DiscoverFeed';
 import { PersonalFeed } from '../components/PersonalFeed';
+import { BooksForYou } from '../components/BooksForYou';
+import { CEHoursBadge } from '../components/CEHoursBadge';
 import { recommendEpisodes } from '../lib/onboarding';
 
 const CATEGORIES = [
@@ -1102,6 +1104,9 @@ export default function Home({ initialResources }) {
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
 
+            {/* CE hours logged — a small motivating achievement badge (signed-in) */}
+            {user && <CEHoursBadge isMobile={isMobile} />}
+
             {/* Recommended for You — personalized from the onboarding quiz answers */}
             <RecommendedForYou
               episodes={recommendedEpisodes}
@@ -1128,6 +1133,9 @@ export default function Home({ initialResources }) {
 
             {/* Recently Listened — pick up where you left off */}
             <RecentlyListened isMobile={isMobile} />
+
+            {/* Recommended Reading — books in the signed-in dentist's field */}
+            {user && <BooksForYou resources={resources} isMobile={isMobile} />}
 
             {/* Spotlight: Latest Episodes & Videos */}
             {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
