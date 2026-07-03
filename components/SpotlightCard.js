@@ -51,18 +51,18 @@ export function SpotlightCard({ item }) {
   if (isVideo) {
     return (
       <a href={item.url} target="_blank" rel="noopener noreferrer"
-        style={{ display:'block', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, overflow:'hidden', textDecoration:'none', color:'inherit', transition:'box-shadow 0.15s, transform 0.15s' }}
+        style={{ display:'flex', flexDirection:'column', height:'100%', background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, overflow:'hidden', textDecoration:'none', color:'inherit', transition:'box-shadow 0.15s, transform 0.15s' }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
-        <div style={{ position:'relative', width:'100%', paddingBottom:'56.25%', background:'#f0ede8', overflow:'hidden' }}>
+        <div style={{ position:'relative', width:'100%', paddingBottom:'56.25%', background:'#f0ede8', overflow:'hidden', flexShrink:0 }}>
           {item.image && !imgErr
             ? <img src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
             : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}><span style={{ fontSize:28, color:'#ccc' }}>▶</span></div>
           }
           <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:accentColor, padding:'3px 7px', borderRadius:3 }}>Video</div>
         </div>
-        <div style={{ padding:'10px 10px 12px' }}>
-          <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
+        <div style={{ padding:'10px 10px 12px', flex:1 }}>
+          <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.show}</div>
           <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
             display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</div>
           {item.description && <div style={{ fontSize:12, color:'#999', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>{item.description}</div>}
@@ -74,12 +74,12 @@ export function SpotlightCard({ item }) {
 
   // Podcast — image plays, text navigates to resource page
   return (
-    <div style={{ display:'block', background: isActive ? '#f0faf6' : '#fff', border:`1px solid ${isActive ? GREEN : BORDER}`,
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background: isActive ? '#f0faf6' : '#fff', border:`1px solid ${isActive ? GREEN : BORDER}`,
         borderRadius:8, overflow:'hidden', transition:'box-shadow 0.15s, transform 0.15s' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
       {/* Artwork — clicking plays */}
-      <div onClick={handlePodcastPlay} style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden', cursor:'pointer' }}>
+      <div onClick={handlePodcastPlay} style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden', cursor:'pointer', flexShrink:0 }}>
         {item.image && !imgErr
           ? <img src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
           : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}><span style={{ fontSize:28, color:'#ccc' }}>🎙</span></div>
@@ -98,12 +98,12 @@ export function SpotlightCard({ item }) {
         </div>
       </div>
       {/* Text — clicking navigates to resource page */}
-      <Link href={`/resource/${item.resourceId}`} style={{ display:'block', padding:'10px 10px 12px', textDecoration:'none', color:'inherit' }}>
+      <Link href={`/resource/${item.resourceId}`} style={{ display:'flex', flexDirection:'column', flex:1, padding:'10px 10px 12px', textDecoration:'none', color:'inherit' }}>
         <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
         <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
           display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</div>
         {item.description && <div style={{ fontSize:12, color:'#999', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>{item.description}</div>}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'auto' }}>
           <div style={{ fontSize:11, color:'#ccc' }}>{item.date}</div>
           <div style={{ fontSize:10, color: isActive ? GREEN : '#aaa', fontWeight:600 }}>
             {isActive && isPlaying ? '▶ Playing' : isActive ? 'Paused' : '▶ Play'}
