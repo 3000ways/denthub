@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import Footer from '../components/Footer';
 import SiteNav from '../components/SiteNav';
 
 const GREEN = '#0F6E56';
@@ -124,11 +125,7 @@ export default function TermsOfService() {
         </section>
       </div>
     </div>
-      <div style={{ borderTop:'1px solid #e8e8e8', marginTop:40 }}>
-        <div style={{ maxWidth:720, margin:'0 auto', padding:'20px 28px' }}>
-          <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
-        </div>
-      </div>
+      <Footer maxWidth={720} />
     </>
   );
 }

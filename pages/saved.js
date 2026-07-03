@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SiteNav from '../components/SiteNav';
+import Footer from '../components/Footer';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { useEpisodeBookmarks } from '../lib/episode-bookmarks-context';
-import { usePlayer } from '../lib/player-context';
 import { supabase } from '../lib/supabase';
 import { BookmarkButton } from '../components/BookmarkButton';
-import { EpisodeBookmarkButton } from '../components/EpisodeBookmarkButton';
+import { EpisodeCard } from '../components/EpisodeCard';
+import { mapEpisodeRow } from '../lib/resource-episodes';
 import { BookmarkFeed } from '../components/BookmarkFeed';
 import { SignInModal } from '../components/AuthModal';
 
@@ -48,48 +49,6 @@ function Logo({ url, name, imageUrl, size = 40 }) {
     );
   }
   return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
-}
-
-// One saved episode: artwork plays, title opens the episode page, ribbon removes.
-function SavedEpisodeRow({ ep, onSignInRequired }) {
-  const { play, pause, resume, isPlaying, currentEpisode } = usePlayer();
-  const isActive = !!(currentEpisode && currentEpisode.id === ep.id);
-
-  function handlePlay(e) {
-    e.stopPropagation();
-    if (isActive) { isPlaying ? pause() : resume(); return; }
-    play({
-      id: ep.id, title: ep.title, show_name: ep.show_name, show_resource_id: ep.show_resource_id,
-      audio_url: ep.audio_url, image: ep.image, duration_seconds: ep.duration_seconds,
-    });
-  }
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: `0.5px solid ${BORDER}` }}>
-      <div onClick={handlePlay} style={{ position: 'relative', width: 44, height: 44, borderRadius: 6, overflow: 'hidden', background: '#f0ede8', flexShrink: 0, cursor: 'pointer' }}>
-        {ep.image
-          ? <img src={ep.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ccc' }}>🎙</div>}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive ? 'rgba(15,110,86,0.55)' : 'rgba(0,0,0,0.28)', opacity: isActive ? 1 : 0, transition: 'opacity 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
-          onMouseLeave={e => { if (!isActive) e.currentTarget.style.opacity = '0'; }}>
-          <span style={{ color: '#fff', fontSize: 13 }}>{isActive && isPlaying ? '⏸' : '▶'}</span>
-        </div>
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Link href={`/episode/${ep.id}`} style={{ display: 'block', fontSize: 14, fontWeight: 500, color: isActive ? GREEN : '#111', marginBottom: 2, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>
-          {ep.title}
-        </Link>
-        <div style={{ fontSize: 11, color: '#bbb' }}>
-          <span style={{ color: GREEN, fontWeight: 500, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Episode</span>
-          {ep.show_name ? <span> · {ep.show_name}</span> : ''}
-        </div>
-      </div>
-      <EpisodeBookmarkButton episodeId={ep.id} onSignInRequired={onSignInRequired} />
-    </div>
-  );
 }
 
 export default function SavedPage() {
@@ -179,9 +138,9 @@ export default function SavedPage() {
                 </h2>
                 <span style={{ fontSize: 12, color: '#bbb', fontWeight: 500 }}>{savedEpisodes.length}</span>
               </div>
-              <div style={{ borderTop: `1px solid ${BORDER}` }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {savedEpisodes.map(ep => (
-                  <SavedEpisodeRow key={ep.id} ep={ep} onSignInRequired={() => setShowSignIn(true)} />
+                  <EpisodeCard key={ep.id} ep={mapEpisodeRow(ep)} isNew={false} onSignInRequired={() => setShowSignIn(true)} />
                 ))}
               </div>
             </div>
@@ -257,11 +216,7 @@ export default function SavedPage() {
       </div>
 
       {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
-      <div style={{ borderTop:'1px solid #e8e8e8', marginTop:40 }}>
-        <div style={{ maxWidth:1140, margin:'0 auto', padding:'20px 28px' }}>
-          <div style={{ fontSize:12, color:'#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
-        </div>
-      </div>
+      <Footer />
     </>
   );
 }
