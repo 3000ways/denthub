@@ -21,26 +21,31 @@ export default function SiteNav() {
   }, []);
 
   return (
+    <>
     <div style={{
       position: 'sticky', top: 0, zIndex: 200,
       background: 'rgba(245,242,235,0.97)',
       backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       borderBottom: `1px solid ${BORDER}`,
+      overflow: 'visible',
     }}>
       <div style={{ height: 3, background: GREEN }} />
 
       <div style={{
         maxWidth: 1140, margin: '0 auto', padding: isMobile ? '0 14px' : '0 28px',
         height: 53, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        fontFamily: FONT,
+        fontFamily: FONT, position: 'relative', overflow: 'visible',
       }}>
-        {/* Logo — wide on desktop, circle on mobile */}
-        <Link href="/" style={{ flexShrink: 0, overflow: 'hidden', height: 44, display: 'flex', alignItems: 'center' }}>
+        {/* Logo — bursts down out of the bar on mobile (matches the home page), wide crop on desktop */}
+        <Link href="/" style={{ flexShrink: 0, display: 'flex', alignItems: isMobile ? 'flex-start' : 'center',
+          ...(isMobile ? { position: 'absolute', top: 3, left: 14, zIndex: 101 } : { overflow: 'hidden', height: 44 }) }}>
           {isMobile
-            ? <img src="/logo.png" alt="The Dental Commute" style={{ height: 44, width: 'auto', display: 'block' }} />
+            ? <img src="/logo.png" alt="The Dental Commute" style={{ height: 135, width: 'auto', display: 'block' }} />
             : <img src="/wide-logo.png" alt="The Dental Commute" style={{ height: 90, width: 'auto', marginTop: -23, marginBottom: -23, display: 'block' }} />
           }
         </Link>
+        {/* Spacer so the right-side controls don't sit under the bursting logo */}
+        {isMobile && <div style={{ width: 135, flexShrink: 0 }} />}
 
         {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 20, flexShrink: 0 }}>
@@ -146,5 +151,8 @@ export default function SiteNav() {
         </div>
       </div>
     </div>
+    {/* Vertical clearance so the bursting mobile logo doesn't overlap the page content below */}
+    {isMobile && <div style={{ height: 86 }} />}
+    </>
   );
 }
