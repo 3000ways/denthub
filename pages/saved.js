@@ -11,7 +11,6 @@ import { supabase } from '../lib/supabase';
 import { BookmarkButton } from '../components/BookmarkButton';
 import { EpisodeCard } from '../components/EpisodeCard';
 import { mapEpisodeRow } from '../lib/resource-episodes';
-import { BookmarkFeed } from '../components/BookmarkFeed';
 import { SignInModal } from '../components/AuthModal';
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
@@ -60,14 +59,6 @@ export default function SavedPage() {
   const [resources, setResources] = useState([]);
   const [loadingResources, setLoadingResources] = useState(true);
   const [episodeDetails, setEpisodeDetails] = useState([]);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
 
   // Login-required: bounce signed-out visitors home.
   useEffect(() => {
@@ -125,9 +116,6 @@ export default function SavedPage() {
               {ready ? `${count} ${count === 1 ? 'resource' : 'resources'} bookmarked` : 'Loading…'}
             </p>
           </div>
-
-          {/* New episodes from followed shows */}
-          <BookmarkFeed isMobile={isMobile} limit={isMobile ? 4 : 8} />
 
           {/* Saved Episodes — individually bookmarked episodes */}
           {epBookmarksLoaded && savedEpisodes.length > 0 && (
