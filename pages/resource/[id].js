@@ -348,7 +348,9 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: '#e8f5f0', padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.Type}</span>
-                  {f.Specialty && <span style={{ fontSize: 11, color: '#888', background: '#f0f0f0', padding: '3px 10px', borderRadius: 20 }}>{f.Specialty}</span>}
+                  {(Array.isArray(f.Specialty) ? f.Specialty : f.Specialty ? [f.Specialty] : []).map(s => (
+                    <span key={s} style={{ fontSize: 11, color: '#888', background: '#f0f0f0', padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>{s}</span>
+                  ))}
                   {isClaimed && (
                     <span title="This listing is managed by its creator" style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '3px 10px', borderRadius: 20 }}>✓ Claimed</span>
                   )}
