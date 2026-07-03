@@ -7,6 +7,9 @@ import { getTaggingStatus } from '../../../lib/episode-tagger';
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 
 export default async function handler(req, res) {
+  // Polled repeatedly with an identical URL during a backfill run — without
+  // this, a 304 can serve a stale (unchanged) progress snapshot.
+  res.setHeader('Cache-Control', 'no-store');
   if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const status = await getTaggingStatus();

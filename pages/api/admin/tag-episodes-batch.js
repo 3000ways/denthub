@@ -16,8 +16,13 @@ import { isAdminAuthenticated } from '../../../lib/admin-auth';
 export const config = { maxDuration: 60 };
 
 export default async function handler(req, res) {
+  // Never cache — this mutates state and must run fresh on every call.
+  // Browsers/CDNs can otherwise serve a stale 304 for an identical GET URL,
+  // making a real retry look like a no-op.
+  res.setHeader('Cache-Control', 'no-store');
   if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
   try {
+    if (req.method !== 'POST') { res.setHeader('Allow', ['POST']); return res.status(405).json({ error: 'Method not allowed' }); }
     const claimSize = Math.min(parseInt(req.query.claimSize, 10) || 300, 500);
     const result = await tagUntaggedEpisodes({ claimSize, trigger: 'backfill' });
     return res.status(200).json(result);
