@@ -216,6 +216,13 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [podData, setPodData] = useState(null);
   const [logoSrc, setLogoSrc] = useState(f['Image URL'] || null);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const isPodcast = f.Type === 'Podcast';
   const isYouTube = f.Type === 'YouTube';
@@ -328,7 +335,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
       <div style={{ background: '#f5f2eb', backgroundImage: 'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize: '22px 22px', minHeight: '100vh', fontFamily: FONT }}>
         <SiteNav />
 
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px 80px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: isMobile ? '20px 12px 60px' : '40px 24px 80px' }}>
 
           <Link href="/" style={{ fontSize: 13, color: GREEN, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 32 }}>
             ← Back to all resources
@@ -413,7 +420,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
 
           {/* Featured episodes — hand-picked by the creator */}
           {featuredEpisodes.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: 16 }}>★ Featured by the creator</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {featuredEpisodes.map(ep => <EpisodeCard key={ep.id} ep={{ ...ep, audio_url: ep.audio_url }} isNew={false} onSignInRequired={() => setShowSignIn(true)} />)}
@@ -423,7 +430,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
 
           {/* YouTube section */}
           {isYouTube && ytData && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
               {/* Stats bar */}
               {(ytData.subscribers || ytData.videos) && (
                 <div style={{ display: 'flex', gap: 32, marginBottom: 24 }}>
@@ -473,7 +480,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
 
           {/* Book section */}
           {isBook && bookData && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
               <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
                 {bookData.cover && (
                   <img src={bookData.cover} alt={f.Name}
@@ -511,7 +518,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
 
           {/* Recent Episodes */}
           {isPodcast && podData?.recent?.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Recent Episodes</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {podData.recent.map((ep, i) => {
@@ -530,7 +537,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
 
           {/* Notable Episodes */}
           {isPodcast && podData?.notable?.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999' }}>Notable Episodes</div>
               </div>
@@ -559,7 +566,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
           )}
 
           {/* Score breakdown */}
-          <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+          <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 20 }}>Score Breakdown</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 40px' }}>
               {breakdown.map(b => <ScoreBar key={b.label} label={`${b.label} (${b.weight}%)`} value={b.value} />)}
@@ -567,14 +574,14 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
           </div>
 
           {/* Community */}
-          <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
+          <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Community</div>
             <CommunitySection resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
           </div>
 
           {/* You might also like */}
           {related?.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>You Might Also Like</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {related.map((r, i) => {
