@@ -1,7 +1,27 @@
+// AI Research agent — finds new dental resources for one subcategory per call.
+//
+// The admin picks a GROUP (e.g. "Podcasts") and the browser calls this endpoint
+// once per subcategory in that group (index 0, 1, 2, …), looping until `done`.
+// One subcategory per request keeps every call well under the 60s serverless cap
+// even though a full group takes a few minutes — same pattern as the episode
+// tagging backfill button.
+//
+// What it writes to Airtable: core fields only (Name, URL, Description, Type,
+// Host, RSS, Image) + a deterministic Type/Specialty from the niche searched.
+// It does NOT write scores (the scoring engine owns those) or quiz tags (the
+// episode tagger owns those, per-episode, after approval + harvest). Results
+// land as Source: AI Agent / Submission Status: Pending for admin review.
+
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
+import { getSupabaseAdmin } from '../../../lib/supabase-admin';
+import { RESEARCH_PLAN, RESEARCH_GROUPS, typeNoun } from '../../../lib/research-plan';
+
+export const config = { maxDuration: 60 };
 
 const BASE_ID = 'appICV69R7tzizCDY';
 const TABLE_ID = 'tblBlou0rXbImoQ75';
+
+const TARGET_PER_SUBCATEGORY = 8;
 
 // Domains that are directories/listing sites — never the resource itself
 const DIRECTORY_DOMAINS = [
@@ -18,7 +38,18 @@ function isDirectoryUrl(url) {
   } catch { return false; }
 }
 
-// Fetch existing Published/Pending resources for dedup — skip Rejected so they can be re-suggested
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    return (u.hostname + u.pathname).replace(/\/$/, '').toLowerCase();
+  } catch {
+    return (url || '').toLowerCase().trim();
+  }
+}
+
+// Fetch existing Published/Pending resources for dedup — skip Rejected so they
+// can be re-suggested. Also collect RSS feed URLs so the same podcast listed on
+// a different platform (its site vs Apple vs Spotify) is caught by feed match.
 async function fetchExistingResources() {
   let records = [];
   let offset;
@@ -29,6 +60,7 @@ async function fetchExistingResources() {
     });
     params.append('fields[]', 'Name');
     params.append('fields[]', 'URL');
+    params.append('fields[]', 'RSS Feed URL');
     if (offset) params.set('offset', offset);
     const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
       headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
@@ -39,22 +71,14 @@ async function fetchExistingResources() {
     offset = data.offset;
   } while (offset);
 
-  const names = new Set(records.map(r => (r.fields.Name || '').toLowerCase().trim()));
-  const urls  = new Set(records.map(r => normalizeUrl(r.fields.URL || '')));
-  return { names, urls };
+  const names = new Set(records.map(r => (r.fields.Name || '').toLowerCase().trim()).filter(Boolean));
+  const urls  = new Set(records.map(r => normalizeUrl(r.fields.URL || '')).filter(Boolean));
+  const feeds = new Set(records.map(r => normalizeUrl(r.fields['RSS Feed URL'] || '')).filter(Boolean));
+  return { names, urls, feeds };
 }
 
-function normalizeUrl(url) {
-  try {
-    const u = new URL(url);
-    return (u.hostname + u.pathname).replace(/\/$/, '').toLowerCase();
-  } catch {
-    return url.toLowerCase().trim();
-  }
-}
-
-// Verify a URL actually resolves — lenient: timeouts count as passing
-// (many podcast sites block bots but are real)
+// Verify a URL actually resolves — lenient: timeouts count as passing (many
+// podcast sites block bots but are real).
 async function verifyUrl(url) {
   try {
     const opts = {
@@ -66,10 +90,8 @@ async function verifyUrl(url) {
     if (res.status === 405 || res.status === 403 || res.status === 406) {
       res = await fetch(url, { method: 'GET', ...opts });
     }
-    // Accept anything that isn't a hard 404/410 — 403/429/503 usually means site exists but blocks bots
     return res.status !== 404 && res.status !== 410 && res.status !== 400;
   } catch {
-    // Timeout or network error — assume real (Perplexity verified it)
     return true;
   }
 }
@@ -93,64 +115,43 @@ async function callWebSearch(prompt) {
   if (!aiRes.ok) throw new Error(`Perplexity error: ${await aiRes.text()}`);
   const aiData = await aiRes.json();
   const raw = aiData.choices?.[0]?.message?.content?.trim() || '';
-
-  // Strip markdown code fences and Perplexity citation markers like [1], [2]
   const cleaned = raw
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '')
-    .replace(/\[\d+\]/g, '')   // strip [1], [2], etc.
+    .replace(/\[\d+\]/g, '')
     .trim();
 
   let found = [];
   try { found = JSON.parse(cleaned); }
   catch { const m = cleaned.match(/\[[\s\S]*\]/); if (m) { try { found = JSON.parse(m[0]); } catch {} } }
-  return found;
+  return Array.isArray(found) ? found : [];
 }
 
-async function askGPT(category, theme, existingNames, customPrompt) {
-  if (!process.env.PERPLEXITY_API_KEY) {
-    return { status: 'no_ai_key', message: 'Add PERPLEXITY_API_KEY to Vercel environment variables to enable AI research.', found: [] };
-  }
-
+function buildPrompt(sub, existingNames) {
+  const noun = typeNoun(sub.type);
   const exclusionNote = existingNames.size
     ? `\n\nDo NOT include any of these — they are already in our database:\n${[...existingNames].slice(0, 80).join(', ')}`
     : '';
+  return `You are a dental industry researcher. Search the web to find up to ${TARGET_PER_SUBCATEGORY} high-quality, currently active ${noun} for dental professionals in this niche: "${sub.label}" (${sub.query}).
 
-  const basePrompt = customPrompt || `You are a dental industry researcher. Search the web to find 10 high-quality, currently active resources in the category "${category}"${theme ? ` (theme: "${theme}")` : ''} for dental professionals.
+STRICT RULES — violating these makes the result useless:
+- Only the ACTUAL resource itself (the ${noun.replace(/s$/, '')} / its own page) — NOT directories, listing sites, or aggregators.
+- NEVER link to: Feedspot, Podchaser, Listen Notes, Chartable, Good Pods, Podcast Addict, Player FM, Rephonic, or any directory/aggregator.
+- NEVER link to articles, blog posts, or review pages ABOUT a resource — link to the resource itself.
+- For podcasts, use the show's own website if it has one; otherwise its Apple Podcasts or Spotify page — but NEVER list the same show twice from different platforms, and always include its RSS feed URL.
+- Only include resources currently active (published content in the last 18 months).
+- Stay in the niche: ${sub.label}. Do not drift into other specialties.${exclusionNote}
 
-STRICT RULES — violating these will make the result useless:
-- Only include the ACTUAL resource (the podcast, YouTube channel, or website itself) — NOT directories, listing sites, or review pages about it.
-- NEVER link to: Feedspot, Podchaser, Listen Notes, Chartable, Good Pods, Podcast Addict, Player FM, Rephonic, or any other podcast directory or aggregator.
-- NEVER link to articles, blog posts, or review pages ABOUT a resource. Link to the resource itself.
-- If a podcast has its own website, use that. If not, use its Apple Podcasts or Spotify page — but NEVER list the same podcast twice from different platforms.
-- Only include resources that are currently active (published content in the last 18 months).
-- Be specific: an orthodontic podcast does not belong in "Endodontic Podcasts".${exclusionNote}
+Return ONLY these keys per resource — do NOT include scores or category tags, those are handled separately:
+- Name (string)
+- URL (string — the resource's own homepage/page)
+- Description (string — 1-2 sentences on what makes it valuable)
+- Author (string — host / author / creator, or "" if unknown)
+- RSSFeedURL (string — the podcast RSS feed URL; "" if not a podcast or unknown)
+- ImageURL (string — direct URL to cover art / channel avatar / logo; "" if not found)
 
-For each resource, score it honestly on these 5 dimensions (0–100):
-- ExpertScore: reputation among dental experts and peers
-- CommunityScore: community engagement and listener sentiment
-- PopularityScore: audience size and reach
-- RecencyScore: how recently and actively it publishes
-- ClinicalDepthScore: clinical relevance and depth for practitioners
-
-For each resource, also assign:
-- Specialty: an array of dental specialties this resource targets (use only values from this list, must have at least one): ["General Dentistry","Endodontics","Orthodontics","Periodontics","Oral Surgery","Prosthodontics","Pediatric Dentistry","Oral Radiology","Dental Anesthesiology","Pain"]. If the resource is relevant to all dentists or is cross-specialty, include every specialty it applies to — do NOT leave this empty.
-- Topic: an array of business/professional topics this resource covers (use only values from this list, can be multiple, must have at least one): ["Clinical","Technology","Leadership","Marketing","Finance & Investment","Practice Growth","Team & HR","Wellness"]
-
-For each resource, also include:
-- Author: the host, author, or creator name (or empty string if unknown)
-- RSSFeedURL: the RSS feed URL for podcasts (or empty string if not applicable/unknown)
-- ImageURL: a direct URL to the resource's cover art, book cover, channel avatar, or logo image (or empty string if not found)
-
-Return ONLY a valid JSON array. Each object must have exactly these keys:
-Name, URL, Description, Type, Author, RSSFeedURL, ImageURL, ExpertScore, CommunityScore, PopularityScore, RecencyScore, ClinicalDepthScore, Specialty, Topic
-
-Type must be one of: Podcast, YouTube, Book, Course, Software, Community, Coaching, Mastermind, Other — do NOT use "Website"; if it's a coaching or consulting program use "Coaching", if it's a mastermind group use "Mastermind", if it's a CE platform use "Course", if it's a dental forum/community use "Community"
-
-Find as many qualifying resources as possible — aim for 10. It is better to return 8 good results than 1 perfect one.`;
-
-  const found = await callWebSearch(basePrompt);
-  return { status: 'ok', found };
+Return ONLY a valid JSON array of objects with exactly these keys: Name, URL, Description, Author, RSSFeedURL, ImageURL.
+Aim for ${TARGET_PER_SUBCATEGORY}; it is better to return 4 real ones than pad with junk.`;
 }
 
 async function insertRecords(records) {
@@ -163,93 +164,111 @@ async function insertRecords(records) {
   return res.json();
 }
 
-export default async function handler(req, res) {
-  if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
-  if (req.method !== 'POST') return res.status(405).end();
+// Best-effort activity log — a failure here must never fail the actual research.
+async function logRun(row) {
+  try {
+    await getSupabaseAdmin().from('research_runs').insert(row);
+  } catch (e) {
+    console.error('[research] failed to log run:', String(e.message || e));
+  }
+}
 
-  const { category, theme, customPrompt } = req.body;
-  if (!category) return res.status(400).json({ error: 'category required' });
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
+
+  // GET → return the plan (groups + their subcategory labels) so the UI knows
+  // how many steps a group has before it starts looping.
+  if (req.method === 'GET') {
+    const groups = RESEARCH_GROUPS.map(group => ({
+      group,
+      subcategories: RESEARCH_PLAN[group].map(s => s.label),
+    }));
+    return res.status(200).json({ groups });
+  }
+
+  if (req.method !== 'POST') { res.setHeader('Allow', ['GET', 'POST']); return res.status(405).end(); }
+  if (!process.env.PERPLEXITY_API_KEY) {
+    return res.status(200).json({ status: 'no_ai_key', message: 'Add PERPLEXITY_API_KEY to Vercel environment variables to enable AI research.' });
+  }
+
+  const { group, index = 0, batchId } = req.body || {};
+  const plan = RESEARCH_PLAN[group];
+  if (!plan) return res.status(400).json({ error: 'Unknown research group' });
+  const sub = plan[index];
+  if (!sub) return res.status(400).json({ error: 'index out of range' });
+
+  const total = plan.length;
+  const done = index + 1 >= total;
 
   try {
-    // 1. Fetch existing resources for dedup
-    const { names: existingNames, urls: existingUrls } = await fetchExistingResources();
+    const { names: existingNames, urls: existingUrls, feeds: existingFeeds } = await fetchExistingResources();
 
-    // 2. Ask Perplexity with web search
-    const result = await askGPT(category, theme || '', existingNames, customPrompt);
-    if (result.status === 'no_ai_key') return res.status(200).json(result);
-    if (!result.found?.length) return res.status(200).json({ status: 'ok', added: 0, found: [], skipped: [] });
+    const found = await callWebSearch(buildPrompt(sub, existingNames));
 
-    // 3a. Filter out directory/listing URLs
-    const nonDirectory = result.found.filter(r => {
-      if (isDirectoryUrl(r.URL || '')) return false;
+    const counts = { directories: 0, duplicates: 0, dead_links: 0, incomplete: 0 };
+    const skipped = [];
+
+    // 1. Drop directory/aggregator URLs
+    const nonDirectory = found.filter(r => {
+      if (isDirectoryUrl(r.URL || '')) { counts.directories++; skipped.push({ name: r.Name, url: r.URL, reason: 'directory/listing site' }); return false; }
       return true;
     });
 
-    // 3b. Dedup within this batch by name (catches same podcast on Apple + Spotify)
+    // 2. Dedup within this batch (name or normalized URL)
     const seenNames = new Set();
+    const seenUrls = new Set();
     const batchDeduped = nonDirectory.filter(r => {
-      const nameLower = (r.Name || '').toLowerCase().trim();
-      if (seenNames.has(nameLower)) return false;
-      seenNames.add(nameLower);
+      const n = (r.Name || '').toLowerCase().trim();
+      const u = normalizeUrl(r.URL || '');
+      if ((n && seenNames.has(n)) || (u && seenUrls.has(u))) return false;
+      seenNames.add(n); seenUrls.add(u);
       return true;
     });
 
-    // 3c. Dedup against existing database
+    // 3. Dedup against existing DB — name, URL, or RSS feed (catches same show
+    //    listed on a different platform)
     const deduped = batchDeduped.filter(r => {
-      const nameLower = (r.Name || '').toLowerCase().trim();
-      const urlNorm = normalizeUrl(r.URL || '');
-      return !existingNames.has(nameLower) && !existingUrls.has(urlNorm);
+      const n = (r.Name || '').toLowerCase().trim();
+      const u = normalizeUrl(r.URL || '');
+      const f = normalizeUrl(r.RSSFeedURL || '');
+      const dup = existingNames.has(n) || existingUrls.has(u) || (f && existingFeeds.has(f));
+      if (dup) { counts.duplicates++; skipped.push({ name: r.Name, reason: 'already in database' }); }
+      return !dup;
     });
 
-    // 4. Verify each URL actually resolves (in parallel)
-    const verified = await Promise.all(
-      deduped.map(async r => {
-        const ok = r.URL ? await verifyUrl(r.URL) : false;
-        return { ...r, _urlOk: ok };
-      })
-    );
+    // 4. Verify each URL resolves
+    const verified = await Promise.all(deduped.map(async r => ({ ...r, _urlOk: r.URL ? await verifyUrl(r.URL) : false })));
+    const resolving = verified.filter(r => {
+      if (!r._urlOk) { counts.dead_links++; skipped.push({ name: r.Name, url: r.URL, reason: 'URL did not resolve' }); }
+      return r._urlOk;
+    });
 
-    const passed = verified.filter(r => r._urlOk);
-    const skipped = [
-      ...result.found.filter(r => isDirectoryUrl(r.URL || '')).map(r => ({ name: r.Name, url: r.URL, reason: 'directory/listing site' })),
-      ...result.found.filter(r => {
-        const nameLower = (r.Name || '').toLowerCase().trim();
-        return existingNames.has(nameLower);
-      }).map(r => ({ name: r.Name, reason: 'already in database' })),
-      ...verified.filter(r => !r._urlOk).map(r => ({ name: r.Name, url: r.URL, reason: 'URL did not resolve' })),
-    ];
+    // 5. Completeness gate — only queue resources with every required field.
+    //    Podcasts additionally require an RSS feed (that's what lets the
+    //    harvester ingest and the episode tagger tag them after approval).
+    const complete = resolving.filter(r => {
+      const hasCore = (r.Name || '').trim() && (r.URL || '').trim() && (r.Description || '').trim();
+      const hasFeed = sub.type !== 'Podcast' || (r.RSSFeedURL || '').trim();
+      if (!hasCore || !hasFeed) {
+        counts.incomplete++;
+        skipped.push({ name: r.Name || '(no name)', reason: hasCore ? 'podcast missing RSS feed' : 'missing required fields' });
+        return false;
+      }
+      return true;
+    });
 
-    if (!passed.length) {
-      return res.status(200).json({ status: 'ok', added: 0, found: [], skipped });
-    }
-
-    // 5. Insert verified, deduped records into Airtable as AI Agent / Pending
-    const records = passed.map(({ _urlOk, ...r }) => ({
+    // 6. Insert — Type + Specialty come from the niche (not the AI); no scores, no tags.
+    const records = complete.map(r => ({
       fields: {
-        Name: r.Name || '',
-        URL: r.URL || '',
-        Description: r.Description || '',
-        Type: (() => {
-          const typeMap = {
-            'YouTube Channel': 'YouTube', 'CE Website': 'Course', 'CE Platform': 'Course',
-            'Website': 'Other', 'Consulting': 'Coaching', 'Consulting Firm': 'Coaching',
-            'Mentor': 'Coaching', 'Mentorship': 'Coaching', 'Mastermind Group': 'Mastermind',
-          };
-          const VALID = ['Podcast','YouTube','Book','Course','Software','Community','Coaching','Mastermind','Other'];
-          const raw = r.Type || 'Other';
-          const mapped = typeMap[raw] || raw;
-          return VALID.includes(mapped) ? mapped : 'Other';
-        })(),
-        ...(r.Author       ? { 'Host or Author': r.Author }       : {}),
-        ...(r.RSSFeedURL   ? { 'RSS Feed URL':   r.RSSFeedURL }   : {}),
-        ...(r.ImageURL     ? { 'Image URL':      r.ImageURL }     : {}),
-        ...(r.ExpertScore        != null ? { 'Expert Score':          Number(r.ExpertScore) }        : {}),
-        ...(r.CommunityScore     != null ? { 'Community Score':       Number(r.CommunityScore) }     : {}),
-        ...(r.PopularityScore    != null ? { 'Popularity Score':      Number(r.PopularityScore) }    : {}),
-        ...(r.RecencyScore       != null ? { 'Recency Score':         Number(r.RecencyScore) }       : {}),
-        ...(r.ClinicalDepthScore != null ? { 'Clinical Depth Score':  Number(r.ClinicalDepthScore) } : {}),
-        ...(Array.isArray(r.Specialty) && r.Specialty.length ? { Specialty: r.Specialty } : { Specialty: ['General Dentistry'] }),
-        ...(Array.isArray(r.Topic) && r.Topic.length ? { Topic: r.Topic } : { Topic: ['Clinical'] }),
+        Name: r.Name.trim(),
+        URL: r.URL.trim(),
+        Description: r.Description.trim(),
+        Type: sub.type,
+        Specialty: [sub.specialty],
+        ...(r.Author     && r.Author.trim()     ? { 'Host or Author': r.Author.trim() } : {}),
+        ...(r.RSSFeedURL && r.RSSFeedURL.trim() ? { 'RSS Feed URL':   r.RSSFeedURL.trim() } : {}),
+        ...(r.ImageURL   && r.ImageURL.trim()   ? { 'Image URL':      r.ImageURL.trim() } : {}),
         Source: 'AI Agent',
         'Submission Status': 'Pending',
       },
@@ -259,9 +278,32 @@ export default async function handler(req, res) {
     for (let i = 0; i < records.length; i += 10) chunks.push(records.slice(i, i + 10));
     for (const chunk of chunks) await insertRecords(chunk);
 
-    return res.status(200).json({ status: 'ok', added: passed.length, found: passed, skipped });
+    const added = complete.map(r => ({ Name: r.Name, URL: r.URL, Description: r.Description, Type: sub.type, hasRss: !!(r.RSSFeedURL || '').trim() }));
 
+    await logRun({
+      batch_id: batchId || null,
+      research_group: group,
+      subcategory: sub.label,
+      added: added.length,
+      duplicates: counts.duplicates,
+      dead_links: counts.dead_links,
+      directories: counts.directories,
+      sample: added.slice(0, 5),
+    });
+
+    return res.status(200).json({
+      status: 'ok',
+      group,
+      index,
+      total,
+      done,
+      subcategory: sub.label,
+      added: added.length,
+      counts,
+      found: added,
+      skipped,
+    });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message, group, index, total, done, subcategory: sub.label });
   }
 }
