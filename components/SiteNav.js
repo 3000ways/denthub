@@ -152,8 +152,9 @@ export default function SiteNav() {
         </div>
       </div>
     </div>
-    {/* Vertical clearance so the bursting mobile logo doesn't overlap the page content below */}
-    {isMobile && <div style={{ height: 86 }} />}
+    {/* Vertical clearance so the bursting mobile logo doesn't overlap the page content below.
+        Kept just past the logo's visible circle; each page's own top padding adds the rest. */}
+    {isMobile && <div style={{ height: 52 }} />}
     </>
   );
 }
