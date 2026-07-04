@@ -806,6 +806,13 @@ export default function Home({ initialResources }) {
   const previewDraft = router.query.preview === 'draft';
   const previewAudience = asOverride || (user ? 'logged_in' : 'logged_out');
   const effectiveLayout = resolveLayout(homeLayout, previewAudience);
+  // Mobile home gutters step down as you scroll: the top of the page gets a
+  // roomier 16px, then everything from the "What's New in Dentistry" feed
+  // onward tightens to 7px. Done as a 7px baseline on the outer wrapper plus
+  // 9px of extra side padding on the top zone (top chrome + any blocks that
+  // sit above whats_new, e.g. The Essentials for logged-out visitors).
+  const whatsNewIdx = effectiveLayout.findIndex(item => item.key === 'whats_new');
+  const TOP_ZONE_PAD = isMobile ? '0 9px' : 0; // brings 7px baseline up to 16px
 
   const sorted = [...homeResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
   const trending = sorted.slice(0,4);
@@ -1082,7 +1089,10 @@ export default function Home({ initialResources }) {
         </div>
       </div>
 
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 10px 60px' : '0 36px 100px' }}>
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 7px 60px' : '0 36px 100px' }}>
+
+        {/* Top zone — roomier 16px mobile gutters (7px baseline + 9px here) */}
+        <div style={{ padding: TOP_ZONE_PAD }}>
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
@@ -1218,6 +1228,8 @@ export default function Home({ initialResources }) {
           })}
         </div>
 
+        </div>{/* end top zone — remaining sections drop to the 7px baseline */}
+
         {/* Episode search results */}
         {episodeMode && (episodeLoading || episodeSearched) && (
           <div style={{ marginBottom:48 }}>
@@ -1255,7 +1267,14 @@ export default function Home({ initialResources }) {
             {/* Composed home sections — order + visibility come from the admin
                 layout (or DEFAULT_LAYOUT until one is published). Each block's
                 JSX lives in renderHomeBlock() above. */}
-            {effectiveLayout.map(item => <Fragment key={item.key}>{renderHomeBlock(item.key, item.settings)}</Fragment>)}
+            {effectiveLayout.map((item, i) => {
+              // Blocks above "What's New in Dentistry" stay in the roomy top
+              // zone; whats_new and everything after it use the 7px baseline.
+              const inTopZone = whatsNewIdx === -1 || i < whatsNewIdx;
+              return inTopZone
+                ? <div key={item.key} style={{ padding: TOP_ZONE_PAD }}>{renderHomeBlock(item.key, item.settings)}</div>
+                : <Fragment key={item.key}>{renderHomeBlock(item.key, item.settings)}</Fragment>;
+            })}
 
             {/* Divider before full list */}
             <div style={{ height:1, background:BORDER, marginBottom:36 }} />
