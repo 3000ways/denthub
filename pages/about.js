@@ -82,7 +82,7 @@ export default function About() {
                 <div style={{ fontSize:16, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, marginBottom:4 }}>Dr. Andrei Ionescu</div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, marginBottom:12 }}>Founder · Endodontist</div>
                 <p style={{ fontSize:13, color:'#777', lineHeight:1.65, margin:0 }}>
-                  Practicing endodontist and lifelong learner who built The Dental Commute out of frustration with how hard it is to find quality dental education in one place. His commute time became his CE time — and this site is the result.
+                  Practicing endodontist and lifelong learner who built The Dental Commute to give back to the community that shaped him — and to thank and support the creators who take time out of their day to share what they know. His commute time became his CE time, and this site is his way of paying it forward.
                 </p>
               </div>
 
@@ -105,10 +105,10 @@ export default function About() {
           <div style={card}>
             <SectionLabel>What we do</SectionLabel>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 20px' }}>
-              The Dental Commute is a curated directory of the best learning resources in dentistry: podcasts, YouTube channels, books, CE courses, conferences, coaching programs, and professional communities.
+              The Dental Commute is a curated directory of the best learning resources in dentistry: podcasts, YouTube channels, and books.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 20px' }}>
-              Think of it as a search engine for dental education. Instead of sifting through Google results or asking colleagues for recommendations, you can browse by category or specialty and find what other dental professionals are actually listening to, reading, and learning from.
+              Want to dive deep into a particular topic in dentistry? You've found a search engine that indexes {episodeCount > 0 ? `${episodeCount.toLocaleString()}+` : '38,000+'} podcast episodes and surfaces the exact moment your subject comes up — with a single click. Instead of sifting through Google results or asking colleagues for recommendations, browse by category or specialty and find what dental professionals are actually listening to, reading, and learning from.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 28px' }}>
               Each resource carries a score generated from publicly available signals: reviews, reach, recency, and clinical relevance. The score isn't meant to declare one resource better than another. It's a starting point to help you discover what's out there and decide what's right for you.
