@@ -3,3 +3,9 @@ node_modules/
 .DS_Store
 *.webp
 .vercel
+
+# Never commit env files — real secrets (service-role key, AIRTABLE_PAT, etc.) must
+# live in Vercel only. GitHub secret scanning misses most of these formats.
+.env
+.env.*
+!.env.example
