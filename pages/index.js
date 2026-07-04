@@ -778,7 +778,10 @@ export default function Home({ initialResources }) {
   })).filter(g => g.items.length > 0);
 
   const anyFilterActive = !!(activeCategory || activeSpecialty || activeTopic || search);
-  const effectiveLayout = resolveLayout(homeLayout, user ? 'logged_in' : 'logged_out');
+  // Admin "Preview as" (?as=logged_out|logged_in) overrides which audience's
+  // published layout renders, so an admin can see either home without re-auth.
+  const asOverride = (router.query.as === 'logged_out' || router.query.as === 'logged_in') ? router.query.as : null;
+  const effectiveLayout = resolveLayout(homeLayout, asOverride || (user ? 'logged_in' : 'logged_out'));
 
   const sorted = [...homeResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
   const trending = sorted.slice(0,4);

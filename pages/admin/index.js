@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { AUDIENCES, BLOCK_META, blockAvailableFor } from '../../lib/home-layout';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -2516,6 +2517,211 @@ function QuizOptionsTab() {
 }
 
 // ══════════════════════════════════════════
+//  HOME LAYOUT COMPOSER
+// ══════════════════════════════════════════
+// Compose the home page per audience: reorder blocks, toggle them on/off, add or
+// remove them, then Publish. The live home renders the *published* layout; the
+// draft is your private scratch copy until you hit Publish.
+
+const AUDIENCE_LABELS = { logged_out: 'Signed-out visitors', logged_in: 'Signed-in dentists' };
+
+const TYPE_CHIP = {
+  carousel: { bg: '#eef2ff', fg: '#4f46e5' },
+  list:     { bg: '#ecfdf5', fg: '#059669' },
+  grid:     { bg: '#fef3c7', fg: '#b45309' },
+  chrome:   { bg: '#f3f4f6', fg: '#6b7280' },
+};
+
+function HomeLayoutTab() {
+  const [store, setStore] = useState(null);   // server truth: { aud: {draft:[], published:[]|null} }
+  const [draft, setDraft] = useState(null);   // working copies: { aud: [blocks] }
+  const [aud, setAud] = useState('logged_out');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/home-layout');
+      const d = await r.json();
+      if (d.error) { setMsg(d.error); return; }
+      setStore(d);
+      setDraft({ logged_out: clone(d.logged_out.draft), logged_in: clone(d.logged_in.draft) });
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+
+  const clone = obj => JSON.parse(JSON.stringify(obj || []));
+  const rows = (draft && draft[aud]) || [];
+  const dirty = store && draft ? JSON.stringify(draft[aud]) !== JSON.stringify(store[aud].draft) : false;
+  const published = store && store[aud].published;
+
+  function setRows(next) { setDraft(prev => ({ ...prev, [aud]: next })); setMsg(''); }
+  function move(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= rows.length) return;
+    const next = [...rows];
+    [next[i], next[j]] = [next[j], next[i]];
+    setRows(next);
+  }
+  function toggle(i) { setRows(rows.map((b, k) => k === i ? { ...b, on: !b.on } : b)); }
+  function remove(i) { setRows(rows.filter((_, k) => k !== i)); }
+  function add(key) { setRows([...rows, { key, on: true, settings: {} }]); }
+
+  const available = Object.keys(BLOCK_META).filter(k => blockAvailableFor(k, aud) && !rows.some(b => b.key === k));
+
+  async function saveDraft() {
+    setBusy(true); setMsg('');
+    try {
+      const r = await fetch('/api/admin/home-layout', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audience: aud, blocks: rows }),
+      });
+      const d = await r.json();
+      if (d.error) { setMsg(d.error); return; }
+      setStore(prev => ({ ...prev, [aud]: { ...prev[aud], draft: clone(d.blocks) } }));
+      setDraft(prev => ({ ...prev, [aud]: clone(d.blocks) }));
+      setMsg('Draft saved.');
+    } finally { setBusy(false); }
+  }
+
+  async function publish() {
+    setBusy(true); setMsg('');
+    try {
+      // Save the current draft first so we publish exactly what's on screen.
+      await fetch('/api/admin/home-layout', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audience: aud, blocks: rows }),
+      });
+      const r = await fetch('/api/admin/home-layout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audience: aud }),
+      });
+      const d = await r.json();
+      if (d.error) { setMsg(d.error); return; }
+      setStore(prev => ({ ...prev, [aud]: { draft: clone(d.blocks), published: clone(d.blocks) } }));
+      setDraft(prev => ({ ...prev, [aud]: clone(d.blocks) }));
+      setMsg('Published — now live on the home page.');
+    } finally { setBusy(false); }
+  }
+
+  function discard() {
+    setDraft(prev => ({ ...prev, [aud]: clone(store[aud].draft) }));
+    setMsg('');
+  }
+
+  if (loading) return <div style={{ color: '#888', fontSize: 14 }}>Loading…</div>;
+  if (!store || !draft) return <div style={{ color: '#c00', fontSize: 14 }}>{msg || 'Could not load the layout.'}</div>;
+
+  const onCount = rows.filter(b => b.on).length;
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Home Layout</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 18, lineHeight: 1.6 }}>
+        Arrange the home page for each audience — reorder with the arrows, switch rows on or off, add or remove sections. Changes stay in your private <strong>draft</strong> until you hit <strong>Publish</strong>, which puts them live. Signed-out and signed-in homes are edited independently.
+      </p>
+
+      {/* Audience switcher */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+        {AUDIENCES.map(a => (
+          <button key={a} onClick={() => { setAud(a); setMsg(''); }}
+            style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${aud === a ? GREEN : BORDER}`,
+              background: aud === a ? '#e8f5f0' : '#fff', color: aud === a ? GREEN : '#555',
+              fontWeight: aud === a ? 700 : 500, fontSize: 13, fontFamily: FONT, cursor: 'pointer' }}>
+            {AUDIENCE_LABELS[a]}
+          </button>
+        ))}
+      </div>
+
+      {/* Status line */}
+      <div style={{ fontSize: 12, color: '#888', marginBottom: 14, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span>{onCount} of {rows.length} section{rows.length === 1 ? '' : 's'} on</span>
+        <span>·</span>
+        <span>{published ? `${published.filter(b => b.on).length} live` : 'Never published — home uses the built-in default'}</span>
+        {dirty && <span style={{ color: '#b45309', fontWeight: 600 }}>· Unsaved changes</span>}
+        <a href={`/?as=${aud}`} target="_blank" rel="noreferrer" style={{ color: GREEN, textDecoration: 'none', marginLeft: 'auto', fontWeight: 600 }}>
+          Preview {aud === 'logged_out' ? 'signed-out' : 'signed-in'} home ↗
+        </a>
+      </div>
+
+      {/* Block list */}
+      <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden', marginBottom: 14 }}>
+        {rows.length === 0 && <div style={{ padding: 20, fontSize: 13, color: '#aaa', textAlign: 'center' }}>No sections. Add one below.</div>}
+        {rows.map((b, i) => {
+          const meta = BLOCK_META[b.key] || { name: b.key, type: 'chrome' };
+          const chip = TYPE_CHIP[meta.type] || TYPE_CHIP.chrome;
+          return (
+            <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+              borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, background: b.on ? '#fff' : '#fafafa', opacity: b.on ? 1 : 0.6 }}>
+              {/* Reorder */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <button onClick={() => move(i, -1)} disabled={i === 0} title="Move up"
+                  style={arrowBtn(i === 0)}>▲</button>
+                <button onClick={() => move(i, 1)} disabled={i === rows.length - 1} title="Move down"
+                  style={arrowBtn(i === rows.length - 1)}>▼</button>
+              </div>
+              {/* Name + type */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#111', textDecoration: b.on ? 'none' : 'line-through' }}>{meta.name}</div>
+                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                  color: chip.fg, background: chip.bg, padding: '1px 6px', borderRadius: 4 }}>{meta.type}</span>
+              </div>
+              {/* On/off */}
+              <button onClick={() => toggle(i)} title={b.on ? 'Turn off' : 'Turn on'}
+                style={{ fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', fontFamily: FONT,
+                  border: `1px solid ${b.on ? GREEN : BORDER}`, background: b.on ? '#e8f5f0' : '#fff', color: b.on ? GREEN : '#999' }}>
+                {b.on ? 'On' : 'Off'}
+              </button>
+              {/* Remove */}
+              <button onClick={() => remove(i)} title="Remove section"
+                style={{ fontSize: 16, lineHeight: 1, padding: '4px 8px', border: 'none', background: 'none', color: '#c9c9c9', cursor: 'pointer' }}>×</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add block */}
+      {available.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22 }}>
+          <select onChange={e => { if (e.target.value) { add(e.target.value); e.target.value = ''; } }} defaultValue=""
+            style={{ ...inp(), flex: 1 }}>
+            <option value="" disabled>+ Add a section…</option>
+            {available.map(k => <option key={k} value={k}>{BLOCK_META[k].name}</option>)}
+          </select>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderTop: `1px solid ${BORDER}`, paddingTop: 16 }}>
+        <button onClick={publish} disabled={busy}
+          style={{ padding: '10px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: FONT, opacity: busy ? 0.6 : 1 }}>
+          {busy ? 'Working…' : 'Publish'}
+        </button>
+        <button onClick={saveDraft} disabled={busy || !dirty}
+          style={{ padding: '10px 18px', background: '#fff', color: '#555', border: `1px solid ${BORDER}`, borderRadius: 8, cursor: dirty ? 'pointer' : 'default', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: (busy || !dirty) ? 0.5 : 1 }}>
+          Save draft
+        </button>
+        {dirty && (
+          <button onClick={discard} disabled={busy}
+            style={{ padding: '10px 14px', background: 'none', color: '#999', border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: FONT }}>
+            Discard changes
+          </button>
+        )}
+        {msg && <span style={{ fontSize: 13, color: msg.includes('Publish') ? GREEN : '#888', marginLeft: 'auto' }}>{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
+function arrowBtn(disabled) {
+  return { fontSize: 9, lineHeight: 1, width: 22, height: 15, padding: 0, borderRadius: 4,
+    border: `1px solid ${BORDER}`, background: '#fff', color: disabled ? '#ddd' : '#888',
+    cursor: disabled ? 'default' : 'pointer', fontFamily: FONT };
+}
+
+// ══════════════════════════════════════════
 //  TAB GROUPS
 // ══════════════════════════════════════════
 // Each group becomes a labeled section in the top bar. Add new tabs by dropping
@@ -2544,6 +2750,7 @@ const TAB_GROUPS = [
   {
     group: 'Site Content',
     tabs: [
+      { label: 'Home Layout',      Component: HomeLayoutTab },
       { label: 'Featured Content', Component: FeaturedContent },
       { label: 'Quiz Questions',   Component: QuizOptionsTab },
     ],
