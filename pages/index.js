@@ -1082,7 +1082,7 @@ export default function Home({ initialResources }) {
         </div>
       </div>
 
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px 60px' : '0 36px 100px' }}>
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 10px 60px' : '0 36px 100px' }}>
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
