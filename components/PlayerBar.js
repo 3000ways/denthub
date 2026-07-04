@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { usePlayer } from '../lib/player-context';
 import { EpisodeBookmarkButton } from './EpisodeBookmarkButton';
 import { ShareButton } from './ShareButton';
@@ -18,7 +19,7 @@ const ART_SIZE = 150;
 const BAR_HEIGHT = 72;
 
 // Playback speeds cycled by the speed button, in tap order.
-const SPEEDS = [1, 1.25, 1.5, 1.75, 2, 2.5];
+const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
 const fmtRate = (r) => `${r}×`;
 
 export default function PlayerBar() {
@@ -33,6 +34,12 @@ export default function PlayerBar() {
   // The show this episode belongs to; drives the rate + share targets.
   const showId = currentEpisode?.show_resource_id;
   const showName = currentEpisode?.show_name || currentEpisode?.podcast;
+
+  // Click-through targets: artwork + title → episode page, show name → resource page.
+  const epHref = currentEpisode?.id ? `/episode/${currentEpisode.id}` : null;
+  const showHref = showId ? `/resource/${showId}` : null;
+  const underlineOn = (e) => { e.currentTarget.style.textDecoration = 'underline'; };
+  const underlineOff = (e) => { e.currentTarget.style.textDecoration = 'none'; };
 
   useEffect(() => {
     function check() { setIsMobile(window.innerWidth < 640); }
@@ -73,22 +80,37 @@ export default function PlayerBar() {
 
         {/* Top row: artwork + episode info + timestamps */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px 4px' }}>
-          {/* Small inline artwork */}
-          <div style={{ width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
-            {currentEpisode.image
+          {/* Small inline artwork → episode page */}
+          {(() => {
+            const art = currentEpisode.image
               ? <img src={currentEpisode.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              : <div style={{ width: '100%', height: '100%', background: '#f0ede8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#ccc' }}>🎙</div>
-            }
-          </div>
+              : <div style={{ width: '100%', height: '100%', background: '#f0ede8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#ccc' }}>🎙</div>;
+            const artStyle = { width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flexShrink: 0, display: 'block' };
+            return epHref
+              ? <Link href={epHref} style={{ ...artStyle, cursor: 'pointer' }}>{art}</Link>
+              : <div style={artStyle}>{art}</div>;
+          })()}
 
           {/* Show + title */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 9, color: GREEN, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {currentEpisode.show_name || currentEpisode.podcast}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {currentEpisode.title}
-            </div>
+            {showHref
+              ? <Link href={showHref} onMouseEnter={underlineOn} onMouseLeave={underlineOff}
+                  style={{ display: 'block', fontSize: 9, color: GREEN, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'none', cursor: 'pointer' }}>
+                  {showName}
+                </Link>
+              : <div style={{ fontSize: 9, color: GREEN, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {showName}
+                </div>
+            }
+            {epHref
+              ? <Link href={epHref} onMouseEnter={underlineOn} onMouseLeave={underlineOff}
+                  style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'none', cursor: 'pointer' }}>
+                  {currentEpisode.title}
+                </Link>
+              : <div style={{ fontSize: 12, fontWeight: 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentEpisode.title}
+                </div>
+            }
           </div>
 
           {/* Timestamps */}
@@ -179,38 +201,51 @@ export default function PlayerBar() {
       overflow: 'visible',
     }}>
 
-      {/* Artwork — floats above the bar */}
-      <div style={{
-        position: 'absolute',
-        left: 20,
-        bottom: 0,
-        width: ART_SIZE,
-        height: ART_SIZE,
-        borderRadius: 10,
-        overflow: 'hidden',
-        flexShrink: 0,
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10)',
-      }}>
-        {currentEpisode.image ? (
+      {/* Artwork — floats above the bar → episode page */}
+      {(() => {
+        const art = currentEpisode.image ? (
           <img src={currentEpisode.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', background: '#f0ede8',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, color: '#ccc' }}>
             🎙
           </div>
-        )}
-      </div>
+        );
+        const artStyle = {
+          position: 'absolute', left: 20, bottom: 0,
+          width: ART_SIZE, height: ART_SIZE,
+          borderRadius: 10, overflow: 'hidden', flexShrink: 0, display: 'block',
+          boxShadow: '0 -4px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10)',
+        };
+        return epHref
+          ? <Link href={epHref} style={{ ...artStyle, cursor: 'pointer' }}>{art}</Link>
+          : <div style={artStyle}>{art}</div>;
+      })()}
 
       {/* Episode info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10, color: GREEN, fontWeight: 600, letterSpacing: '0.06em',
-          textTransform: 'uppercase', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {currentEpisode.show_name || currentEpisode.podcast}
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: '#111',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {currentEpisode.title}
-        </div>
+        {showHref
+          ? <Link href={showHref} onMouseEnter={underlineOn} onMouseLeave={underlineOff}
+              style={{ display: 'block', fontSize: 10, color: GREEN, fontWeight: 600, letterSpacing: '0.06em',
+                textTransform: 'uppercase', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'none', cursor: 'pointer' }}>
+              {showName}
+            </Link>
+          : <div style={{ fontSize: 10, color: GREEN, fontWeight: 600, letterSpacing: '0.06em',
+              textTransform: 'uppercase', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {showName}
+            </div>
+        }
+        {epHref
+          ? <Link href={epHref} onMouseEnter={underlineOn} onMouseLeave={underlineOff}
+              style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#111',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'none', cursor: 'pointer' }}>
+              {currentEpisode.title}
+            </Link>
+          : <div style={{ fontSize: 13, fontWeight: 500, color: '#111',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {currentEpisode.title}
+            </div>
+        }
       </div>
 
       {/* Transport controls */}
