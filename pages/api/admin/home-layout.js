@@ -27,11 +27,12 @@ function sanitizeBlocks(blocks, audience) {
     if (!blockAvailableFor(b.key, audience)) continue; // wrong audience
     if (seen.has(b.key)) continue;                  // dedupe
     seen.add(b.key);
-    clean.push({
-      key: b.key,
-      on: b.on !== false,
-      settings: b.settings && typeof b.settings === 'object' ? b.settings : {},
-    });
+    // Only persist known settings. Today that's `heading` (a custom visitor-facing
+    // title) — trimmed and length-capped; blank means "use the block's default".
+    const settings = {};
+    const rawHeading = b.settings && typeof b.settings.heading === 'string' ? b.settings.heading.trim().slice(0, 80) : '';
+    if (rawHeading) settings.heading = rawHeading;
+    clean.push({ key: b.key, on: b.on !== false, settings });
   }
   return clean;
 }

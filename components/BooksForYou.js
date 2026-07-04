@@ -50,7 +50,7 @@ function BookMini({ record }) {
 // specialty matches the reader's clinical interests / specialty. Matched on the
 // clinical field (reliable in Airtable), not goals. Renders nothing unless there
 // are a few genuine matches, so it never shows a thin/irrelevant row.
-export function BooksForYou({ resources = [], isMobile }) {
+export function BooksForYou({ resources = [], isMobile, heading }) {
   const { user, profile } = useAuth();
   if (!user || !profile) return null;
 
@@ -70,7 +70,7 @@ export function BooksForYou({ resources = [], isMobile }) {
       padding: isMobile ? '16px 12px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)', fontFamily:FONT_BODY }}>
       <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12, marginBottom:20, paddingBottom:14, borderBottom:`2px solid #111`, flexWrap:'wrap' }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:12 }}>
-          <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Recommended Reading</div>
+          <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{heading || 'Recommended Reading'}</div>
           <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600 }}>Books in your field</div>
         </div>
         <Link href="/?category=Books" style={{ fontSize:12, fontWeight:600, color:GREEN, textDecoration:'none', whiteSpace:'nowrap', flexShrink:0 }}>See all →</Link>

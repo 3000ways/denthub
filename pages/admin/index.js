@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AUDIENCES, BLOCK_META, blockAvailableFor } from '../../lib/home-layout';
+import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable } from '../../lib/home-layout';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -2568,6 +2568,14 @@ function HomeLayoutTab() {
   function toggle(i) { setRows(rows.map((b, k) => k === i ? { ...b, on: !b.on } : b)); }
   function remove(i) { setRows(rows.filter((_, k) => k !== i)); }
   function add(key) { setRows([...rows, { key, on: true, settings: {} }]); }
+  function setHeading(i, value) {
+    setRows(rows.map((b, k) => {
+      if (k !== i) return b;
+      const settings = { ...(b.settings || {}) };
+      if (value.trim()) settings.heading = value; else delete settings.heading;
+      return { ...b, settings };
+    }));
+  }
 
   const available = Object.keys(BLOCK_META).filter(k => blockAvailableFor(k, aud) && !rows.some(b => b.key === k));
 
@@ -2636,7 +2644,7 @@ function HomeLayoutTab() {
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Home Layout</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 18, lineHeight: 1.6 }}>
-        Arrange the home page for each audience — reorder with the arrows, switch rows on or off, add or remove sections. Changes stay in your private <strong>draft</strong> until you hit <strong>Publish</strong>, which puts them live. Signed-out and signed-in homes are edited independently.
+        Arrange the home page for each audience — reorder with the arrows, switch rows on or off, add or remove sections, and rename what visitors see via the &ldquo;Shows as&rdquo; box (blank = the built-in title). Changes stay in your private <strong>draft</strong> until you hit <strong>Publish</strong>, which puts them live. Signed-out and signed-in homes are edited independently.
       </p>
 
       {/* Audience switcher */}
@@ -2684,11 +2692,19 @@ function HomeLayoutTab() {
                 <button onClick={() => move(i, 1)} disabled={i === rows.length - 1} title="Move down"
                   style={arrowBtn(i === rows.length - 1)}>▼</button>
               </div>
-              {/* Name + type */}
+              {/* Name + type + (for titled blocks) an editable visitor heading */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#111', textDecoration: b.on ? 'none' : 'line-through' }}>{meta.name}</div>
                 <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
                   color: chip.fg, background: chip.bg, padding: '1px 6px', borderRadius: 4 }}>{meta.type}</span>
+                {isRenamable(b.key) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}>
+                    <span style={{ fontSize: 10, color: '#bbb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>Shows as</span>
+                    <input value={(b.settings && b.settings.heading) || ''} onChange={e => setHeading(i, e.target.value)}
+                      placeholder={meta.heading} title="The heading visitors see above this section. Leave blank to use the default."
+                      style={{ flex: 1, maxWidth: 240, fontSize: 12, padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 5, fontFamily: FONT, color: '#333', background: '#fff' }} />
+                  </div>
+                )}
               </div>
               {/* On/off */}
               <button onClick={() => toggle(i)} title={b.on ? 'Turn off' : 'Turn on'}
