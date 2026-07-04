@@ -15,6 +15,7 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { RESEARCH_PLAN, RESEARCH_GROUPS, typeNoun } from '../../../lib/research-plan';
+import { resolvePodcastFeed } from '../../../lib/resolve-feed';
 
 export const config = { maxDuration: 60 };
 
@@ -243,6 +244,21 @@ export default async function handler(req, res) {
       if (!r._urlOk) { counts.dead_links++; skipped.push({ name: r.Name, url: r.URL, reason: 'URL did not resolve' }); }
       return r._urlOk;
     });
+
+    // 4b. Resolve a REAL, verified RSS feed for each podcast. The model rarely
+    //     knows the exact feed URL (it guesses or leaves it blank), so instead of
+    //     trusting its output we look the feed up deterministically — iTunes
+    //     lookup/search + homepage discovery — and verify it returns episodes.
+    //     We overwrite RSSFeedURL with the verified feed, or clear it if none
+    //     resolves (so an unverifiable guess is never stored; the gate below then
+    //     drops that podcast rather than saving a dead feed). Runs concurrently
+    //     and is internally time-capped, so it stays well within the 60s budget.
+    if (sub.type === 'Podcast') {
+      await Promise.all(resolving.map(async r => {
+        const hit = await resolvePodcastFeed({ name: r.Name, url: r.URL, hintFeed: r.RSSFeedURL });
+        r.RSSFeedURL = hit ? hit.feedUrl : '';
+      }));
+    }
 
     // 5. Completeness gate — only queue resources with every required field.
     //    Podcasts additionally require an RSS feed (that's what lets the

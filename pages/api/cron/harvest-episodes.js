@@ -9,7 +9,7 @@
 // GET without `run` returns the coverage report (after auth) so you can see how
 // many episodes are stored per show without kicking off a harvest.
 
-import { harvestBatch, getCoverage, getStats } from '../../../lib/harvester';
+import { harvestBatch, getCoverage, getStats, repairMissingFeeds } from '../../../lib/harvester';
 import { tagUntaggedEpisodes } from '../../../lib/episode-tagger';
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 
@@ -43,6 +43,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const startedAt = Date.now();
     const limit = Math.min(parseInt(req.query.limit, 10) || 75, 200);
     const summary = await harvestBatch({ limit, timeBudgetMs: 38000 });
 
@@ -65,7 +66,22 @@ export default async function handler(req, res) {
       tagging = { status: 'skipped_low_time_budget', elapsedMs: summary.elapsedMs };
     }
 
-    return res.status(200).json({ ok: true, ...summary, tagging });
+    // Self-heal: with any leftover budget, resolve real RSS feeds for a few
+    // published podcasts that are missing one (they'll enter the harvest queue on
+    // the next run). Guarded by elapsed time so it can never push past the 60s cap.
+    let feedRepair = null;
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < 44000) {
+      try {
+        feedRepair = await repairMissingFeeds({ limit: 4, timeBudgetMs: Math.min(13000, 57000 - elapsed) });
+      } catch (repairErr) {
+        feedRepair = { error: String(repairErr.message || repairErr) };
+      }
+    } else {
+      feedRepair = { status: 'skipped_low_time_budget' };
+    }
+
+    return res.status(200).json({ ok: true, ...summary, tagging, feedRepair });
   } catch (err) {
     console.error('[harvest-episodes] error:', err.message);
     return res.status(500).json({ error: String(err.message || err) });
