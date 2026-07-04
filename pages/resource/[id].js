@@ -10,15 +10,18 @@ import { BookmarkButton } from '../../components/BookmarkButton';
 import { ShareButton } from '../../components/ShareButton';
 import { PinButton } from '../../components/PinButton';
 import { ClaimButton } from '../../components/ClaimButton';
-import { EpisodeCard } from '../../components/EpisodeCard';
+import { ReportButton } from '../../components/ReportButton';
 import { AllEpisodes } from '../../components/AllEpisodes';
 import { supabase } from '../../lib/supabase';
-import { fetchResourceEpisodes, EPISODES_PAGE_SIZE } from '../../lib/resource-episodes';
+import { fetchResourceEpisodes, mapEpisodeRow, EPISODES_PAGE_SIZE } from '../../lib/resource-episodes';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
+
+// "Listen on" / platform pill used in the hero button cluster.
+const CHIP = { fontSize: 13, fontWeight: 500, color: '#333', background: '#fafafa', textDecoration: 'none', padding: '9px 16px', borderRadius: 20, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' };
 
 function parseYtRss(xml, limit = 9) {
   const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
@@ -71,11 +74,12 @@ export async function getStaticProps({ params }) {
 
     const type = record.fields?.Type;
 
-    // Pick the best image for the Open Graph card, so a shared link shows the
-    // resource's own artwork/logo (not a generic site image). Prefer an explicit
-    // Image URL; for podcasts without one, borrow show art from the episode archive.
-    let ogImage = record.fields?.['Image URL'] || null;
-    if (!ogImage && type === 'Podcast') {
+    // Resolve the "auto box" image — the machine-derived logo that sits below any
+    // human-set image in the icon ladder. It's Airtable's "Auto Image URL" (RSS
+    // show art for podcasts, or the AI research guess for other types); for a
+    // podcast not yet backfilled, borrow any episode image from the archive.
+    let autoImage = record.fields?.['Auto Image URL'] || null;
+    if (!autoImage && type === 'Podcast') {
       try {
         const { data } = await supabase
           .from('episodes')
@@ -83,9 +87,11 @@ export async function getStaticProps({ params }) {
           .eq('show_resource_id', params.id)
           .not('image', 'is', null)
           .limit(1);
-        if (data && data[0]?.image) ogImage = data[0].image;
+        if (data && data[0]?.image) autoImage = data[0].image;
       } catch {}
     }
+    // Open Graph / social image: a human "Image URL" wins, else the auto image.
+    const ogImage = record.fields?.['Image URL'] || autoImage || null;
 
     // Fetch related resources (same type)
     const filterFormula = `AND({Status}='Published', RECORD_ID() != '${params.id}', {Type}='${type}')`;
@@ -153,7 +159,7 @@ export async function getStaticProps({ params }) {
       } catch {}
     }
 
-    return { props: { record, related, ytData, bookData, ogImage: ogImage || null, initialEpisodes, episodeTotal }, revalidate: 300 };
+    return { props: { record, related, ytData, bookData, ogImage: ogImage || null, autoImage: autoImage || null, initialEpisodes, episodeTotal }, revalidate: 300 };
   } catch {
     return { notFound: true, revalidate: 60 };
   }
@@ -174,13 +180,18 @@ function ScoreBar({ label, value }) {
 }
 
 function Logo({ url, name, imageUrl, size = 64 }) {
-  const [src, setSrc] = useState(imageUrl || null);
   const domain = (() => { try { return new URL(url).hostname; } catch { return null; } })();
   const favicon = domain ? `/api/airtable?logo=${domain}` : null;
+  // Start with the best image we have (owner/Image URL/auto), else the favicon.
+  const [src, setSrc] = useState(imageUrl || favicon || null);
 
+  // React to a higher-priority image arriving after mount — e.g. the owner's
+  // logo loads client-side and should replace whatever we started with. (The old
+  // version initialised state once and ignored prop changes, so the show art /
+  // owner logo never actually took over from the favicon.)
   useEffect(() => {
-    if (!src && favicon) setSrc(favicon);
-  }, []);
+    if (imageUrl) setSrc(imageUrl);
+  }, [imageUrl]);
 
   if (!src) {
     return (
@@ -210,13 +221,15 @@ function SmallLogo({ url, name, imageUrl, size = 40 }) {
   return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />;
 }
 
-export default function ResourcePage({ record, related, ytData, bookData, ogImage, initialEpisodes = [], episodeTotal = 0 }) {
+export default function ResourcePage({ record, related, ytData, bookData, ogImage, autoImage, initialEpisodes = [], episodeTotal = 0 }) {
   const f = record.fields;
   const { user, profile } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [podData, setPodData] = useState(null);
-  const [logoSrc, setLogoSrc] = useState(f['Image URL'] || null);
+  // Resource icon, resolved through the ladder: owner logo (loads client-side,
+  // wins) → human "Image URL" → machine "auto box" (RSS show art / AI guess) →
+  // favicon → letter (the last two handled inside <Logo>).
+  const [logoSrc, setLogoSrc] = useState(f['Image URL'] || autoImage || null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -233,65 +246,31 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
   const [featuredEpisodes, setFeaturedEpisodes] = useState([]);
 
   // Claim Your Profile: is this listing claimed, and did its owner add a bio,
-  // vision, or feature any episodes? Public-read, so this shows to everyone.
+  // vision, logo, or feature any episodes? Public-read, so this shows to everyone.
   useEffect(() => {
     supabase.from('resource_claims').select('id').eq('resource_id', record.id).eq('status', 'approved').limit(1)
       .then(({ data }) => setIsClaimed(!!data?.length));
-    supabase.from('resource_owner_content').select('bio, vision, featured_episode_ids').eq('resource_id', record.id).maybeSingle()
+    supabase.from('resource_owner_content').select('bio, vision, logo_url, featured_episode_ids').eq('resource_id', record.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOwnerContent(data);
+        // Owner logo is top of the icon ladder — it wins over Image URL / auto.
+        if (data.logo_url) setLogoSrc(data.logo_url);
         if (data.featured_episode_ids?.length) {
-          supabase.from('episodes').select('id, title, show_name, show_resource_id, image, audio_url, duration_seconds')
+          // Fetch the featured episodes with the full card shape and preserve the
+          // owner's chosen order. They're rendered — badged — at the top of the
+          // "All Episodes" list (there's no separate Featured section anymore).
+          supabase.from('episodes')
+            .select('id, show_resource_id, show_name, title, description, published_at, link, audio_url, image, duration_seconds')
             .in('id', data.featured_episode_ids)
-            .then(({ data: eps }) => setFeaturedEpisodes(eps || []));
+            .then(({ data: eps }) => {
+              if (!eps) return;
+              const byId = new Map(eps.map(e => [e.id, mapEpisodeRow(e)]));
+              setFeaturedEpisodes(data.featured_episode_ids.map(id => byId.get(id)).filter(Boolean));
+            });
         }
       });
   }, [record.id]);
-
-  // Map of audio_url -> Supabase episode id, built from our archive
-  const [episodeIdMap, setEpisodeIdMap] = useState({});
-
-  useEffect(() => {
-    if (isPodcast && f['RSS Feed URL']) {
-      fetch(`/api/podcast-single?id=${record.id}`)
-        .then(r => r.json())
-        .then(data => {
-          setPodData(data);
-          if (!f['Image URL'] && data.showArt) setLogoSrc(data.showArt);
-        })
-        .catch(() => {});
-    }
-  }, [record.id]);
-
-  // Look up Supabase episode IDs for the episodes actually shown, so each can
-  // link to its /episode/[id] page (and the player can track progress). We query
-  // by the visible episodes' audio URLs rather than a blanket limit: a plain
-  // limit(100) misses recent episodes on shows with large back-catalogs (which
-  // is why only the top couple were linking).
-  useEffect(() => {
-    if (!isPodcast || !podData) return;
-    const urls = [...(podData.recent || []), ...(podData.notable || [])]
-      .map(e => e.audioUrl)
-      .filter(Boolean);
-    if (!urls.length) return;
-    supabase
-      .from('episodes')
-      .select('id, audio_url, show_name, image, duration_seconds, show_resource_id, published_at')
-      .eq('show_resource_id', record.id)
-      .in('audio_url', urls)
-      .then(({ data }) => {
-        if (!data) return;
-        const map = {};
-        data.forEach(ep => {
-          if (!ep.audio_url) return;
-          const cur = map[ep.audio_url];
-          // Prefer the row that has a published_at — duplicate harvest rows can lack one.
-          if (!cur || (!cur.published_at && ep.published_at)) map[ep.audio_url] = ep;
-        });
-        setEpisodeIdMap(map);
-      });
-  }, [record.id, isPodcast, podData]);
 
   const score = f['Final Score'] ? (f['Final Score'] % 1 === 0 ? f['Final Score'].toString() : f['Final Score'].toFixed(1)) : null;
   const breakdown = [
@@ -370,40 +349,41 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
               <p style={{ fontSize: 14, color: '#444', lineHeight: 1.7, margin: '24px 0 0' }}>{f.Description}</p>
             )}
 
-            <div style={{ marginTop: 24, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {f.URL && (
-                <a href={f.URL} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: GREEN, textDecoration: 'none', padding: '10px 20px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {isYouTube ? 'Subscribe on YouTube →' : isBook ? 'View on Amazon →' : `Visit ${f.Name} →`}
-                </a>
-              )}
-              {isPodcast && (
-                <>
-                  <a href={`https://podcasts.apple.com/search?term=${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    Apple Podcasts
+            <div style={{ marginTop: 24 }}>
+              {/* Tier 1 — the primary action, then where to listen / find it. One
+                  strong green CTA; platforms grouped as quieter "Listen on" chips. */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                {f.URL && (
+                  <a href={f.URL} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 13.5, fontWeight: 600, color: '#fff', background: GREEN, textDecoration: 'none', padding: '11px 22px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {isYouTube ? 'Subscribe on YouTube →' : isBook ? 'View on Amazon →' : `Visit ${f.Name} →`}
                   </a>
-                  <a href={`https://open.spotify.com/search/${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    Spotify
-                  </a>
-                </>
-              )}
-              {isBook && (
-                <a href={`https://www.goodreads.com/search?q=${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  Goodreads
-                </a>
-              )}
-              {f['RSS Feed URL'] && !isPodcast && (
-                <a href={f['RSS Feed URL']} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  RSS Feed
-                </a>
-              )}
-              <BookmarkButton resourceId={record.id} variant="labeled" kind={(isPodcast || isYouTube) ? 'follow' : 'save'} onSignInRequired={() => setShowSignIn(true)} />
-              <ShareButton resourceId={record.id} name={f.Name} type={f.Type} variant="labeled" />
-              <PinButton resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
+                )}
+                {isPodcast && (
+                  <>
+                    <span style={{ width: 1, height: 24, background: BORDER, margin: '0 2px' }} aria-hidden="true" />
+                    <span style={{ fontSize: 12, color: '#999', fontWeight: 500 }}>Listen on</span>
+                    <a href={`https://podcasts.apple.com/search?term=${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer" style={CHIP}>Apple Podcasts</a>
+                    <a href={`https://open.spotify.com/search/${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer" style={CHIP}>Spotify</a>
+                  </>
+                )}
+                {isBook && (
+                  <a href={`https://www.goodreads.com/search?q=${encodeURIComponent(f.Name)}`} target="_blank" rel="noopener noreferrer" style={CHIP}>Goodreads</a>
+                )}
+                {f['RSS Feed URL'] && !isPodcast && (
+                  <a href={f['RSS Feed URL']} target="_blank" rel="noopener noreferrer" style={CHIP}>RSS Feed</a>
+                )}
+              </div>
+
+              {/* Tier 2 — personal/utility actions (save, pin, share), with the
+                  quiet Report link pushed to the far right so it never competes. */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 16, paddingTop: 16, borderTop: `1px solid ${BORDER}` }}>
+                <BookmarkButton resourceId={record.id} variant="labeled" kind={(isPodcast || isYouTube) ? 'follow' : 'save'} onSignInRequired={() => setShowSignIn(true)} />
+                <PinButton resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
+                <ShareButton resourceId={record.id} name={f.Name} type={f.Type} variant="labeled" />
+                <span style={{ flex: 1, minWidth: 12 }} />
+                <ReportButton resourceId={record.id} name={f.Name} />
+              </div>
             </div>
           </div>
 
@@ -418,16 +398,6 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                   <p style={{ fontSize: 14, color: '#333', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>&ldquo;{ownerContent.vision}&rdquo;</p>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Featured episodes — hand-picked by the creator */}
-          {featuredEpisodes.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7c3aed', marginBottom: 16 }}>★ Featured by the creator</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {featuredEpisodes.map(ep => <EpisodeCard key={ep.id} ep={{ ...ep, audio_url: ep.audio_url }} isNew={false} onSignInRequired={() => setShowSignIn(true)} />)}
-              </div>
             </div>
           )}
 
@@ -519,51 +489,17 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
             </div>
           )}
 
-          {/* Recent Episodes */}
-          {isPodcast && podData?.recent?.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Recent Episodes</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {podData.recent.map((ep, i) => {
-                  const archived = episodeIdMap[ep.audioUrl];
-                  const enriched = archived
-                    ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl }
-                    : { ...ep, audio_url: ep.audioUrl, show_name: f.Name, show_resource_id: record.id };
-                  return <EpisodeCard key={i} ep={enriched} isNew={i === 0} onSignInRequired={() => setShowSignIn(true)} />;
-                })}
-              </div>
-              <div style={{ fontSize: 11, color: '#bbb', marginTop: 14, lineHeight: 1.5 }}>
-                Episodes stream directly from {f.Name}’s official feed — your plays still count toward the show.
-              </div>
-            </div>
-          )}
-
-          {/* Notable Episodes */}
-          {isPodcast && podData?.notable?.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999' }}>Notable Episodes</div>
-              </div>
-              <div style={{ fontSize: 12, color: '#bbb', marginBottom: 16 }}>Classic episodes still in the feed — evergreen content worth revisiting.</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {podData.notable.map((ep, i) => {
-                  const archived = episodeIdMap[ep.audioUrl];
-                  const enriched = archived
-                    ? { ...ep, id: archived.id, show_resource_id: record.id, duration_seconds: archived.duration_seconds, show_name: archived.show_name || f.Name, audio_url: ep.audioUrl }
-                    : { ...ep, audio_url: ep.audioUrl, show_name: f.Name, show_resource_id: record.id };
-                  return <EpisodeCard key={i} ep={enriched} isNew={false} onSignInRequired={() => setShowSignIn(true)} />;
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* All Episodes — full back-catalog from the archive, paginated + searchable */}
+          {/* All Episodes — the show's whole back-catalog: newest-first,
+              searchable, with the creator's featured picks pinned + badged at the
+              top. (Replaces the old separate Featured/Recent/Notable sections;
+              refreshed on view so it's current the moment you open the page.) */}
           {isPodcast && episodeTotal > 0 && (
             <AllEpisodes
               showResourceId={record.id}
               showName={f.Name}
               initialEpisodes={initialEpisodes}
               initialTotal={episodeTotal}
+              featuredEpisodes={featuredEpisodes}
               onSignInRequired={() => setShowSignIn(true)}
             />
           )}
@@ -594,7 +530,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                     <Link key={r.id} href={`/resource/${r.id}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < related.length - 1 ? `1px solid ${BORDER}` : 'none', textDecoration: 'none', color: 'inherit' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#fafaf8'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <SmallLogo url={rf.URL} name={rf.Name} imageUrl={rf['Image URL']} size={40} />
+                      <SmallLogo url={rf.URL} name={rf.Name} imageUrl={rf['Image URL'] || rf['Auto Image URL']} size={40} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 2 }}>{rf.Name}</div>
                         {rf['Host or Author'] && <div style={{ fontSize: 12, color: '#aaa' }}>{rf['Host or Author']}</div>}

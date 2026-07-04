@@ -3007,6 +3007,107 @@ function PersonalRowEditor({ block, index, onSetCount }) {
 }
 
 // ══════════════════════════════════════════
+//  TAB — Reports (visitor-flagged resources / episodes)
+// ══════════════════════════════════════════
+const REPORT_REASON_LABEL = {
+  broken: 'Broken', inappropriate: 'Inappropriate', irrelevant: 'Irrelevant',
+  offensive: 'Offensive', other: 'Other',
+};
+
+function ReportsTab() {
+  const [status, setStatus] = useState('open');
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(null); // group key currently acting on
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/admin/reports?status=${status}`);
+      const d = await r.json();
+      setGroups(Array.isArray(d.groups) ? d.groups : []);
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function act(group, action) {
+    setActing(group.key);
+    try {
+      const r = await fetch('/api/admin/reports', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: group.ids, action }),
+      });
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      setGroups(prev => prev.filter(g => g.key !== group.key));
+    } finally { setActing(null); }
+  }
+
+  const btn = (bg, color, border) => ({
+    fontSize: 12, fontWeight: 600, fontFamily: FONT, cursor: 'pointer',
+    padding: '7px 12px', borderRadius: 6, border: `1px solid ${border || bg}`, background: bg, color,
+  });
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111', margin: '0 0 4px' }}>Reports</h2>
+      <p style={{ fontSize: 13, color: '#888', margin: '0 0 18px', lineHeight: 1.5 }}>
+        Visitor-flagged resources and episodes. Each row groups every report for one target — resolve when handled, or dismiss if it&rsquo;s not a real problem. Nothing is ever hidden automatically.
+      </p>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+        {['open', 'resolved', 'dismissed'].map(s => (
+          <button key={s} onClick={() => setStatus(s)}
+            style={{ ...btn(status === s ? GREEN : '#fff', status === s ? '#fff' : '#666', status === s ? GREEN : BORDER), textTransform: 'capitalize' }}>
+            {s}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ fontSize: 13, color: '#999' }}>Loading…</div>
+      ) : groups.length === 0 ? (
+        <div style={{ fontSize: 13, color: '#999' }}>No {status} reports. 🎉</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {groups.map(g => (
+            <div key={g.key} style={{ border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px', background: '#fff', display: 'flex', gap: 14, justifyContent: 'space-between' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#7c3aed', background: '#f3e8ff', padding: '2px 8px', borderRadius: 20 }}>{g.type}</span>
+                  <a href={g.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, fontWeight: 600, color: '#111', textDecoration: 'none' }}>{g.title}</a>
+                  {g.showName && <span style={{ fontSize: 12, color: '#aaa' }}>· {g.showName}</span>}
+                </div>
+                <div style={{ fontSize: 12.5, color: '#555', marginBottom: g.notes.length ? 8 : 4 }}>
+                  {Object.entries(g.reasons).map(([r, c]) => `${REPORT_REASON_LABEL[r] || r} ×${c}`).join('  ·  ')}
+                </div>
+                {g.notes.slice(0, 4).map((n, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#777', fontStyle: 'italic', borderLeft: `2px solid ${BORDER}`, paddingLeft: 8, margin: '3px 0' }}>
+                    &ldquo;{n.note}&rdquo;
+                  </div>
+                ))}
+                <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>Last reported {new Date(g.lastReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: '#dc2626' }}>{g.count}</span>
+                {status === 'open' ? (
+                  <>
+                    <button disabled={acting === g.key} onClick={() => act(g, 'resolve')} style={btn('#f0fdf4', '#065f46', '#a7f3d0')}>✓ Resolve</button>
+                    <button disabled={acting === g.key} onClick={() => act(g, 'dismiss')} style={btn('#fff5f5', '#dc2626', '#fecaca')}>Dismiss</button>
+                  </>
+                ) : (
+                  <button disabled={acting === g.key} onClick={() => act(g, 'reopen')} style={btn('#fff', '#666', BORDER)}>Reopen</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
 //  TAB GROUPS
 // ══════════════════════════════════════════
 // Each group becomes a labeled section in the top bar. Add new tabs by dropping
@@ -3020,6 +3121,7 @@ const TAB_GROUPS = [
       { label: 'Review Queue',  Component: ReviewQueue },
       { label: 'All Resources', Component: AllResources },
       { label: 'Claims',        Component: ClaimsTab },
+      { label: 'Reports',       Component: ReportsTab },
     ],
   },
   {

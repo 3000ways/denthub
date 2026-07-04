@@ -268,7 +268,11 @@ export default async function handler(req, res) {
         Specialty: [sub.specialty],
         ...(r.Author     && r.Author.trim()     ? { 'Host or Author': r.Author.trim() } : {}),
         ...(r.RSSFeedURL && r.RSSFeedURL.trim() ? { 'RSS Feed URL':   r.RSSFeedURL.trim() } : {}),
-        ...(r.ImageURL   && r.ImageURL.trim()   ? { 'Image URL':      r.ImageURL.trim() } : {}),
+        // The AI's image is a best-effort guess, so it goes in the machine "auto
+        // box" (Auto Image URL) — BELOW any human-set "Image URL" in the icon
+        // ladder, and self-healing: for podcasts the harvester later overwrites
+        // it with the real RSS show art.
+        ...(r.ImageURL   && r.ImageURL.trim()   ? { 'Auto Image URL': r.ImageURL.trim() } : {}),
         Source: 'AI Agent',
         'Submission Status': 'Pending',
       },
