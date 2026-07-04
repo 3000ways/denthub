@@ -860,7 +860,7 @@ export default function Home({ initialResources }) {
           <EssentialsSection items={essentials} isMobile={isMobile} heading={blockHeading('essentials', settings)} onOpen={(id) => router.push(`/resource/${id}`)} onSignInRequired={() => setShowSignIn(true)} />
         ) : null;
       case 'bookmarks':
-        return user ? <BookmarkFeed isMobile={isMobile} limit={4} heading={blockHeading('bookmarks', settings)} /> : null;
+        return user ? <BookmarkFeed isMobile={isMobile} heading={blockHeading('bookmarks', settings)} /> : null;
       case 'recently_listened':
         return <RecentlyListened isMobile={isMobile} heading={blockHeading('recently_listened', settings)} />;
       case 'books':
