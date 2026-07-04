@@ -894,7 +894,7 @@ export default function Home({ initialResources }) {
           </div>
         ) : null;
       case 'discover':
-        return <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} />;
+        return <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} hidden={settings.hidden || []} counts={settings.counts || null} />;
       case 'pinboard':
         return <Pinboard resources={resources} isMobile={isMobile} />;
       case 'featured':
