@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SiteNav from '../../components/SiteNav';
 import Footer from '../../components/Footer';
 import { ShareButton } from '../../components/ShareButton';
@@ -108,6 +108,14 @@ export default function EpisodePage({ ep, more }) {
   const date = fmtDate(ep.published_at);
   const dur = fmtDur(ep.duration_seconds);
   const [showSignIn, setShowSignIn] = useState(false);
+  // Match the resource page's responsive spacing (tighter on mobile).
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   const title = `${ep.title} — ${ep.show_name || 'The Dental Commute'}`;
   const description = ep.descriptionText
     ? ep.descriptionText.slice(0, 200)
@@ -136,7 +144,7 @@ export default function EpisodePage({ ep, more }) {
       <div style={{ background: '#f5f2eb', backgroundImage: 'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize: '22px 22px', minHeight: '100vh', fontFamily: FONT }}>
         <SiteNav />
 
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 24px 80px' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: isMobile ? '20px 12px 60px' : '40px 24px 80px' }}>
 
           {ep.show_resource_id && (
             <Link href={`/resource/${ep.show_resource_id}`} style={{ fontSize: 13, color: GREEN, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 32 }}>
@@ -193,7 +201,7 @@ export default function EpisodePage({ ep, more }) {
 
           {/* More from this show */}
           {more.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: '26px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: 'rgba(255,255,255,0.6)', borderRadius: 14, padding: isMobile ? '18px 14px' : '26px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>
                 More from {ep.show_name || 'this show'}
               </div>
