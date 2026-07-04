@@ -1350,6 +1350,7 @@ function Deduplication() {
   const [scannedAt, setScannedAt] = useState(null);
   const [dismissed, setDismissed] = useState(new Set());
   const [busy, setBusy] = useState({});
+  const [expandedRationale, setExpandedRationale] = useState(new Set());
 
   useEffect(() => {
     try {
@@ -1372,6 +1373,38 @@ function Deduplication() {
     } catch {}
   }
 
+  // Heuristic: score each record to suggest which to keep.
+  // Higher = better candidate to keep.
+  function suggestKeep(records) {
+    const scoreRec = rec => {
+      const f = rec.fields;
+      let s = 0;
+      if (f['Status'] === 'Published') s += 4;
+      if (f['Final Score'] != null) s += Number(f['Final Score']) * 0.05;
+      if ((f['Thumbnail'] && f['Thumbnail'].length > 0) || f['Image URL']) s += 2;
+      if (f['Description']) s += 1;
+      if (f['Host or Author']) s += 1;
+      if (f['Specialty'] && f['Specialty'].length > 0) s += 1;
+      if (f['Vote Count']) s += 0.5;
+      return s;
+    };
+    const scores = records.map(scoreRec);
+    let keepIdx = scores[0] >= scores[1] ? 0 : 1;
+    if (scores[0] === scores[1]) {
+      const d0 = records[0].fields['Date Added'] ? new Date(records[0].fields['Date Added']).getTime() : Infinity;
+      const d1 = records[1].fields['Date Added'] ? new Date(records[1].fields['Date Added']).getTime() : Infinity;
+      keepIdx = d0 <= d1 ? 0 : 1;
+    }
+    const wf = records[keepIdx].fields;
+    const lf = records[1 - keepIdx].fields;
+    let reason = 'More complete data';
+    if (wf['Status'] === 'Published' && lf['Status'] !== 'Published') reason = 'Published status';
+    else if ((wf['Final Score'] || 0) > (lf['Final Score'] || 0) + 5) reason = 'Higher score';
+    else if ((wf['Vote Count'] || 0) > (lf['Vote Count'] || 0)) reason = 'More community votes';
+    else if (wf['Date Added'] && lf['Date Added'] && wf['Date Added'] < lf['Date Added']) reason = 'Added first';
+    return { keepIdx, reason };
+  }
+
   const visibleGroups = groups ? groups.filter(g => !dismissed.has(groupKey(g))) : [];
 
   async function scan() {
@@ -1384,7 +1417,6 @@ function Deduplication() {
       setGroups(d.groups);
       setTotalScanned(d.total);
       setScannedAt(now);
-      // keep existing dismissals — they stay dismissed across rescans
       saveCache(d.groups, d.total, now, dismissed);
     } catch (e) {
       alert('Scan failed: ' + e.message);
@@ -1440,11 +1472,17 @@ function Deduplication() {
 
   const statusColor = s => s === 'Published' ? { bg: '#d1fae5', fg: '#065f46' } : s === 'Archived' ? { bg: '#f3f4f6', fg: '#6b7280' } : { bg: '#fef9c3', fg: '#92400e' };
 
+  const reasonBadge = reason => {
+    if (reason === 'Same URL') return { bg: '#dbeafe', fg: '#1e40af' };
+    if (reason === 'Similar name') return { bg: '#fce7f3', fg: '#9d174d' };
+    return { bg: '#fef9c3', fg: '#92400e' };
+  };
+
   return (
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Deduplicate</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>
-        Scan all resources for duplicate entries — matched by URL or name. Archive or delete the copy, or dismiss false positives.
+        Scan all resources for duplicate entries — matched by URL, exact name, or similar name. Archive or delete the copy, or dismiss false positives.
       </p>
 
       <button onClick={scan} disabled={loading} style={{ padding: '10px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: loading ? 0.7 : 1, marginBottom: 12 }}>
@@ -1473,11 +1511,16 @@ function Deduplication() {
       {visibleGroups.map((group) => {
         const gKey = groupKey(group);
         const groupIdx = groups.indexOf(group);
+        const rb = reasonBadge(group.reason);
+        const suggestion = group.records.length === 2 ? suggestKeep(group.records) : null;
+
         return (
-          <div key={gKey} style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: 'hidden' }}>
+          <div key={gKey} style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 20, overflow: 'hidden' }}>
+
+            {/* Group header */}
             <div style={{ background: '#fafafa', borderBottom: `1px solid ${BORDER}`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>
-                <span style={{ background: group.reason === 'Same URL' ? '#dbeafe' : '#fef9c3', color: group.reason === 'Same URL' ? '#1e40af' : '#92400e', padding: '2px 8px', borderRadius: 20, marginRight: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#555', minWidth: 0, overflow: 'hidden' }}>
+                <span style={{ background: rb.bg, color: rb.fg, padding: '2px 8px', borderRadius: 20, marginRight: 8, flexShrink: 0 }}>
                   {group.reason}
                 </span>
                 <span style={{ color: '#999', fontWeight: 400, fontFamily: 'monospace', fontSize: 11 }}>{group.matchValue}</span>
@@ -1488,53 +1531,146 @@ function Deduplication() {
                   saveCache(groups, totalScanned, scannedAt, next);
                   return next;
                 })}
-                style={{ fontSize: 11, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                style={{ fontSize: 11, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', flexShrink: 0 }}
               >
                 Dismiss
               </button>
             </div>
 
-            {group.records.map(rec => {
+            {/* Records */}
+            {group.records.map((rec, recIdx) => {
               const f = rec.fields;
               const sc = statusColor(f['Status']);
               const isBusy = busy[rec.id];
+              const imageUrl = (f['Thumbnail'] && f['Thumbnail'][0])
+                ? (f['Thumbnail'][0].thumbnails?.large?.url || f['Thumbnail'][0].url)
+                : (f['Image URL'] || null);
+              const rationaleKey = rec.id;
+              const rationaleExpanded = expandedRationale.has(rationaleKey);
+              const isKeep = suggestion && suggestion.keepIdx === recIdx;
+              const isRemove = suggestion && suggestion.keepIdx !== recIdx;
+
               return (
-                <div key={rec.id} style={{ padding: '14px 16px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {f['Name'] || '(no name)'}
+                <div key={rec.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
+
+                  {/* Suggestion banner */}
+                  {suggestion && (
+                    <div style={{ padding: '5px 16px', background: isKeep ? '#f0fdf4' : '#f9fafb', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: isKeep ? '#dcfce7' : '#f3f4f6', color: isKeep ? '#15803d' : '#9ca3af' }}>
+                        {isKeep ? '✓ Suggested: Keep' : '→ Suggested: Remove'}
+                      </span>
+                      {isKeep && <span style={{ fontSize: 11, color: '#6b7280' }}>Reason: {suggestion.reason}</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: '#888', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <a href={f['URL']} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>{f['URL']}</a>
-                    </div>
-                    {f['Description'] && (
-                      <div style={{ fontSize: 12, color: '#555', marginBottom: 8, lineHeight: 1.5 }}>
-                        {f['Description']}
-                      </div>
+                  )}
+
+                  <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+
+                    {/* Thumbnail */}
+                    {imageUrl && (
+                      <img src={imageUrl} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, flexShrink: 0, border: `1px solid ${BORDER}` }} onError={e => { e.target.style.display = 'none'; }} />
                     )}
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                      {f['Type'] && <span style={{ fontSize: 11, color: '#555', background: '#f3f4f6', padding: '2px 7px', borderRadius: 20 }}>{f['Type']}</span>}
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: sc.bg, color: sc.fg }}>{f['Status'] || 'No status'}</span>
-                      {f['Final Score'] != null && <span style={{ fontSize: 11, color: '#888' }}>Score: {Number(f['Final Score']).toFixed(1)}</span>}
-                      {f['Host or Author'] && <span style={{ fontSize: 11, color: '#888' }}>by {f['Host or Author']}</span>}
-                      {f['Source'] && <SourceBadge source={f['Source']} />}
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+
+                      {/* Name + URL */}
+                      <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {f['Name'] || '(no name)'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#888', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <a href={f['URL']} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>{f['URL']}</a>
+                      </div>
+
+                      {/* Description */}
+                      {f['Description'] && (
+                        <div style={{ fontSize: 12, color: '#555', marginBottom: 8, lineHeight: 1.5 }}>
+                          {f['Description']}
+                        </div>
+                      )}
+
+                      {/* Status / type / meta badges */}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                        {f['Type'] && <span style={{ fontSize: 11, color: '#555', background: '#f3f4f6', padding: '2px 7px', borderRadius: 20 }}>{f['Type']}</span>}
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: sc.bg, color: sc.fg }}>{f['Status'] || 'No status'}</span>
+                        {f['Host or Author'] && <span style={{ fontSize: 11, color: '#6b7280' }}>by {f['Host or Author']}</span>}
+                        {f['Source'] && <SourceBadge source={f['Source']} />}
+                        {f['Date Added'] && <span style={{ fontSize: 11, color: '#9ca3af' }}>Added {f['Date Added']}</span>}
+                        {f['Vote Count'] != null && <span style={{ fontSize: 11, color: '#9ca3af' }}>{f['Vote Count']} {f['Vote Count'] === 1 ? 'vote' : 'votes'}</span>}
+                      </div>
+
+                      {/* All five sub-scores + Final */}
+                      {f['Final Score'] != null && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 14px', marginBottom: 8 }}>
+                          {[['Expert', f['Expert Score']], ['Community', f['Community Score']], ['Popularity', f['Popularity Score']], ['Recency', f['Recency Score']], ['Clinical', f['Clinical Depth Score']]].map(([label, val]) => (
+                            val != null && (
+                              <span key={label} style={{ fontSize: 11, color: '#6b7280' }}>
+                                <span style={{ color: '#aaa' }}>{label}: </span>{Number(val).toFixed(0)}
+                              </span>
+                            )
+                          ))}
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#111' }}>
+                            <span style={{ color: '#aaa', fontWeight: 400 }}>Final: </span>{Number(f['Final Score']).toFixed(1)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Specialty + Topic tags */}
+                      {((f['Specialty'] && f['Specialty'].length > 0) || (f['Topic'] && f['Topic'].length > 0)) && (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                          {(f['Specialty'] || []).map(s => (
+                            <span key={s} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 20, background: '#ede9fe', color: '#5b21b6' }}>{s}</span>
+                          ))}
+                          {(f['Topic'] || []).map(t => (
+                            <span key={t} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 20, background: '#e0f2fe', color: '#0369a1' }}>{t}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Editor Notes */}
+                      {f['Editor Notes'] && (
+                        <div style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '5px 8px', marginBottom: 8 }}>
+                          <strong>Editor note:</strong> {f['Editor Notes']}
+                        </div>
+                      )}
+
+                      {/* Score Rationale — collapsible */}
+                      {f['Score Rationale'] && (
+                        <div>
+                          <button
+                            onClick={() => setExpandedRationale(s => {
+                              const n = new Set(s);
+                              rationaleExpanded ? n.delete(rationaleKey) : n.add(rationaleKey);
+                              return n;
+                            })}
+                            style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: FONT }}
+                          >
+                            {rationaleExpanded ? 'Hide' : 'Show'} AI score rationale
+                          </button>
+                          {rationaleExpanded && (
+                            <div style={{ fontSize: 11, color: '#374151', marginTop: 6, padding: '8px 10px', background: '#f8fafc', borderRadius: 4, lineHeight: 1.6, border: `1px solid ${BORDER}` }}>
+                              {f['Score Rationale']}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                    <button
-                      onClick={() => archiveRecord(rec.id, groupIdx)}
-                      disabled={isBusy || f['Status'] === 'Archived'}
-                      style={{ padding: '5px 12px', fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#555', fontFamily: FONT, opacity: (isBusy || f['Status'] === 'Archived') ? 0.5 : 1 }}
-                    >
-                      {isBusy ? '…' : f['Status'] === 'Archived' ? 'Archived' : 'Archive'}
-                    </button>
-                    <button
-                      onClick={() => deleteRecord(rec.id, groupIdx)}
-                      disabled={isBusy}
-                      style={{ padding: '5px 12px', fontSize: 12, border: '1px solid #fca5a5', borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#dc2626', fontFamily: FONT, opacity: isBusy ? 0.5 : 1 }}
-                    >
-                      {isBusy ? '…' : 'Delete'}
-                    </button>
+
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                      <button
+                        onClick={() => archiveRecord(rec.id, groupIdx)}
+                        disabled={isBusy || f['Status'] === 'Archived'}
+                        style={{ padding: '5px 12px', fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#555', fontFamily: FONT, opacity: (isBusy || f['Status'] === 'Archived') ? 0.5 : 1 }}
+                      >
+                        {isBusy ? '…' : f['Status'] === 'Archived' ? 'Archived' : 'Archive'}
+                      </button>
+                      <button
+                        onClick={() => deleteRecord(rec.id, groupIdx)}
+                        disabled={isBusy}
+                        style={{ padding: '5px 12px', fontSize: 12, border: '1px solid #fca5a5', borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#dc2626', fontFamily: FONT, opacity: isBusy ? 0.5 : 1 }}
+                      >
+                        {isBusy ? '…' : 'Delete'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
