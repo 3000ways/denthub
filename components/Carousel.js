@@ -11,12 +11,13 @@ const BORDER = '#e8e8e8';
 // Mobile: native swipe + scroll-snap, with the next card peeking so it reads as
 // scrollable. Desktop: hover arrow buttons page the lane (mouse horizontal
 // scroll is bad). A "See all →" header link routes to the full paginated page.
-export function Carousel({ eyebrow, title, seeAllHref, items = [], isMobile }) {
+export function Carousel({ eyebrow, title, seeAllHref, items = [], isMobile, renderItem }) {
   const scrollRef = useRef(null);
   if (!items.length) return null;
 
   const CARD_W = isMobile ? 152 : 196;
   const GAP = 12;
+  const hasHeader = eyebrow || title || seeAllHref;
 
   function page(dir) {
     const el = scrollRef.current;
@@ -27,20 +28,22 @@ export function Carousel({ eyebrow, title, seeAllHref, items = [], isMobile }) {
     <div style={{ marginBottom: isMobile ? 30 : 40, position: 'relative' }}>
       <style>{`.tdc-hscroll::-webkit-scrollbar{display:none}`}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-        <div style={{ minWidth: 0 }}>
-          {eyebrow && (
-            <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#bbb', fontWeight: 600, marginBottom: 4 }}>{eyebrow}</div>
+      {/* Header — omitted when the caller supplies its own (e.g. BookmarkFeed) */}
+      {hasHeader && (
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            {eyebrow && (
+              <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#bbb', fontWeight: 600, marginBottom: 4 }}>{eyebrow}</div>
+            )}
+            {title && <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY, letterSpacing: -0.4, lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>}
+          </div>
+          {seeAllHref && (
+            <Link href={seeAllHref} style={{ fontSize: 12, color: GREEN, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', fontFamily: FONT_BODY, flexShrink: 0 }}>
+              See all →
+            </Link>
           )}
-          <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY, letterSpacing: -0.4, lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
         </div>
-        {seeAllHref && (
-          <Link href={seeAllHref} style={{ fontSize: 12, color: GREEN, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', fontFamily: FONT_BODY, flexShrink: 0 }}>
-            See all →
-          </Link>
-        )}
-      </div>
+      )}
 
       {/* Lane */}
       <div style={{ position: 'relative' }}>
@@ -51,7 +54,7 @@ export function Carousel({ eyebrow, title, seeAllHref, items = [], isMobile }) {
           {items.map((item, i) => (
             <div key={item.guid || item.url || i}
               style={{ flex: `0 0 ${CARD_W}px`, width: CARD_W, scrollSnapAlign: 'start' }}>
-              <SpotlightCard item={item} />
+              {renderItem ? renderItem(item) : <SpotlightCard item={item} />}
             </div>
           ))}
         </div>

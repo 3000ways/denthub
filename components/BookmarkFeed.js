@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { usePlayer } from '../lib/player-context';
+import { Carousel } from './Carousel';
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -127,7 +128,7 @@ function FeedCard({ item }) {
 // "New from your bookmarks" — latest episodes/videos from the podcasts and
 // YouTube channels the signed-in user has bookmarked. Renders nothing if the
 // user follows no shows or none have fresh episodes.
-export function BookmarkFeed({ isMobile = false, limit = 4, heading }) {
+export function BookmarkFeed({ isMobile = false, heading }) {
   const { bookmarkIds, loaded } = useBookmarks();
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,14 +151,14 @@ export function BookmarkFeed({ isMobile = false, limit = 4, heading }) {
   if (!loaded || loading || episodes.length === 0) return null;
 
   return (
-    <div style={{ marginBottom:28, background:'rgba(255,255,255,0.55)', borderRadius:12, padding:'28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)', fontFamily:FONT_BODY }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
+    <div style={{ marginBottom:28, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '20px 14px 8px' : '28px 28px 10px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)', fontFamily:FONT_BODY }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:20, paddingBottom:14, borderBottom:`2px solid #111` }}>
         <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{heading || 'New from your bookmarks'}</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Latest from shows you follow</div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap:12 }}>
-        {episodes.slice(0, limit).map((ep, i) => <FeedCard key={`${ep.resourceId}-${i}`} item={ep} />)}
-      </div>
+      {/* Horizontal scroll lane (same system as the other carousels), with the
+          bookmark card that plays podcasts from its artwork. */}
+      <Carousel items={episodes} isMobile={isMobile} renderItem={(ep) => <FeedCard item={ep} />} />
     </div>
   );
 }
