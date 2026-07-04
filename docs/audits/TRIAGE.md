@@ -16,6 +16,13 @@ them. Findings reported by two auditors independently are marked ⭐ (higher con
   out on confirmed success); community/recency score queries paginated (no 1000-row truncation).
 - **PR-3 (#76):** stale resource-page state fixed (key by `record.id`); "sample data" banner on
   demo fallback; change-password auto-redeploy fixed (real repoId + branch).
+- **PR-4 (#78):** harvester never deletes episodes with user data — the last Critical (backend C1)
+  closed; the "don't unpublish/merge podcasts" caveat is lifted.
+- **PR-5 (#79):** AI judge hardened against prompt injection from episode content (security #6 /
+  ai-bots C2) + temperature 0 for reproducibility.
+- **PR-6 (#80):** security headers; `.env*` gitignored + `.env.local` untracked (security #7);
+  constant-time admin login + fail-closed if password unset (security #12 / backend M1);
+  formula-injection guards on claims/edit-proposals (security #9).
 
 **Post-merge actions:**
 1. ✅ **DONE — migration `0017_profiles_owner_read.sql` applied** to Supabase (2026-07-04, via
@@ -23,9 +30,11 @@ them. Findings reported by two auditors independently are marked ⭐ (higher con
 2. **Re-log into the admin panel** after deploy (old unsigned cookies are now rejected).
 3. (Optional) set `ADMIN_SESSION_SECRET` in Vercel for defense-in-depth.
 
-**Still open** (deferred — need the Supabase connection or more design): harvester CE-history
-deletion (PR-2 remainder), `upsert-episode` hardening, AI-judge prompt-injection, CE-hours
-server-side check, frontend mobile/a11y (PR-3 remainder), PR-4 hardening.
+**Still open** (deferred — need care or the Supabase connection): `upsert-episode` hardening
+(security #4 / backend H1 — risky re: anon playback), CE-hours server-side verification
+(security #5), SSRF guard on `detect-url` (security #10 — now admin-gated behind fixed auth),
+cron-secret-in-URL (security #8), frontend mobile/accessibility (frontend #3–7), plus the Low
+nits and the two verifications (Final Score formula, votes/comments cascade).
 
 ---
 
