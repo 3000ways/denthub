@@ -998,6 +998,15 @@ export default function Home({ initialResources }) {
         </div>
       )}
 
+      {/* Fallback-data banner — the resource fetch failed/returned empty, so the
+          page is showing placeholder sample rows (DEMO_RESOURCES). Never let those
+          read as real rankings: label them clearly. */}
+      {isDemo && (
+        <div style={{ background:'#9b1c1c', color:'#fff', fontFamily:FONT_BODY, fontSize:13, fontWeight:600, textAlign:'center', padding:'8px 16px', lineHeight:1.4 }}>
+          Showing sample data — live rankings are temporarily unavailable. Scores below are placeholders, not real ratings. Please refresh in a moment.
+        </div>
+      )}
+
       {/* Nav bar — sticky on desktop; on mobile it scrolls away with the page. Logo bursts down on mobile. */}
       <div style={{ position: isMobile ? 'static' : 'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
         <div style={{ height:3, background:GREEN }} />
