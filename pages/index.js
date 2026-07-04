@@ -1089,7 +1089,10 @@ export default function Home({ initialResources }) {
         </div>
       </div>
 
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 7px 60px' : '0 36px 100px' }}>
+      {/* When a filter is active the hero (which normally reserves mobile top space
+          for the down-bursting logo) isn't rendered, so add that top padding here or
+          the tab row / search slide under the logo on mobile. (audit frontend #4) */}
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 7px 60px' : '0 36px 100px', paddingTop: isMobile && anyFilterActive ? 84 : undefined }}>
 
         {/* Top zone — roomier 16px mobile gutters (7px baseline + 9px here) */}
         <div style={{ padding: TOP_ZONE_PAD }}>
