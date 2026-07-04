@@ -23,6 +23,15 @@ them. Findings reported by two auditors independently are marked ⭐ (higher con
 - **PR-6 (#80):** security headers; `.env*` gitignored + `.env.local` untracked (security #7);
   constant-time admin login + fail-closed if password unset (security #12 / backend M1);
   formula-injection guards on claims/edit-proposals (security #9).
+- **PR-7 (#81):** mobile player no longer covers page content (frontend #3); mobile logo no
+  longer overlaps tabs when filtering (frontend #4); player controls keyboard/screen-reader
+  accessible (frontend #6). Verified `next build` → "✓ Compiled successfully".
+
+## 🆕 New finding (from the build, not the original audits)
+
+- **Next.js 14.2.3 has a known security vulnerability** — upgrade to a patched release
+  (see https://nextjs.org/blog/security-update-2025-12-11). Run `npm install next@latest`
+  (or a patched 14.2.x), rebuild, and smoke-test. Dependency-level, not app code.
 
 **Post-merge actions:**
 1. ✅ **DONE — migration `0017_profiles_owner_read.sql` applied** to Supabase (2026-07-04, via
