@@ -103,9 +103,15 @@ nits and the two verifications (Final Score formula, votes/comments cascade).
 ## ❓ Decisions / verifications needed from Andrei (block correct fixes)
 
 1. **Airtable "Final Score" formula — does it treat a blank sub-score as 0?** (ai-bots H2)
-   If yes, every not-yet-judged resource is dragged ~40 pts low. **Check in Airtable.**
+   ⏳ STILL OPEN. Confirmed the field is a formula with the documented weights, but the
+   blank-handling couldn't be read (flaky MCP). **Andrei to check:** Airtable → Resources →
+   "Final Score" field → Edit field → paste the formula here; OR eyeball an un-judged resource
+   (blank Expert/Clinical) — if its Final Score is ~40 pts below peers, blanks count as 0.
 2. **Do `votes`/`comments`/`comment_upvotes` cascade-delete with the user?** (backend H2)
-   **Check in Supabase dashboard.** (PR-2's server-side deletion makes this moot anyway.)
+   ✅ RESOLVED — the security audit's live FK inspection confirmed they cascade from
+   `profiles(id) ON DELETE CASCADE`, AND PR-2 (#77) now deletes them server-side explicitly.
+3. **Is `VERCEL_TOKEN` set in Vercel?** (needed for admin change-password). ⏳ Andrei to check
+   Vercel → Settings → Env Vars, or just try change-password (PR-3 fixed the redeploy).
 3. **Scoring philosophy** (ai-bots H1, M1, M2): AI scores aren't reproducible run-to-run;
    podcast popularity = back-catalog size; percentile drift. How defensible do we want scores?
 
