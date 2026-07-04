@@ -700,8 +700,6 @@ export default function Home({ initialResources }) {
       const byDate = arr => [...(arr||[])].sort((a,b) => (b.sortDate||0) - (a.sortDate||0));
       setSpotlight({ ...data, podcasts: byDate(data.podcasts), videos: byDate(data.videos) });
     }).catch(() => {});
-    // Admin-composed home layout (empty until the composer publishes one → default layout)
-    fetch('/api/home-layout').then(r => r.json()).then(d => setHomeLayout(d || {})).catch(() => {});
     // Fetch YouTube channel stats
     fetch('/api/youtube-stats').then(r => r.json()).then(data => setYtStats(data)).catch(() => {});
     fetch('/api/podcast-stats').then(r => r.json()).then(data => setPodStats(data)).catch(() => {});
@@ -709,6 +707,28 @@ export default function Home({ initialResources }) {
     // Cached site stats (episode count) for the hero stat band
     fetch('/api/stats').then(r => r.json()).then(data => setEpisodeCount(data.episodes || 0)).catch(() => {});
   }, []);
+
+  // Admin-composed home layout. Normally the live *published* layout per audience
+  // (empty until the composer publishes → code default). With ?preview=draft
+  // (admin only) it instead renders the *unpublished* draft, so the composer's
+  // Preview shows pending changes. Gated on router.isReady so query params are
+  // populated before we decide which source to read.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.preview === 'draft') {
+      fetch('/api/admin/home-layout').then(r => r.json()).then(d => {
+        if (!d || d.error) return;
+        const out = {};
+        Object.keys(d).forEach(a => {
+          const blocks = Array.isArray(d[a] && d[a].draft) ? d[a].draft : [];
+          out[a] = blocks.filter(b => b && b.on).map(b => b.key);
+        });
+        setHomeLayout(out);
+      }).catch(() => {});
+    } else {
+      fetch('/api/home-layout').then(r => r.json()).then(d => setHomeLayout(d || {})).catch(() => {});
+    }
+  }, [router.isReady, router.query.preview]);
 
   // Any time the active filter or search changes, collapse the ranked list
   // back to the first page so "Show more" starts fresh for the new view.
@@ -781,7 +801,9 @@ export default function Home({ initialResources }) {
   // Admin "Preview as" (?as=logged_out|logged_in) overrides which audience's
   // published layout renders, so an admin can see either home without re-auth.
   const asOverride = (router.query.as === 'logged_out' || router.query.as === 'logged_in') ? router.query.as : null;
-  const effectiveLayout = resolveLayout(homeLayout, asOverride || (user ? 'logged_in' : 'logged_out'));
+  const previewDraft = router.query.preview === 'draft';
+  const previewAudience = asOverride || (user ? 'logged_in' : 'logged_out');
+  const effectiveLayout = resolveLayout(homeLayout, previewAudience);
 
   const sorted = [...homeResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
   const trending = sorted.slice(0,4);
@@ -968,6 +990,14 @@ export default function Home({ initialResources }) {
       })}} />
     </Head>
     <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
+
+      {/* Draft-preview banner — only when an admin opens ?preview=draft from the
+          Home Layout composer. Signals this is an unpublished preview, not live. */}
+      {previewDraft && (
+        <div style={{ background:'#b45309', color:'#fff', fontFamily:FONT_BODY, fontSize:13, fontWeight:600, textAlign:'center', padding:'8px 16px', lineHeight:1.4 }}>
+          Draft preview — {previewAudience === 'logged_out' ? 'signed-out' : 'signed-in'} home. These are unpublished changes and are not live. Publish in the Home Layout tab to go live.
+        </div>
+      )}
 
       {/* Nav bar — sticky on desktop; on mobile it scrolls away with the page. Logo bursts down on mobile. */}
       <div style={{ position: isMobile ? 'static' : 'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>

@@ -2611,6 +2611,22 @@ function HomeLayoutTab() {
     setMsg('');
   }
 
+  // Preview shows the *saved* draft, so persist the current on-screen state first
+  // (otherwise unsaved edits wouldn't appear). Open the tab synchronously to dodge
+  // popup blockers, then point it at the preview once the save completes.
+  async function openDraftPreview() {
+    const w = window.open('about:blank', '_blank');
+    try {
+      await fetch('/api/admin/home-layout', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audience: aud, blocks: rows }),
+      });
+      setStore(prev => ({ ...prev, [aud]: { ...prev[aud], draft: clone(rows) } }));
+    } catch { /* preview will just show the last-saved draft */ }
+    const url = `/?as=${aud}&preview=draft`;
+    if (w) w.location = url; else window.location.href = url;
+  }
+
   if (loading) return <div style={{ color: '#888', fontSize: 14 }}>Loading…</div>;
   if (!store || !draft) return <div style={{ color: '#c00', fontSize: 14 }}>{msg || 'Could not load the layout.'}</div>;
 
@@ -2641,9 +2657,15 @@ function HomeLayoutTab() {
         <span>·</span>
         <span>{published ? `${published.filter(b => b.on).length} live` : 'Never published — home uses the built-in default'}</span>
         {dirty && <span style={{ color: '#b45309', fontWeight: 600 }}>· Unsaved changes</span>}
-        <a href={`/?as=${aud}`} target="_blank" rel="noreferrer" style={{ color: GREEN, textDecoration: 'none', marginLeft: 'auto', fontWeight: 600 }}>
-          Preview {aud === 'logged_out' ? 'signed-out' : 'signed-in'} home ↗
-        </a>
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+          <button onClick={openDraftPreview} title="Saves your draft, then opens the home as this audience would see your unpublished changes"
+            style={{ color: GREEN, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 600, fontSize: 12, fontFamily: FONT }}>
+            Preview draft ↗
+          </button>
+          <a href={`/?as=${aud}`} target="_blank" rel="noreferrer" title="See what's live right now for this audience" style={{ color: '#aaa', textDecoration: 'none', fontWeight: 500 }}>
+            View live ↗
+          </a>
+        </span>
       </div>
 
       {/* Block list */}
