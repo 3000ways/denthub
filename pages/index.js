@@ -19,7 +19,7 @@ import { DiscoverFeed } from '../components/DiscoverFeed';
 import { PersonalFeed } from '../components/PersonalFeed';
 import { BooksForYou } from '../components/BooksForYou';
 import { CEHoursBadge } from '../components/CEHoursBadge';
-import { DEFAULT_LAYOUT, resolveLayout } from '../lib/home-layout';
+import { DEFAULT_LAYOUT, resolveLayout, blockHeading } from '../lib/home-layout';
 import { recommendEpisodes } from '../lib/onboarding';
 
 const CATEGORIES = [
@@ -288,11 +288,11 @@ function EditorsPick({ picks, onOpen, onSignInRequired }) {
   );
 }
 
-function EssentialsSection({ items, isMobile, onOpen, onSignInRequired }) {
+function EssentialsSection({ items, isMobile, onOpen, onSignInRequired, heading }) {
   return (
     <div style={{ marginBottom:52 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'2px solid #111' }}>
-        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>The Essentials</div>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{heading || 'The Essentials'}</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Start here</div>
       </div>
       <div style={{ borderTop:`1px solid ${BORDER}` }}>
@@ -334,7 +334,7 @@ function EssentialsSection({ items, isMobile, onOpen, onSignInRequired }) {
 // each episode's own title/description), not resource-level Topic/Specialty
 // tags — see recommendEpisodes in lib/onboarding.js. Renders as a row of
 // episode cards (reusing SpotlightCard), nothing if there's no match yet.
-function RecommendedForYou({ episodes, profile, isMobile }) {
+function RecommendedForYou({ episodes, profile, isMobile, heading }) {
   if (!episodes.length) return null;
 
   // A short, human sentence describing why these were chosen.
@@ -359,7 +359,7 @@ function RecommendedForYou({ episodes, profile, isMobile }) {
   return (
     <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 12px' : '28px 28px 20px', border:`1px solid ${GREEN}`, boxShadow:'0 1px 6px rgba(15,110,86,0.08)' }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:6, paddingBottom:14, borderBottom:'2px solid #111', flexWrap:'wrap' }}>
-        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Recommended for You</div>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{heading || 'Recommended for You'}</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600 }}>Personalized</div>
         <Link href="/profile" style={{ marginLeft:'auto', fontSize:12, color:'#aaa', textDecoration:'none', fontWeight:500 }}>Edit interests →</Link>
       </div>
@@ -721,7 +721,7 @@ export default function Home({ initialResources }) {
         const out = {};
         Object.keys(d).forEach(a => {
           const blocks = Array.isArray(d[a] && d[a].draft) ? d[a].draft : [];
-          out[a] = blocks.filter(b => b && b.on).map(b => b.key);
+          out[a] = blocks.filter(b => b && b.on).map(b => ({ key: b.key, settings: b.settings || {} }));
         });
         setHomeLayout(out);
       }).catch(() => {});
@@ -846,29 +846,29 @@ export default function Home({ initialResources }) {
   // Renders one home-page block by key. The JSX per block is unchanged from
   // before — this just organizes it so the layout array (default or, later,
   // admin-composed) drives order + visibility. Blocks self-guard on `user`.
-  function renderHomeBlock(key) {
+  function renderHomeBlock(key, settings = {}) {
     switch (key) {
       case 'ce_badge':
         return user ? <CEHoursBadge isMobile={isMobile} /> : null;
       case 'recommended':
-        return <RecommendedForYou episodes={recommendedEpisodes} profile={profile} isMobile={isMobile} />;
+        return <RecommendedForYou episodes={recommendedEpisodes} profile={profile} isMobile={isMobile} heading={blockHeading('recommended', settings)} />;
       case 'personal':
         return user ? <PersonalFeed isMobile={isMobile} /> : null;
       case 'essentials':
         return essentials.length > 0 ? (
-          <EssentialsSection items={essentials} isMobile={isMobile} onOpen={(id) => router.push(`/resource/${id}`)} onSignInRequired={() => setShowSignIn(true)} />
+          <EssentialsSection items={essentials} isMobile={isMobile} heading={blockHeading('essentials', settings)} onOpen={(id) => router.push(`/resource/${id}`)} onSignInRequired={() => setShowSignIn(true)} />
         ) : null;
       case 'bookmarks':
-        return user ? <BookmarkFeed isMobile={isMobile} limit={4} /> : null;
+        return user ? <BookmarkFeed isMobile={isMobile} limit={4} heading={blockHeading('bookmarks', settings)} /> : null;
       case 'recently_listened':
-        return <RecentlyListened isMobile={isMobile} />;
+        return <RecentlyListened isMobile={isMobile} heading={blockHeading('recently_listened', settings)} />;
       case 'books':
-        return user ? <BooksForYou resources={resources} isMobile={isMobile} /> : null;
+        return user ? <BooksForYou resources={resources} isMobile={isMobile} heading={blockHeading('books', settings)} /> : null;
       case 'whats_new':
         return (spotlight.podcasts.length > 0 || spotlight.videos.length > 0) ? (
           <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 16px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
             <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
-              <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>What&rsquo;s New in Dentistry</div>
+              <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{blockHeading('whats_new', settings)}</div>
               <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
                 <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#e53e3e', animation:'livePulse 1.4s ease-in-out infinite' }} />
                 Live from the feeds
@@ -917,7 +917,7 @@ export default function Home({ initialResources }) {
       case 'new_this_week':
         return recentlyAdded.length > 0 ? (
           <div style={{ marginBottom:48 }}>
-            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:18 }}>New this week</div>
+            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:18 }}>{blockHeading('new_this_week', settings)}</div>
             <div style={{ borderTop:`1px solid ${BORDER}` }}>
               {recentlyAdded.map(r => (
                 <div key={r.id} onClick={() => router.push(`/resource/${r.id}`)}
@@ -1247,7 +1247,7 @@ export default function Home({ initialResources }) {
             {/* Composed home sections — order + visibility come from the admin
                 layout (or DEFAULT_LAYOUT until one is published). Each block's
                 JSX lives in renderHomeBlock() above. */}
-            {effectiveLayout.map(key => <Fragment key={key}>{renderHomeBlock(key)}</Fragment>)}
+            {effectiveLayout.map(item => <Fragment key={item.key}>{renderHomeBlock(item.key, item.settings)}</Fragment>)}
 
             {/* Divider before full list */}
             <div style={{ height:1, background:BORDER, marginBottom:36 }} />

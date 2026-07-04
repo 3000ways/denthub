@@ -101,7 +101,7 @@ function RecentCard({ ep }) {
   );
 }
 
-export function RecentlyListened({ isMobile = false }) {
+export function RecentlyListened({ isMobile = false, heading }) {
   const { user, loading: authLoading } = useAuth();
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -156,7 +156,7 @@ export function RecentlyListened({ isMobile = false }) {
       padding: isMobile ? '16px 10px 16px' : '28px 28px 24px',
       border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)', fontFamily:FONT_BODY }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
-        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Recently Listened</div>
+        <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{heading || 'Recently Listened'}</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Pick up where you left off</div>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
