@@ -36,6 +36,7 @@ The Dental Commute is a dentistry resource directory and ranking platform for de
 - Airtable data is fetched via a Next.js API route: `https://thedentalcommute.com/api/airtable?table=Resources`
 - The sandbox/Claude Code cannot reach `api.airtable.com` or `api.vercel.com` directly — always verify data through the live API route above
 - Environment variables live in Vercel only (never commit credentials to GitHub — GitHub secret scanning will block it)
+- **Local dev needs a `.env.local` (gitignored, NOT committed).** As of PR #80 the env file is no longer in the repo — running `npm run dev` without one makes every page 500 with "supabaseUrl is required". Recreate it by pulling the vars down from Vercel: `vercel env pull .env.local` (or copy them from the Vercel dashboard). Required keys: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AIRTABLE_PAT`, plus (feature-dependent) `PERPLEXITY_API_KEY`, `TURNSTILE_SECRET_KEY`, `CRON_SECRET`.
 - `AIRTABLE_PAT` is stored as a Vercel environment variable
 - Vercel env variable changes only take effect after a new deployment; push a GitHub commit to trigger redeploy
 - **Never use `{Visible}=1` boolean filter in Airtable** — it's unreliable; remove the filter entirely as a workaround
