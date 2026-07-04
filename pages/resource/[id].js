@@ -248,6 +248,16 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
   // Claim Your Profile: is this listing claimed, and did its owner add a bio,
   // vision, logo, or feature any episodes? Public-read, so this shows to everyone.
   useEffect(() => {
+    // Reset per-resource UI state up front so a previous resource's data can never
+    // bleed through when navigating between resource pages (Next.js reuses the
+    // mounted component across same-route navigations). Without this, the logo,
+    // "From the creator" bio/vision, and featured episodes of resource A would
+    // persist onto resource B until (or unless) B's own fetch overwrote them.
+    setLogoSrc(f['Image URL'] || autoImage || null);
+    setOwnerContent(null);
+    setFeaturedEpisodes([]);
+    setIsClaimed(false);
+
     supabase.from('resource_claims').select('id').eq('resource_id', record.id).eq('status', 'approved').limit(1)
       .then(({ data }) => setIsClaimed(!!data?.length));
     supabase.from('resource_owner_content').select('bio, vision, logo_url, featured_episode_ids').eq('resource_id', record.id).maybeSingle()
@@ -495,6 +505,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
               refreshed on view so it's current the moment you open the page.) */}
           {isPodcast && episodeTotal > 0 && (
             <AllEpisodes
+              key={record.id}
               showResourceId={record.id}
               showName={f.Name}
               initialEpisodes={initialEpisodes}

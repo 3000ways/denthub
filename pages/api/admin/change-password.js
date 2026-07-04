@@ -32,34 +32,52 @@ export default async function handler(req, res) {
     const envVar = listData.envs?.find(e => e.key === 'ADMIN_PASSWORD' && e.target?.includes('production'));
     if (!envVar) throw new Error('ADMIN_PASSWORD env var not found in Vercel project');
 
-    // Update it
+    // Update it — preserve the var's existing target scope (don't silently strip it
+    // to production-only, which would drop it from preview/development envs).
     const updateRes = await fetch(
       `https://api.vercel.com/v9/projects/${PROJECT_ID}/env/${envVar.id}?teamId=${TEAM_ID}`,
       {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: newPassword, type: 'encrypted', target: ['production'] }),
+        body: JSON.stringify({ value: newPassword, type: 'encrypted', target: envVar.target || ['production'] }),
       }
     );
     if (!updateRes.ok) throw new Error(`Vercel update error: ${await updateRes.text()}`);
 
-    // Trigger a redeployment so the new password takes effect
-    const deployRes = await fetch(
-      `https://api.vercel.com/v13/deployments?teamId=${TEAM_ID}`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'denthub',
-          gitSource: { type: 'github', repoId: null },
-          projectId: PROJECT_ID,
-          target: 'production',
-          forceNew: 1,
-        }),
+    // Trigger a redeployment so the new password takes effect. The old code sent
+    // `repoId: null`, which Vercel rejects with a 400 every time — so the deploy
+    // never actually happened and the new password stayed dormant until an
+    // unrelated push. Fetch the project's real git link (repoId + production
+    // branch) and pass those instead.
+    let deployed = false;
+    try {
+      const projRes = await fetch(
+        `https://api.vercel.com/v9/projects/${PROJECT_ID}?teamId=${TEAM_ID}`,
+        { headers: { Authorization: `Bearer ${VERCEL_TOKEN}` } }
+      );
+      const proj = projRes.ok ? await projRes.json() : null;
+      const repoId = proj?.link?.repoId;
+      const ref = proj?.link?.productionBranch || 'main';
+
+      if (repoId) {
+        const deployRes = await fetch(
+          `https://api.vercel.com/v13/deployments?teamId=${TEAM_ID}`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'denthub',
+              gitSource: { type: 'github', repoId, ref },
+              project: PROJECT_ID,
+              target: 'production',
+            }),
+          }
+        );
+        deployed = deployRes.ok;
       }
-    );
-    // Deploy trigger is best-effort — password is already updated in Vercel regardless
-    const deployed = deployRes.ok;
+    } catch {
+      deployed = false; // best-effort — password is already updated in Vercel regardless
+    }
 
     return res.status(200).json({
       ok: true,
