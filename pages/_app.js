@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Script from 'next/script';
 import { AuthProvider } from '../lib/auth-context';
@@ -11,12 +12,25 @@ import PlayerBar from '../components/PlayerBar';
 // so a hardcoded fallback is fine; can be overridden via a Vercel env var.
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-NHEQGSKG9D';
 
-// Inner shell: reads PlayerContext to add bottom padding when the bar is visible
+// Inner shell: reads PlayerContext to add bottom padding when the bar is visible.
+// The mobile player is a tall stacked layout (~150px + safe-area), not the 72px
+// desktop bar, so the compensation is branched by viewport — otherwise the last
+// ~80px of every page sits permanently under the mobile player. (audit frontend #3)
 function AppShell({ Component, pageProps }) {
   const { currentEpisode } = usePlayer();
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  const pad = currentEpisode
+    ? (isMobile ? 'calc(160px + env(safe-area-inset-bottom))' : '80px')
+    : 0;
   return (
     <>
-      <div style={{ paddingBottom: currentEpisode ? 80 : 0 }}>
+      <div style={{ paddingBottom: pad }}>
         <Component {...pageProps} />
       </div>
       <PlayerBar />

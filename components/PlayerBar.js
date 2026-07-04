@@ -56,6 +56,27 @@ export default function PlayerBar() {
     seek(pct * duration);
   }
 
+  // Keyboard seeking for the scrubber (audit frontend #6): arrows step 5s
+  // (30s with Shift); Home/End jump to start/end.
+  function handleScrubKey(e) {
+    if (!duration) return;
+    const step = e.shiftKey ? 30 : 5;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); seek(Math.min(duration, position + step)); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); seek(Math.max(0, position - step)); }
+    else if (e.key === 'Home') { e.preventDefault(); seek(0); }
+    else if (e.key === 'End') { e.preventDefault(); seek(duration); }
+  }
+  const scrubberA11y = {
+    role: 'slider',
+    tabIndex: 0,
+    'aria-label': 'Seek',
+    'aria-valuemin': 0,
+    'aria-valuemax': Math.round(duration) || 0,
+    'aria-valuenow': Math.round(position) || 0,
+    'aria-valuetext': `${fmt(position)} of ${fmt(duration)}`,
+    onKeyDown: handleScrubKey,
+  };
+
   // ── Mobile layout ──────────────────────────────────────────────────────────
   if (isMobile) {
     return (
@@ -72,6 +93,7 @@ export default function PlayerBar() {
         {/* Scrubber — tall tap target, thin visual line */}
         <div
           onClick={handleScrub}
+          {...scrubberA11y}
           style={{ width: '100%', height: 28, display: 'flex', alignItems: 'center', cursor: 'pointer', background: 'transparent' }}>
           <div style={{ width: '100%', height: 3, background: '#e8e8e8', position: 'relative' }}>
             <div style={{ width: `${Math.min(100, percent * 100)}%`, height: '100%', background: GREEN }} />
@@ -131,6 +153,7 @@ export default function PlayerBar() {
 
           <button
             onClick={() => isPlaying ? pause() : resume()}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
             style={{
               width: 40, height: 40, borderRadius: '50%',
               background: GREEN, border: 'none', cursor: 'pointer',
@@ -260,6 +283,7 @@ export default function PlayerBar() {
 
         <button
           onClick={() => isPlaying ? pause() : resume()}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
           style={{
             width: 40, height: 40, borderRadius: '50%',
             background: GREEN, border: 'none', cursor: 'pointer',
@@ -323,6 +347,7 @@ export default function PlayerBar() {
 
         <div
           onClick={handleScrub}
+          {...scrubberA11y}
           style={{ flex: 1, height: 4, background: '#e8e8e8', borderRadius: 2, cursor: 'pointer', position: 'relative' }}>
           <div style={{ width: `${Math.min(100, percent * 100)}%`, height: '100%', background: GREEN, borderRadius: 2 }} />
         </div>
