@@ -1082,7 +1082,7 @@ export default function Home({ initialResources }) {
         </div>
       </div>
 
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 6px 60px' : '0 36px 100px' }}>
+      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px 60px' : '0 36px 100px' }}>
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
@@ -1125,7 +1125,7 @@ export default function Home({ initialResources }) {
               return (
                 <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? '1fr 1fr' : undefined, gap: isMobile ? '18px 24px' : 0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding: isMobile ? '18px 0' : '22px 0' }}>
                   {stats.map((s, i) => (
-                    <div key={s.label} style={{ flex: isMobile ? undefined : 1, paddingLeft: !isMobile && i > 0 ? 28 : 0, borderLeft: !isMobile && i > 0 ? `1px solid ${BORDER}` : 'none', gridColumn: isMobile && i === stats.length - 1 && stats.length % 2 !== 0 ? 'span 2' : undefined }}>
+                    <div key={s.label} style={{ flex: isMobile ? undefined : 1, textAlign: isMobile ? 'center' : 'left', paddingLeft: !isMobile && i > 0 ? 28 : 0, borderLeft: !isMobile && i > 0 ? `1px solid ${BORDER}` : 'none', gridColumn: isMobile && i === stats.length - 1 && stats.length % 2 !== 0 ? 'span 2' : undefined }}>
                       <div style={{ fontSize: isMobile ? 24 : 34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{s.n.toLocaleString()}</div>
                       <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{s.label}</div>
                     </div>
