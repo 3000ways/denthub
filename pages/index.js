@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -19,6 +19,7 @@ import { DiscoverFeed } from '../components/DiscoverFeed';
 import { PersonalFeed } from '../components/PersonalFeed';
 import { BooksForYou } from '../components/BooksForYou';
 import { CEHoursBadge } from '../components/CEHoursBadge';
+import { DEFAULT_LAYOUT, resolveLayout } from '../lib/home-layout';
 import { recommendEpisodes } from '../lib/onboarding';
 
 const CATEGORIES = [
@@ -581,6 +582,7 @@ export default function Home({ initialResources }) {
   const RANKED_PAGE = 50;
   const [visibleCount, setVisibleCount] = useState(RANKED_PAGE);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
+  const [homeLayout, setHomeLayout] = useState({}); // published layout per audience (admin-composed); empty = use DEFAULT_LAYOUT
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -698,6 +700,8 @@ export default function Home({ initialResources }) {
       const byDate = arr => [...(arr||[])].sort((a,b) => (b.sortDate||0) - (a.sortDate||0));
       setSpotlight({ ...data, podcasts: byDate(data.podcasts), videos: byDate(data.videos) });
     }).catch(() => {});
+    // Admin-composed home layout (empty until the composer publishes one → default layout)
+    fetch('/api/home-layout').then(r => r.json()).then(d => setHomeLayout(d || {})).catch(() => {});
     // Fetch YouTube channel stats
     fetch('/api/youtube-stats').then(r => r.json()).then(data => setYtStats(data)).catch(() => {});
     fetch('/api/podcast-stats').then(r => r.json()).then(data => setPodStats(data)).catch(() => {});
@@ -774,6 +778,7 @@ export default function Home({ initialResources }) {
   })).filter(g => g.items.length > 0);
 
   const anyFilterActive = !!(activeCategory || activeSpecialty || activeTopic || search);
+  const effectiveLayout = resolveLayout(homeLayout, user ? 'logged_in' : 'logged_out');
 
   const sorted = [...homeResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
   const trending = sorted.slice(0,4);
@@ -812,6 +817,108 @@ export default function Home({ initialResources }) {
 
   const totalResources = displayResources.length;
   const totalCategories = CATEGORIES.length;
+
+  // Renders one home-page block by key. The JSX per block is unchanged from
+  // before — this just organizes it so the layout array (default or, later,
+  // admin-composed) drives order + visibility. Blocks self-guard on `user`.
+  function renderHomeBlock(key) {
+    switch (key) {
+      case 'ce_badge':
+        return user ? <CEHoursBadge isMobile={isMobile} /> : null;
+      case 'recommended':
+        return <RecommendedForYou episodes={recommendedEpisodes} profile={profile} isMobile={isMobile} />;
+      case 'personal':
+        return user ? <PersonalFeed isMobile={isMobile} /> : null;
+      case 'essentials':
+        return essentials.length > 0 ? (
+          <EssentialsSection items={essentials} isMobile={isMobile} onOpen={(id) => router.push(`/resource/${id}`)} onSignInRequired={() => setShowSignIn(true)} />
+        ) : null;
+      case 'bookmarks':
+        return user ? <BookmarkFeed isMobile={isMobile} limit={4} /> : null;
+      case 'recently_listened':
+        return <RecentlyListened isMobile={isMobile} />;
+      case 'books':
+        return user ? <BooksForYou resources={resources} isMobile={isMobile} /> : null;
+      case 'whats_new':
+        return (spotlight.podcasts.length > 0 || spotlight.videos.length > 0) ? (
+          <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 16px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
+              <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>What&rsquo;s New in Dentistry</div>
+              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#e53e3e', animation:'livePulse 1.4s ease-in-out infinite' }} />
+                Live from the feeds
+                <style>{`@keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }`}</style>
+              </div>
+            </div>
+            {spotlight.podcasts.length > 0 && (
+              <div style={{ marginBottom:28 }}>
+                <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
+                <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
+                  {spotlight.podcasts.slice(0,4).map((ep, i) => <SpotlightCard key={i} item={ep} />)}
+                </div>
+              </div>
+            )}
+            {spotlight.videos.length > 0 && (
+              <div>
+                <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
+                <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
+                  {spotlight.videos.slice(0,4).map((vid, i) => <SpotlightCard key={i} item={vid} />)}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null;
+      case 'discover':
+        return <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} />;
+      case 'pinboard':
+        return <Pinboard resources={resources} isMobile={isMobile} />;
+      case 'featured':
+        return user ? (
+          <>
+            <FeaturedCards section="Podcasts"    title="Featured Podcasts"          subtitle="Editor's picks" isMobile={isMobile} />
+            <FeaturedBooks isMobile={isMobile} />
+            <FeaturedCards section="YouTube"     title="Featured YouTube Channels"  subtitle="Editor's picks" isMobile={isMobile} />
+            {!HIDDEN_HOME_CATEGORIES.includes('CE Courses') && (
+              <FeaturedCards section="CE Courses"  title="Featured CE Courses"        subtitle="Editor's picks" isMobile={isMobile} />
+            )}
+            {!HIDDEN_HOME_CATEGORIES.includes('Coaching') && (
+              <FeaturedCards section="Coaching"    title="Featured Coaching Programs"  subtitle="Editor's picks" isMobile={isMobile} />
+            )}
+            {!HIDDEN_HOME_CATEGORIES.includes('Communities') && (
+              <FeaturedCards section="Communities" title="Featured Communities"       subtitle="Editor's picks" isMobile={isMobile} />
+            )}
+          </>
+        ) : null;
+      case 'new_this_week':
+        return recentlyAdded.length > 0 ? (
+          <div style={{ marginBottom:48 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:18 }}>New this week</div>
+            <div style={{ borderTop:`1px solid ${BORDER}` }}>
+              {recentlyAdded.map(r => (
+                <div key={r.id} onClick={() => router.push(`/resource/${r.id}`)}
+                  style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                  <Logo url={r.fields.URL} name={r.fields.Name} size={36} imageUrl={r.fields['Image URL']} />
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:500, color:'#111', marginBottom:2 }}>{r.fields.Name}<NewBadge /></div>
+                    <div style={{ fontSize:11, color:'#bbb' }}>
+                      <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{r.fields.Type}</span>
+                      {r.fields['Host or Author'] ? <span> · {r.fields['Host or Author']}</span> : ''}
+                    </div>
+                  </div>
+                  <div style={{ fontSize:12, color:'#ccc', whiteSpace:'nowrap' }}>{r.fields.createdAt}</div>
+                  <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} />
+                  <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      default:
+        return null;
+    }
+  }
 
   return (
     <>
@@ -1104,131 +1211,10 @@ export default function Home({ initialResources }) {
           {/* HOME PAGE SECTIONS — only show when no filter active */}
           {!anyFilterActive && (<>
 
-            {/* CE hours logged — a small motivating achievement badge (signed-in) */}
-            {user && <CEHoursBadge isMobile={isMobile} />}
-
-            {/* Recommended for You — personalized from the onboarding quiz answers */}
-            <RecommendedForYou
-              episodes={recommendedEpisodes}
-              profile={profile}
-              isMobile={isMobile}
-            />
-
-            {/* Personalized carousels — one per the signed-in dentist's own answers */}
-            {user && <PersonalFeed isMobile={isMobile} />}
-
-            {/* The Essentials — curated foundational resources, ordered by "Essential Order" */}
-            {essentials.length > 0 && (
-              <EssentialsSection
-                items={essentials}
-                isMobile={isMobile}
-                onOpen={(id) => router.push(`/resource/${id}`)}
-                onSignInRequired={() => setShowSignIn(true)}
-              />
-            )}
-
-
-            {/* New from your bookmarks — latest episodes from followed shows */}
-            {user && <BookmarkFeed isMobile={isMobile} limit={4} />}
-
-            {/* Recently Listened — pick up where you left off */}
-            <RecentlyListened isMobile={isMobile} />
-
-            {/* Recommended Reading — books in the signed-in dentist's field */}
-            {user && <BooksForYou resources={resources} isMobile={isMobile} />}
-
-            {/* Spotlight: Latest Episodes & Videos */}
-            {(spotlight.podcasts.length > 0 || spotlight.videos.length > 0) && (
-              <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 16px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
-                <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
-                  <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>What&rsquo;s New in Dentistry</div>
-                  <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
-                    <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#e53e3e', animation:'livePulse 1.4s ease-in-out infinite' }} />
-                    Live from the feeds
-                    <style>{`@keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }`}</style>
-                  </div>
-                </div>
-
-                {/* Podcast episodes row */}
-                {spotlight.podcasts.length > 0 && (
-                  <div style={{ marginBottom:28 }}>
-                    <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
-                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
-                      {spotlight.podcasts.slice(0,4).map((ep, i) => (
-                        <SpotlightCard key={i} item={ep} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* YouTube row */}
-                {spotlight.videos.length > 0 && (
-                  <div>
-                    <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
-                    <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
-                      {spotlight.videos.slice(0,4).map((vid, i) => (
-                        <SpotlightCard key={i} item={vid} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Discover — rotating episode carousels by goal / clinical area / stage */}
-            <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} />
-
-            {/* Community Pinboard — resources fellow dentists tacked up */}
-            <Pinboard resources={resources} isMobile={isMobile} />
-
-            {/* Featured rows are signed-in only for now — the logged-out home leads
-                with the algorithmic Discover carousels above instead. */}
-            {user && (<>
-            <FeaturedCards section="Podcasts"    title="Featured Podcasts"          subtitle="Editor's picks" isMobile={isMobile} />
-            <FeaturedBooks isMobile={isMobile} />
-            <FeaturedCards section="YouTube"     title="Featured YouTube Channels"  subtitle="Editor's picks" isMobile={isMobile} />
-            {!HIDDEN_HOME_CATEGORIES.includes('CE Courses') && (
-              <FeaturedCards section="CE Courses"  title="Featured CE Courses"        subtitle="Editor's picks" isMobile={isMobile} />
-            )}
-            {!HIDDEN_HOME_CATEGORIES.includes('Coaching') && (
-              <FeaturedCards section="Coaching"    title="Featured Coaching Programs"  subtitle="Editor's picks" isMobile={isMobile} />
-            )}
-            {!HIDDEN_HOME_CATEGORIES.includes('Communities') && (
-              <FeaturedCards section="Communities" title="Featured Communities"       subtitle="Editor's picks" isMobile={isMobile} />
-            )}
-            </>)}
-
-            {/* New this week */}
-            {recentlyAdded.length > 0 && (
-              <div style={{ marginBottom:48 }}>
-                <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:18 }}>New this week</div>
-                <div style={{ borderTop:`1px solid ${BORDER}` }}>
-                  {recentlyAdded.map(r => (
-                    <div key={r.id}
-                      onClick={() => router.push(`/resource/${r.id}`)}
-                      style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
-                      onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
-                      onMouseLeave={e => e.currentTarget.style.background='transparent'}
-                    >
-                      <Logo url={r.fields.URL} name={r.fields.Name} size={36} imageUrl={r.fields['Image URL']} />
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:14, fontWeight:500, color:'#111', marginBottom:2 }}>
-                          {r.fields.Name}
-                          <NewBadge />
-                        </div>
-                        <div style={{ fontSize:11, color:'#bbb' }}>
-                          <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{r.fields.Type}</span>
-                          {r.fields['Host or Author'] ? <span> · {r.fields['Host or Author']}</span> : ''}
-                        </div>
-                      </div>
-                      <div style={{ fontSize:12, color:'#ccc', whiteSpace:'nowrap' }}>{r.fields.createdAt}</div>
-                      <ScoreBadge score={(r.fields['Final Score']||0).toFixed(1)} fields={r.fields} />
-                      <BookmarkButton resourceId={r.id} onSignInRequired={() => setShowSignIn(true)} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Composed home sections — order + visibility come from the admin
+                layout (or DEFAULT_LAYOUT until one is published). Each block's
+                JSX lives in renderHomeBlock() above. */}
+            {effectiveLayout.map(key => <Fragment key={key}>{renderHomeBlock(key)}</Fragment>)}
 
             {/* Divider before full list */}
             <div style={{ height:1, background:BORDER, marginBottom:36 }} />
