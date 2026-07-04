@@ -62,6 +62,7 @@ export default function ProfilePage() {
   const [saveError, setSaveError]     = useState(false);
   const [listenStats, setListenStats] = useState(null);
   const [deleteStep, setDeleteStep]   = useState(0); // 0=idle, 1=confirm, 2=deleting
+  const [deleteError, setDeleteError] = useState('');
   const [quizOptions, setQuizOptions] = useState(null); // { career_stage, interest, working_on }
 
   useEffect(() => { fetchQuizOptions().then(setQuizOptions); }, []);
@@ -130,18 +131,28 @@ export default function ProfilePage() {
 
   async function handleDeleteAccount() {
     setDeleteStep(2);
+    setDeleteError('');
+    // The server route deletes ALL of the user's data + the auth account
+    // atomically. We do NOT pre-delete anything client-side (doing so, then
+    // hitting a failing API call, would wipe data while leaving the account).
+    // Only sign out once the server confirms success; on failure, nothing was
+    // removed and the user can retry.
     try {
-      // Delete all user data from Supabase, then delete the auth user via API
-      await supabase.from('listening_progress').delete().eq('user_id', user.id);
-      await supabase.from('bookmarks').delete().eq('user_id', user.id);
-      await supabase.from('pins').delete().eq('user_id', user.id);
-      await supabase.from('profiles').delete().eq('id', user.id);
       const { data: { session } } = await supabase.auth.getSession();
-      await fetch('/api/delete-account', {
+      if (!session?.access_token) throw new Error('Your session has expired — please sign in again and retry.');
+      const res = await fetch('/api/delete-account', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
-    } catch {}
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Account deletion failed. Please try again.');
+      }
+    } catch (e) {
+      setDeleteError(e.message || 'Account deletion failed. Please try again.');
+      setDeleteStep(1); // back to the confirm step; nothing was deleted
+      return;
+    }
     await signOut();
     router.push('/');
   }
@@ -381,9 +392,11 @@ export default function ProfilePage() {
                 )}
 
                 {deleteStep === 1 && (
-                  <div style={{ display:'flex', alignItems:'center', gap:8, background:'#fff8f8',
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', background:'#fff8f8',
                     border:'1px solid #f5c6c2', borderRadius:8, padding:'10px 16px' }}>
-                    <span style={{ fontSize:12, color:'#c0392b', fontWeight:500 }}>This permanently deletes all your data. Sure?</span>
+                    <span style={{ fontSize:12, color:'#c0392b', fontWeight:500 }}>
+                      {deleteError || 'This permanently deletes all your data. Sure?'}
+                    </span>
                     <button onClick={handleDeleteAccount}
                       style={{ fontSize:12, padding:'5px 14px', borderRadius:5, background:'#c0392b', color:'#fff',
                         border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600 }}>
