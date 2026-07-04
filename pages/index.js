@@ -583,6 +583,7 @@ export default function Home({ initialResources }) {
   const [visibleCount, setVisibleCount] = useState(RANKED_PAGE);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
   const [homeLayout, setHomeLayout] = useState({}); // published layout per audience (admin-composed); empty = use DEFAULT_LAYOUT
+  const [homeLayoutLoaded, setHomeLayoutLoaded] = useState(false); // gate settings-driven fetches (Discover) until the layout is known, to avoid a flash of un-curated content
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -724,9 +725,9 @@ export default function Home({ initialResources }) {
           out[a] = blocks.filter(b => b && b.on).map(b => ({ key: b.key, settings: b.settings || {} }));
         });
         setHomeLayout(out);
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => setHomeLayoutLoaded(true));
     } else {
-      fetch('/api/home-layout').then(r => r.json()).then(d => setHomeLayout(d || {})).catch(() => {});
+      fetch('/api/home-layout').then(r => r.json()).then(d => setHomeLayout(d || {})).catch(() => {}).finally(() => setHomeLayoutLoaded(true));
     }
   }, [router.isReady, router.query.preview]);
 
@@ -894,7 +895,7 @@ export default function Home({ initialResources }) {
           </div>
         ) : null;
       case 'discover':
-        return <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} hidden={settings.hidden || []} counts={settings.counts || null} />;
+        return <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} hidden={settings.hidden || []} counts={settings.counts || null} ready={homeLayoutLoaded} />;
       case 'pinboard':
         return <Pinboard resources={resources} isMobile={isMobile} />;
       case 'featured':
