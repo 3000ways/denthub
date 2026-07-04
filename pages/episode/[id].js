@@ -6,6 +6,7 @@ import Footer from '../../components/Footer';
 import { ShareButton } from '../../components/ShareButton';
 import { EpisodeBookmarkButton } from '../../components/EpisodeBookmarkButton';
 import { PinButton } from '../../components/PinButton';
+import { ReportButton } from '../../components/ReportButton';
 import { SignInModal } from '../../components/AuthModal';
 import { usePlayer } from '../../lib/player-context';
 import { supabase } from '../../lib/supabase';
@@ -183,6 +184,11 @@ export default function EpisodePage({ ep, more }) {
                 {ep.descriptionText}
               </p>
             )}
+
+            {/* Quiet report link — flags this single episode. */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18, paddingTop: 14, borderTop: `1px solid ${BORDER}` }}>
+              <ReportButton episodeId={ep.id} name={ep.show_name} />
+            </div>
           </div>
 
           {/* More from this show */}

@@ -11,12 +11,15 @@ const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
 
+// Factual corrections that touch the shared Airtable record — these go through
+// review. The logo is NOT here: an owner's logo publishes instantly via
+// resource_owner_content.logo_url (below), where it also outranks the listing's
+// Image URL in the icon ladder.
 const EDITABLE_FIELDS = [
   { key: 'Name', label: 'Name' },
   { key: 'URL', label: 'URL' },
   { key: 'Description', label: 'Description', multiline: true },
   { key: 'Host or Author', label: 'Host / Author' },
-  { key: 'Image URL', label: 'Logo / cover image URL' },
   { key: 'RSS Feed URL', label: 'RSS feed URL' },
 ];
 
@@ -50,7 +53,7 @@ export default function CreatorEditor() {
   const [savingProposal, setSavingProposal] = useState(false);
   const [proposalSaved, setProposalSaved] = useState(false);
 
-  const [ownerContent, setOwnerContent] = useState({ bio: '', vision: '', featured_episode_ids: [] });
+  const [ownerContent, setOwnerContent] = useState({ bio: '', vision: '', logo_url: '', featured_episode_ids: [] });
   const [episodes, setEpisodes] = useState([]);
   const [savingContent, setSavingContent] = useState(false);
   const [contentSaved, setContentSaved] = useState(false);
@@ -76,7 +79,7 @@ export default function CreatorEditor() {
       setResource(d);
       setFields({
         Name: d.Name, URL: d.URL, Description: d.Description,
-        'Host or Author': d['Host or Author'], 'Image URL': d['Image URL'], 'RSS Feed URL': d['RSS Feed URL'],
+        'Host or Author': d['Host or Author'], 'RSS Feed URL': d['RSS Feed URL'],
       });
     });
 
@@ -85,9 +88,9 @@ export default function CreatorEditor() {
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
       .then(({ data }) => setPendingProposal(data || null));
 
-    supabase.from('resource_owner_content').select('bio, vision, featured_episode_ids')
+    supabase.from('resource_owner_content').select('bio, vision, logo_url, featured_episode_ids')
       .eq('resource_id', id).maybeSingle()
-      .then(({ data }) => { if (data) setOwnerContent({ bio: data.bio || '', vision: data.vision || '', featured_episode_ids: data.featured_episode_ids || [] }); });
+      .then(({ data }) => { if (data) setOwnerContent({ bio: data.bio || '', vision: data.vision || '', logo_url: data.logo_url || '', featured_episode_ids: data.featured_episode_ids || [] }); });
   }, [claimStatus, id]);
 
   // Episode picker — only for podcasts.
@@ -200,6 +203,18 @@ export default function CreatorEditor() {
             <p style={{ fontSize: 12.5, color: '#888', lineHeight: 1.6, marginBottom: 16 }}>
               These publish immediately — shown clearly as your own words, separate from our editorial scoring.
             </p>
+
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 5 }}>Logo / cover image</label>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+              {ownerContent.logo_url
+                ? <img src={ownerContent.logo_url} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: `1px solid ${BORDER}`, flexShrink: 0, background: '#fafafa' }} />
+                : <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f0ede8', flexShrink: 0 }} />}
+              <input value={ownerContent.logo_url} onChange={e => setOwnerContent(p => ({ ...p, logo_url: e.target.value.trim() }))}
+                placeholder="https://…/your-logo.jpg" style={inp({ flex: 1 })} />
+            </div>
+            <div style={{ fontSize: 11.5, color: '#aaa', marginTop: -10, marginBottom: 16, lineHeight: 1.5 }}>
+              Paste a direct image URL — it replaces the icon on your page instantly and takes priority over everything else.
+            </div>
 
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 5 }}>Short bio</label>
             <textarea value={ownerContent.bio} onChange={e => setOwnerContent(p => ({ ...p, bio: e.target.value.slice(0, 400) }))}

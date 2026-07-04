@@ -12,7 +12,7 @@ const BORDER = '#e8e8e8';
 // Extracted from pages/resource/[id].js so both the resource page's curated
 // sections and the "All Episodes" browse/search section render episodes
 // identically.
-export function EpisodeCard({ ep, isNew, onSignInRequired }) {
+export function EpisodeCard({ ep, isNew, isFeatured, onSignInRequired }) {
   const { play, pause, resume, isPlaying, currentEpisode, completedIds } = usePlayer();
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -109,6 +109,11 @@ export function EpisodeCard({ ep, isNew, onSignInRequired }) {
           </div>
         )}
         <div style={{ fontSize: 11, color: '#bbb', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {isFeatured && (
+            <span title="Featured by the creator" style={{ color: '#7c3aed', fontWeight: 700, background: '#f3e8ff', borderRadius: 4, padding: '1px 6px', fontSize: 10 }}>
+              ★ Featured
+            </span>
+          )}
           {isNew && <span style={{ color: GREEN, fontWeight: 600 }}>New</span>}
           {ep.date && <span style={{ whiteSpace: 'nowrap' }}>{ep.date}</span>}
           {isListened && (
