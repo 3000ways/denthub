@@ -383,6 +383,11 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 🔨 Now (actively working on / next up)
 
+- **🔧 Harden & Fix — from the 2026-07-04 audits.** Four full audits (security, backend,
+  AI bots, frontend) found several exploitable/critical issues. Master action list +
+  batching plan in **`docs/audits/TRIAGE.md`**. Fixing in PRs: PR-1 critical security →
+  PR-2 data integrity → PR-3 frontend → PR-4 hardening. **This jumps ahead of new features.**
+  ⚠️ Until PR-2 ships, do NOT unpublish/merge podcasts in Airtable (harvester can delete CE data).
 - Continue populating resources across remaining categories and themes.
 
 ## 📋 Next (planned, not started)
