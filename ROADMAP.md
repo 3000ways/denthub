@@ -91,7 +91,9 @@ else depends on._
      channels to show. Skippable and re-takeable.
    - Upgrades automatically to real per-user personalization once accounts ship.
 
-## 🎯 Big Theme: "Why should you listen?" — outcome-driven recommendations
+## 🎯 Big Theme: "Why should you listen?" — outcome-driven recommendations  ⏸️ PARKED
+_Parked (2026): infrastructure (episode tagging + onboarding quiz + goals) is built; the
+user-facing feature is deferred, not cut. Revisit before deleting the groundwork._
 
 Work backwards from what a dentist is trying to achieve. Every recommendation comes
 with a compelling reason ("Listen to this *because* it'll help you introduce implants").
@@ -260,7 +262,7 @@ the 80% threshold and CE *hours* (~60 min ≈ 1 CE hour).
    require formal accreditation (US: AGD PACE / ADA CERP; Canada: provincial-body
    equivalents) — a real regulatory undertaking. Possible future ambition, not v1.
 
-**Credibility booster (optional but recommended):** a short **quiz/assessment per episode**
+**Credibility booster (✂️ CUT — quiz & accreditation not being pursued):** a short **quiz/assessment per episode**
 (pass to earn the certificate) — proves comprehension, reduces gaming, makes it feel like
 real CE, and can draw questions from the Episode Archive text.
 
@@ -301,8 +303,8 @@ it's expressive but *structurally* safe. Flavors, safest → riskiest:
 3. **Free-text note (charming but risky)** — needs a moderation queue + AI profanity filter;
    can't show to the next visitor until approved. Ongoing work + real risk.
 
-**Both #1 and #2 wanted (DECIDED).** Build both — the thumbtack Pinboard and the dental-word
-magnet board. (Free-text #3 not planned.)
+**Status (2026):** ✅ Thumbtack Pinboard **built**. ✂️ Dental-word magnet board **CUT** — the
+Pinboard already delivers the community magic. (Free-text #3 not planned.)
 
 **Safety layers (stack several):** constrained input (primary defense); **require sign-in to
 contribute** (accountability/ban — accounts already exist); AI/profanity backstop; report
@@ -349,96 +351,87 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 📋 Next (planned, not started)
 
-- ✅ **"All Episodes" on resource pages — browse + search the full back-catalog** _(built)._
-  Each podcast resource page now shows *every* episode (Load More pagination), not just
-  the recent handful, plus a show-scoped search box on larger catalogs and a Newest/Oldest
-  sort toggle. Feeds off the existing Supabase episode archive; the live RSS "Recent
-  Episodes" stays on top for freshness; the first page is server-rendered for SEO. Podcasts
-  only for now. Full spec + harvest-coverage findings in
-  **`docs/all-episodes-pagination-spec.md`**. On branch
-  `claude/resource-episode-pagination-mf29w5`.
-- **Home page → carousel layout** (see "Primary layout" under the home-page theme) —
-  vertical feed of horizontal category carousels (Netflix/Spotify-style), responsive.
-  Open decision: show cards vs episode cards. A meaningful design-north-star shift.
-- **Delete profile / account.** Let users delete their own account from their profile.
-  Must **cascade-delete** all their data (profile, bookmarks, later listening/CE history),
-  not just the login. Privacy / "right to be forgotten" expectation. Supabase; branch + PR.
-- **About page — "Who's behind this" team section.** Two profiles: Andrei
-  (Founder / Endodontist) and **DMD Yodabot** 🤖, the project's AI teammate (playful
-  persona). Needs Andrei's bio copy. Code change → branch + PR.
-- Home-page quick wins (see "Quick wins" above): Editor's/Andrei's Pick,
-  Trending this week, Clinical pearl, Dynamic hero.
-- **Manage Editor's Picks from the backend.** Add an "Editor's Pick" flag on resources
-  (Airtable field) + a toggle in the existing admin panel, so Andrei can promote/demote
-  picks anytime without code changes. Feeds the home-page Editor's/Andrei's Pick module.
-- **Admin "Members" view — know who your users are.** A backend view of registered/
-  signed-in members from Supabase (`profiles`): email, join date, NPI/verified status,
-  total count. Distinct from Google Analytics (anonymous traffic); this is *identified*
-  members. Code change → branch + PR.
-- **"Approve all" button on the review queue.** Bulk-approve every pending submission at
-  once on the admin submissions/review page, instead of one at a time.
-- **"Remove duplicates" feature in the admin portal.** Detect and remove duplicate
-  resources (e.g. same URL/title) from the admin panel.
-- **Fix the change-password option** (BUG). The admin change-password feature
-  (`pages/api/admin/change-password.js`) currently doesn't work — needs diagnosis + fix.
-- **Share button on resources (incl. share-to-socials from the resource page).** A share
-  control on each resource card AND prominently on each resource's own page
-  (`pages/resource/[id].js`). Uses the phone's native share sheet on mobile (texts, X,
-  LinkedIn, WhatsApp, etc.) plus **explicit share-to-social buttons** (X, Facebook,
-  LinkedIn, email) and a "copy link" fallback on desktop. Links point to the per-resource
-  page with Open Graph meta tags so shared links show the resource's name/logo when pasted
-  into social or messages. Good for organic growth.
-- Refine the UI toward the magazine aesthetic (white background, strong typography,
-  minimal decoration — away from anything spreadsheet/card-grid-like).
-- Build out dental software rankings as a dedicated pillar.
+- **Consolidation / polish & QA pass (RECOMMENDED NEXT).** A lot shipped fast across
+  parallel sessions — do a deliberate cohesion + end-to-end verification pass on the
+  flagship flows (player → CE certificate, claim-a-profile, pinboard, onboarding quiz)
+  before adding more features.
+- **Refine the UI / reconcile the design north star.** The new carousel/card home page is a
+  real departure from the "magazine, no card grids" aesthetic in CLAUDE.md — make it a
+  conscious, cohesive look and update CLAUDE.md's design section to match reality.
+- **Remaining home-page quick wins:** Trending this week, Clinical pearl of the day, Dynamic
+  hero. (Editor's/Andrei's Pick is ✅ built.)
+- **Dental software rankings** as a dedicated pillar.
+- **YouTube recency feed** (parallel to the podcast Episode Archive) so the Recency Score is
+  fair to video creators. `pages/api/youtube-stats.js` exists as a starting point.
+- **Verify admin change-password.** The handler is implemented but rotates the Vercel env var
+  via a `VERCEL_TOKEN`; confirm that token is set in Vercel (otherwise it errors) — a config
+  check, not a rebuild.
 
 ## 💡 Later / Ideas (someday, unprioritized)
 
-- **Episode Archive — searchable episode database** (see theme above) —
-  phased: (A) Supabase archive + harvester + fast search ✅ _done for podcasts_ →
-  (B) goal-based episode recommendations → (C) AI/semantic discovery. Foundation for
-  episode-level features.
-- **YouTube recency feed (parallel to the Episode Archive).** Episode Archive covers
-  podcasts only; YouTube creators have no equivalent recency data. Build a parallel feed
-  of each channel's recent uploads/dates (YouTube Data API; `pages/api/youtube-stats.js`
-  already exists) so the Recency Score works fairly for video creators too. Needed for the
-  "active creators rise on real output" approach in Claim Your Profile.
-- **Channels + personalized onboarding system** (see "The big idea" above) —
-  tagging foundation → channels → onboarding quiz.
-- **"Why should you listen?" outcome-driven recommendations** (see theme above) —
-  builds on the same tagging foundation; brainstorm/finalize the reasons taxonomy.
-- **Claim Your Profile — owner-curated resource pages** (see theme above) — manual
-  approval by Andrei; strict editorial-integrity firewall (owner content in Supabase,
-  scoring stays in Airtable). Phased: claim+basics → rich profile → creator value loop.
-- **Car-friendly layout** for the in-car ("Tesla") experience — the embedded player is built
-  and bookmarks sync across devices; remaining work is a responsive layout optimised for
-  in-car screens.
-- ✅ **CE Tracking & Certificates** — built (`pages/my-listening.js` + `pages/ce-report.js`).
-  Self-study documentation tool; future: optional quiz per episode, accreditation exploration.
 - **Native mobile apps (iOS + Android) with CarPlay / Android Auto** (see theme above) —
   the flagship in-car listen-and-earn-CE experience. Biggest bet on the roadmap; reuses the
-  Supabase backend; build cross-platform (React Native/Expo); sequence after web foundations.
-- **Community Home Page — trace left by the last visitor** (see theme above) — ✅ _Thumbtack
-  Pinboard built._ Still to do: the **dental-word fridge-magnet board**. Safety via constrained
-  input + sign-in + moderation.
-- Extend the user-account system toward **voting**
-  (now built on Supabase/Google sign-in → add NPI-verified voting).
-- Bayesian vote confidence adjustment to prevent score gaming.
+  Supabase backend; build cross-platform (React Native/Expo).
+- **Car-friendly in-car layout** — a responsive layout tuned for car browser screens (the
+  player and bookmarks already sync across devices).
+- **NPI-verified voting.** Basic voting/rating is built; add NPI verification so votes carry
+  a verified-dentist weight. Later: Bayesian vote-confidence adjustment to prevent gaming.
+- **Episode recommendations / AI discovery (Episode Archive phases B–C)** — goal-based
+  episode matching and semantic search, building on the podcast archive already live.
+- **Channels (revisit).** The onboarding quiz + carousels/personal feed may already cover
+  this in practice; revisit only if a distinct "curated channel" concept is still wanted.
 
 ## ✅ Done
 
-- **CE Tracking & Certificates** — listening progress tracked at ≥80% played; "My Listening"
-  log (`pages/my-listening.js`) and CE report/certificate (`pages/ce-report.js`). Self-study
-  documentation tool with honest disclaimer; `listening_progress` table in Supabase.
-- **Embedded audio player** — in-browser player (`components/PlayerBar.js`) with persistent
-  playback across page navigation. Powers the listening-tracking and CE features.
-- **Thumbtack Pinboard** — community "pin-a-resource" feature on the home page. Signed-in users
-  pin any resource; the home page shows who pinned what until the next person re-pins. Backed by
-  `pins` table in Supabase; `components/Pinboard.js` + `components/PinButton.js`.
-- **Google Analytics 4** tracking (`G-NHEQGSKG9D`) wired into `_app.js` via
-  `next/script`. _(PR #5, merged)_
-- **Login-required bookmarks** (Google sign-in + Supabase) — bookmark resources,
-  Saved page, profile, and a "new from your bookmarks" episode feed. _(PR #2)_
-- **User accounts foundation** via Supabase + Google OAuth (with NPI badge hook). _(PR #2)_
-- Resource submission modal with Turnstile CAPTCHA and AI parsing.
-- Pediatric Dentistry specialty added across the site.
+_Reconciled 2026 against the live codebase — many items below were built by parallel
+sessions faster than this doc was updated._
+
+**Discovery & content**
+- **Carousel home page** — vertical feed of horizontal category carousels
+  (`components/Carousel.js`, `DiscoverFeed.js`, `PersonalFeed.js`, `home-feed`/`home-layout`).
+- **Episode Archive (Phase A, podcasts)** — Supabase `episodes` cache + daily harvester cron
+  + full-text search (`lib/harvester.js`, `/api/cron/harvest-episodes`, `/api/episode-search`).
+- **"All Episodes" on resource pages** — browse/search a show's full back-catalog with pagination.
+- **Onboarding quiz** — first-run specialty/career/goals quiz (`OnboardingModal`, quiz tables,
+  admin quiz-options), feeding the personalized feed.
+- **Editor's / Featured Picks (backend-managed)** — admin `featured` control + `FeaturedCards`.
+
+**Accounts & user features**
+- **User accounts** — Supabase + Google OAuth (NPI badge hook). _(PR #2)_
+- **Bookmarks** — resource bookmarks + Saved page + "new from your bookmarks" feed _(PR #2)_;
+  plus **episode-level bookmarks** (`episode_bookmarks`).
+- **Delete account** — self-serve, cascade-deletes user data (`/api/delete-account`, wired into
+  the profile page). **Privacy & Terms pages** added.
+- **Embedded audio player** — persistent in-browser player (`components/PlayerBar.js`).
+- **CE Tracking & Certificates** — ≥80%-played tracking, "My Listening" log
+  (`pages/my-listening.js`) + CE report/certificate (`pages/ce-report.js`); self-study
+  documentation tool with disclaimer; `listening_progress` table.
+- **Voting / rating** — `RateButton` + votes system (`lib/votes-context`). _(NPI-weighting still to come.)_
+- **Share button** — on resource and episode pages (`components/ShareButton.js`).
+
+**Community & creators**
+- **Thumbtack Pinboard** — community pin-a-resource (and pin-an-episode) board on the home page
+  (`pins` table, `components/Pinboard.js` + `PinButton.js`).
+- **Claim Your Profile** — owners claim + curate their listing (manual approval), with the
+  editorial-integrity firewall (owner content in Supabase, scoring untouched). Creator pages
+  (`/creator/[id]`, `/my-resources`), admin Claims tab, `resource_claims`/`resource_owner_content`.
+- **Reports / moderation** — report button + admin reports queue (`resource_reports`).
+
+**Scoring & admin**
+- **YODA_Bot AI scoring engine** — automated composite scoring with an AI judge + nightly
+  recompute crons + score rationale shown to owners (`lib/score-engine`, `score-judge`,
+  `/api/cron/judge-scores`, `recompute-scores`, `scoring_runs`).
+- **Admin tools** — submissions review + **Approve-all**, **Remove-duplicates** (`dedupes`),
+  **Members view** (`users`), claims/edit-proposals, tagging, scoring status.
+- **Google Analytics 4** (`G-NHEQGSKG9D`) via `next/script`. _(PR #5)_
+- Resource submission modal (Turnstile CAPTCHA + AI parsing); Pediatric Dentistry specialty.
+
+## ✂️ Cut / Parked (decided against or deferred)
+
+- ✂️ **CUT — CE quiz per episode & CE accreditation.** Not pursuing; CE stays a self-study
+  documentation tool.
+- ✂️ **CUT — Dental-word fridge-magnet board.** The Pinboard already delivers the community
+  magic; the magnet board is dropped.
+- ⏸️ **PARKED — "Why should you listen?" (user-facing outcome recommendations).** Foundation
+  (episode tagging + onboarding quiz + goals data) is already built, so finishing is cheap —
+  revisit before deleting rather than throwing the groundwork away.
