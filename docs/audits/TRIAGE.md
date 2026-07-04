@@ -8,6 +8,27 @@ them. Findings reported by two auditors independently are marked ⭐ (higher con
 
 ---
 
+## ✅ Shipped 2026-07-04 (merged to main)
+
+- **PR-1 (#75):** admin session cookie now HMAC-signed + expiry-checked; `/api/admin/featured`
+  requires admin auth + input sanitized; **migration 0017** locks `profiles` to owner-only reads.
+- **PR-2 (#77):** account deletion is now complete server-side + honest client-side (only signs
+  out on confirmed success); community/recency score queries paginated (no 1000-row truncation).
+- **PR-3 (#76):** stale resource-page state fixed (key by `record.id`); "sample data" banner on
+  demo fallback; change-password auto-redeploy fixed (real repoId + branch).
+
+**⚠️ Post-merge actions still required:**
+1. **Apply migration `0017_profiles_owner_read.sql` to Supabase** — the PII fix does NOT take
+   effect until the migration runs against the live DB (merging code alone doesn't apply it).
+2. **Re-log into the admin panel** after deploy (old unsigned cookies are now rejected).
+3. (Optional) set `ADMIN_SESSION_SECRET` in Vercel for defense-in-depth.
+
+**Still open** (deferred — need the Supabase connection or more design): harvester CE-history
+deletion (PR-2 remainder), `upsert-episode` hardening, AI-judge prompt-injection, CE-hours
+server-side check, frontend mobile/a11y (PR-3 remainder), PR-4 hardening.
+
+---
+
 ## 🔴 PR-1 — Critical security (exploitable now, low-risk fixes)
 
 - [ ] **Admin auth is forgeable** ⭐ (security #1, ai-bots C1). `lib/admin-auth.js` only

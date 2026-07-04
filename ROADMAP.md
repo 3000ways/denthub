@@ -383,11 +383,13 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 ## 🔨 Now (actively working on / next up)
 
-- **🔧 Harden & Fix — from the 2026-07-04 audits.** Four full audits (security, backend,
-  AI bots, frontend) found several exploitable/critical issues. Master action list +
-  batching plan in **`docs/audits/TRIAGE.md`**. Fixing in PRs: PR-1 critical security →
-  PR-2 data integrity → PR-3 frontend → PR-4 hardening. **This jumps ahead of new features.**
-  ⚠️ Until PR-2 ships, do NOT unpublish/merge podcasts in Airtable (harvester can delete CE data).
+- **🔧 Harden & Fix — from the 2026-07-04 audits.** Four full audits found several
+  exploitable/critical issues. Master list + status in **`docs/audits/TRIAGE.md`**.
+  **Shipped:** PR-1 (#75) critical security, PR-2 (#77) data integrity, PR-3 (#76) frontend
+  criticals — merged 2026-07-04. **Post-merge TODO:** apply migration 0017 to Supabase +
+  re-login to admin. **Still open:** harvester CE-deletion, upsert-episode, AI-judge injection,
+  CE server-side check, mobile/a11y, PR-4 hardening.
+  ⚠️ Until the harvester fix ships, do NOT unpublish/merge podcasts in Airtable (can delete CE data).
 - Continue populating resources across remaining categories and themes.
 
 ## 📋 Next (planned, not started)
