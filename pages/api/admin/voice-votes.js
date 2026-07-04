@@ -19,7 +19,7 @@ async function fetchResourceMeta(ids) {
     const chunk = ids.slice(i, i + 40);
     const formula = `OR(${chunk.map(id => `RECORD_ID()='${id}'`).join(',')})`;
     const params = new URLSearchParams({ filterByFormula: formula, pageSize: '100' });
-    ['Name', 'Type', 'Voice Type', 'Voice Status'].forEach(f => params.append('fields[]', f));
+    ['Name', 'Type', 'Voice Type', 'Voice Status', 'Voice Note'].forEach(f => params.append('fields[]', f));
     try {
       const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
         headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
@@ -32,11 +32,44 @@ async function fetchResourceMeta(ids) {
             type: rec.fields.Type || '',
             voiceType: rec.fields['Voice Type'] || '',
             voiceStatus: rec.fields['Voice Status'] || '',
+            voiceNote: rec.fields['Voice Note'] || '',
           };
         }
       }
     } catch { /* best-effort enrichment */ }
   }
+  return out;
+}
+
+// Shows already flagged in Airtable (Voice Status set) — so bot "Suspected"
+// pre-classifications and past confirmations show in the tab even with no votes.
+async function fetchFlaggedShows() {
+  const out = [];
+  if (!process.env.AIRTABLE_PAT) return out;
+  let offset;
+  do {
+    const params = new URLSearchParams({ pageSize: '100', filterByFormula: `{Voice Status}!=''` });
+    ['Name', 'Type', 'Voice Type', 'Voice Status', 'Voice Note'].forEach(f => params.append('fields[]', f));
+    if (offset) params.set('offset', offset);
+    try {
+      const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
+        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
+      });
+      if (!r.ok) break;
+      const data = await r.json();
+      for (const rec of data.records || []) {
+        out.push({
+          id: rec.id,
+          name: rec.fields.Name || '(untitled)',
+          type: rec.fields.Type || '',
+          voiceType: rec.fields['Voice Type'] || '',
+          voiceStatus: rec.fields['Voice Status'] || '',
+          voiceNote: rec.fields['Voice Note'] || '',
+        });
+      }
+      offset = data.offset;
+    } catch { break; }
+  } while (offset);
   return out;
 }
 
@@ -94,23 +127,40 @@ export default async function handler(req, res) {
 
     const list = [...groups.values()];
 
-    // Enrich shows with name + current voice fields.
+    // Enrich shows with name + current voice fields, and fold in shows that are
+    // already flagged in Airtable (bot-suspected or confirmed) but have no votes.
     const resourceIds = [...new Set(list.filter(g => g.resourceId).map(g => g.resourceId))];
-    const meta = await fetchResourceMeta(resourceIds);
+    const [meta, flagged] = await Promise.all([fetchResourceMeta(resourceIds), fetchFlaggedShows()]);
+
     for (const g of list) {
       const m = g.resourceId ? meta[g.resourceId] : null;
       g.title = m?.name || (g.resourceId || `Episode #${g.episodeId}`);
       g.type = m?.type || '';
       g.voiceType = m?.voiceType || '';
       g.voiceStatus = m?.voiceStatus || '';
+      g.voiceNote = m?.voiceNote || '';
       g.link = g.resourceId ? `/resource/${g.resourceId}` : `/episode/${g.episodeId}`;
-      // AI share among decisive (ai+human) votes — the signal strength.
       const decisive = g.ai + g.human;
       g.aiShare = decisive ? g.ai / decisive : 0;
     }
 
-    // Most AI-leaning and most-voted first — the ones worth a look.
-    list.sort((a, b) => (b.aiShare - a.aiShare) || (b.total - a.total) || b.lastVotedAt.localeCompare(a.lastVotedAt));
+    // Add flagged-but-unvoted shows as zero-vote rows.
+    const present = new Set(list.filter(g => g.resourceId).map(g => g.resourceId));
+    for (const s of flagged) {
+      if (present.has(s.id)) continue;
+      list.push({
+        key: `r:${s.id}`, resourceId: s.id, episodeId: null,
+        ai: 0, human: 0, unsure: 0, total: 0, lastVotedAt: '',
+        title: s.name, type: s.type, voiceType: s.voiceType, voiceStatus: s.voiceStatus,
+        voiceNote: s.voiceNote, link: `/resource/${s.id}`, aiShare: 0,
+      });
+    }
+
+    // Bot-suspected / flagged first, then most AI-leaning, then most-voted.
+    const rank = (g) => (g.voiceStatus === 'Suspected' ? 2 : g.voiceStatus === 'Confirmed' ? 1 : 0);
+    list.sort((a, b) =>
+      (rank(b) - rank(a)) || (b.aiShare - a.aiShare) || (b.total - a.total) ||
+      (b.lastVotedAt || '').localeCompare(a.lastVotedAt || ''));
 
     return res.status(200).json({ groups: list, total: (rows || []).length });
   } catch (e) {

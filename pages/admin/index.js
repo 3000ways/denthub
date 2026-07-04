@@ -3153,6 +3153,9 @@ function VoiceVotesTab() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanProg, setScanProg] = useState({ done: 0, total: 0 });
+  const [scanMsg, setScanMsg] = useState('');
 
   async function load() {
     setLoading(true);
@@ -3163,6 +3166,41 @@ function VoiceVotesTab() {
     } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
+
+  // Summon the bot: scan every not-yet-confirmed podcast for AI-voice red flags,
+  // in small batches so each request stays under the serverless cap. Hits are
+  // written as "Suspected" (never Confirmed) and surface in the list below.
+  async function runScan() {
+    if (scanning) return;
+    setScanning(true); setScanMsg('Gathering podcasts…'); setScanProg({ done: 0, total: 0 });
+    try {
+      const gr = await fetch('/api/admin/scan-ai-voices');
+      const gd = await gr.json();
+      if (gd.error) { setScanMsg(`Error: ${gd.error}`); return; }
+      const ids = (Array.isArray(gd.candidates) ? gd.candidates : []).map(c => c.id);
+      if (!ids.length) { setScanMsg('No podcasts to scan (all are confirmed or have no feed).'); return; }
+
+      const BATCH = 4;
+      let scanned = 0, flagged = 0;
+      setScanProg({ done: 0, total: ids.length });
+      for (let i = 0; i < ids.length; i += BATCH) {
+        const chunk = ids.slice(i, i + BATCH);
+        try {
+          const r = await fetch('/api/admin/scan-ai-voices', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: chunk, useAi: true }),
+          });
+          const d = await r.json();
+          for (const res of (d.results || [])) { scanned++; if (res.wrote) flagged++; }
+        } catch { /* skip a failed batch, keep going */ }
+        setScanProg({ done: Math.min(ids.length, i + BATCH), total: ids.length });
+      }
+      setScanMsg(`Scanned ${scanned} podcast${scanned === 1 ? '' : 's'} — flagged ${flagged} new as suspected. Review below.`);
+      await load();
+    } catch (e) {
+      setScanMsg(`Error: ${e.message}`);
+    } finally { setScanning(false); }
+  }
 
   async function setVoice(g, voiceType, voiceStatus) {
     if (!g.resourceId) return;
@@ -3185,18 +3223,39 @@ function VoiceVotesTab() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111', margin: '0 0 4px' }}>AI Voice</h2>
-      <p style={{ fontSize: 13, color: '#888', margin: '0 0 18px', lineHeight: 1.5 }}>
-        Listener votes from the player (&ldquo;Is this an AI voice?&rdquo;), grouped by show and sorted by how
-        AI-leaning they are. These are a <strong>signal only</strong> — set <strong>AI-generated + Confirmed</strong> to
-        turn on the public 🤖 badge, or <strong>Human + Confirmed</strong> to record that it&rsquo;s a real person.
-        Nothing is ever auto-published.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111', margin: '0 0 4px' }}>AI Voice</h2>
+          <p style={{ fontSize: 13, color: '#888', margin: '0 0 14px', lineHeight: 1.5 }}>
+            Listener votes from the player (&ldquo;Is this an AI voice?&rdquo;) plus bot-scanned suspicions, grouped by
+            show. All a <strong>signal only</strong> — set <strong>AI-generated + Confirmed</strong> to turn on the
+            public 🤖 badge, or <strong>Human + Confirmed</strong> to record that it&rsquo;s a real person.
+            Nothing is ever auto-published.
+          </p>
+        </div>
+        <div style={{ flexShrink: 0, textAlign: 'right' }}>
+          <button onClick={runScan} disabled={scanning}
+            style={{ fontSize: 13, fontWeight: 700, fontFamily: FONT, cursor: scanning ? 'default' : 'pointer',
+              padding: '9px 16px', borderRadius: 8, border: 'none', background: scanning ? '#cfcfcf' : GREEN, color: '#fff' }}>
+            {scanning ? `Scanning… ${scanProg.done}/${scanProg.total}` : '🔍 Scan for AI voices'}
+          </button>
+          <div style={{ fontSize: 11, color: '#aaa', marginTop: 6, maxWidth: 220, lineHeight: 1.45 }}>
+            Checks every unconfirmed podcast for red flags (RSS generator, AI wording, cadence) + an AI second opinion. Flags likely ones as <strong>Suspected</strong>.
+          </div>
+        </div>
+      </div>
+
+      {scanMsg && (
+        <div style={{ fontSize: 12.5, color: '#374151', background: '#f0f7f4', border: `1px solid ${BORDER}`,
+          borderRadius: 8, padding: '9px 12px', margin: '0 0 16px' }}>
+          {scanMsg}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ fontSize: 13, color: '#999' }}>Loading…</div>
       ) : groups.length === 0 ? (
-        <div style={{ fontSize: 13, color: '#999' }}>No listener votes yet.</div>
+        <div style={{ fontSize: 13, color: '#999' }}>No votes or flags yet. Hit <strong>Scan for AI voices</strong> to have the bot look for AI-narrated shows.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {groups.map(g => {
@@ -3220,16 +3279,28 @@ function VoiceVotesTab() {
                         </span>
                       )}
                     </div>
-                    {/* tally bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <div style={{ flex: 1, maxWidth: 260, height: 8, background: '#e8f5f0', borderRadius: 5, overflow: 'hidden', display: 'flex' }}>
-                        <div style={{ width: `${pct}%`, background: '#d97706' }} />
+                    {/* tally bar — only meaningful once there are votes */}
+                    {g.total > 0 ? (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                          <div style={{ flex: 1, maxWidth: 260, height: 8, background: '#e8f5f0', borderRadius: 5, overflow: 'hidden', display: 'flex' }}>
+                            <div style={{ width: `${pct}%`, background: '#d97706' }} />
+                          </div>
+                          <span style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>{pct}% AI</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#777' }}>
+                          🤖 {g.ai} AI · 👤 {g.human} human · 🤷 {g.unsure} not sure · {g.total} total
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#999', fontStyle: 'italic' }}>No listener votes yet.</div>
+                    )}
+                    {g.voiceNote && (
+                      <div style={{ fontSize: 11.5, color: '#6b7280', whiteSpace: 'pre-wrap', lineHeight: 1.5,
+                        background: '#fafaf8', border: `1px solid ${BORDER}`, borderRadius: 7, padding: '8px 10px', marginTop: 8 }}>
+                        {g.voiceNote}
                       </div>
-                      <span style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>{pct}% AI</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#777' }}>
-                      🤖 {g.ai} AI · 👤 {g.human} human · 🤷 {g.unsure} not sure · {g.total} total
-                    </div>
+                    )}
                   </div>
                   {g.resourceId && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', flexShrink: 0, width: 168 }}>

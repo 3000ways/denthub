@@ -317,13 +317,16 @@ reuse the report queue and YODA_Bot's existing research pass.
 **Phasing:** (1) report reason + manual Andrei flag + badge → (2) bot heuristic "suspected"
 pre-classification with human confirm → (3) optional audio analysis.
 
-**Status (2026):** ✅ **Phase 1 built.** Two Airtable fields (`Voice Type`: Human / AI-generated /
+**Status (2026):** ✅ **Phases 1 & 2 built.** Two Airtable fields (`Voice Type`: Human / AI-generated /
 Mixed; `Voice Status`: Suspected / Confirmed) hold the editorial record; a `🤖 AI voice` badge
 shows on the resource page + cards **only when Confirmed** (false-positive firewall via
-`lib/voice.js`); an `ai_voice` reason feeds the report queue as a signal; Andrei confirms in the
-admin All Resources editor. Plus a listener **"Hide AI-narrated podcasts"** global toggle
-(disclose-only, no score impact — as recommended). See CLAUDE.md → "AI Voice disclosure".
-**Still to do:** Phase 2 (YODA_Bot "suspected" heuristic pre-pass) and Phase 3 (audio analysis).
+`lib/voice.js`); Andrei confirms in the admin **AI Voice** tab or the All Resources editor.
+**Phase 1 signals:** an `ai_voice` report reason + a player **crowd-vote** ("Is this an AI voice?"
+→ AI / Human / Not sure, `voice_votes`). **Phase 2 signal:** a **🔍 Scan for AI voices** bot
+(`/api/admin/scan-ai-voices` + `lib/voice-detect.js`) that heuristically flags shows as *Suspected*
+(RSS generator, AI wording, cadence) with a Perplexity second opinion — never Confirmed. Plus a
+listener **"Hide AI-narrated podcasts"** global toggle (disclose-only, no score impact). See
+CLAUDE.md → "AI Voice disclosure". **Still to do:** Phase 3 (audio analysis).
 
 ## 🧲 Big Theme: Community Home Page — a trace left by the last visitor
 
@@ -428,9 +431,9 @@ user-accounts backend — the phased auth/voting work below now builds on it.
   player and bookmarks already sync across devices).
 - **NPI-verified voting.** Basic voting/rating is built; add NPI verification so votes carry
   a verified-dentist weight. Later: Bayesian vote-confidence adjustment to prevent gaming.
-- **"AI Voice" disclosure badge** (see theme above) — ✅ **Phase 1 built** (badge + report
-  reason + admin confirm + listener hide-toggle, all human-gated, disclose-only). Remaining:
-  Phase 2 YODA_Bot "suspected" heuristic pre-pass, Phase 3 audio analysis.
+- **"AI Voice" disclosure badge** (see theme above) — ✅ **Phases 1 & 2 built** (badge + report
+  reason + player crowd-vote + bot heuristic scan + admin confirm + listener hide-toggle, all
+  human-gated, disclose-only). Remaining: Phase 3 audio analysis.
 - **Episode recommendations / AI discovery (Episode Archive phases B–C)** — goal-based
   episode matching and semantic search, building on the podcast archive already live.
 - **Channels (revisit).** The onboarding quiz + carousels/personal feed may already cover
