@@ -96,6 +96,8 @@ export default async function handler(req, res) {
     }
 
     // Pass 2: exact name match (after normalization)
+    // Skip pairs with different Types — same name, different format (e.g. a podcast
+    // and a YouTube channel) are different resources, not duplicates.
     const byName = new Map();
     for (const r of records) {
       const name = normalizeName(r.fields['Name']);
@@ -105,19 +107,33 @@ export default async function handler(req, res) {
     }
     for (const [name, recs] of byName) {
       if (recs.length < 2) continue;
-      const key = recs.map(r => r.id).sort().join('|');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      groups.push({ reason: 'Same name', matchValue: name, records: recs });
+      // Group by type so we only compare same-type records
+      const byType = new Map();
+      for (const r of recs) {
+        const t = r.fields['Type'] || '';
+        if (!byType.has(t)) byType.set(t, []);
+        byType.get(t).push(r);
+      }
+      for (const [, sameTypeRecs] of byType) {
+        if (sameTypeRecs.length < 2) continue;
+        const key = sameTypeRecs.map(r => r.id).sort().join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        groups.push({ reason: 'Same name', matchValue: name, records: sameTypeRecs });
+      }
     }
 
     // Pass 3: fuzzy name match — catches e.g. "Thriving Dentist Show" vs
     // "Thriving Dentist Show (Student & New Dentist Content)"
+    // Also skips pairs with different Types for the same reason as Pass 2.
     for (let i = 0; i < records.length; i++) {
       for (let j = i + 1; j < records.length; j++) {
         const nameA = records[i].fields['Name'];
         const nameB = records[j].fields['Name'];
         if (!nameA || !nameB) continue;
+        const typeA = records[i].fields['Type'] || '';
+        const typeB = records[j].fields['Type'] || '';
+        if (typeA && typeB && typeA !== typeB) continue;
         if (!fuzzyMatchNames(nameA, nameB)) continue;
         const key = [records[i].id, records[j].id].sort().join('|');
         if (seen.has(key)) continue;
