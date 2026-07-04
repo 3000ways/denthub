@@ -385,11 +385,12 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 
 - **🔧 Harden & Fix — from the 2026-07-04 audits.** Four full audits found several
   exploitable/critical issues. Master list + status in **`docs/audits/TRIAGE.md`**.
-  **Shipped:** PR-1 (#75) critical security, PR-2 (#77) data integrity, PR-3 (#76) frontend
-  criticals — merged 2026-07-04. Migration 0017 (profiles PII) applied ✅. **Post-merge TODO:**
-  re-login to admin. **Still open:** harvester CE-deletion, upsert-episode, AI-judge injection,
-  CE server-side check, mobile/a11y, PR-4 hardening.
-  ⚠️ Until the harvester fix ships, do NOT unpublish/merge podcasts in Airtable (can delete CE data).
+  **Shipped (8 PRs, merged 2026-07-04):** critical security (#75), data integrity (#77),
+  frontend criticals (#76), harvester CE-protection (#78), AI-judge injection hardening (#79),
+  security hardening (#80), mobile/a11y (#81), Next.js security upgrade (#82). Migration 0017
+  (profiles PII) applied ✅. **Still open:** upsert-episode hardening, CE-hours server-side check,
+  a11y sweep (card rows + dropdown), SSRF/cron-secret nits, and two DB verifications (Final Score
+  formula, votes/comments cascade). Both Criticals + all Highs are closed.
 - Continue populating resources across remaining categories and themes.
 
 ## 📋 Next (planned, not started)
