@@ -27,11 +27,29 @@ function sanitizeBlocks(blocks, audience) {
     if (!blockAvailableFor(b.key, audience)) continue; // wrong audience
     if (seen.has(b.key)) continue;                  // dedupe
     seen.add(b.key);
-    // Only persist known settings. Today that's `heading` (a custom visitor-facing
-    // title) — trimmed and length-capped; blank means "use the block's default".
+    // Only persist known settings, per block:
+    //  - `heading`  (renamable blocks): a custom visitor-facing title, trimmed +
+    //    length-capped; blank means "use the block's default".
+    //  - `hidden` / `counts`  (Discover): which quiz-option tags to omit, and how
+    //    many rows per kind to show (0–12); absent means the built-in defaults.
+    const src = b.settings && typeof b.settings === 'object' ? b.settings : {};
     const settings = {};
-    const rawHeading = b.settings && typeof b.settings.heading === 'string' ? b.settings.heading.trim().slice(0, 80) : '';
+    const rawHeading = typeof src.heading === 'string' ? src.heading.trim().slice(0, 80) : '';
     if (rawHeading) settings.heading = rawHeading;
+    if (b.key === 'discover') {
+      if (Array.isArray(src.hidden)) {
+        const hidden = [...new Set(src.hidden.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim()))];
+        if (hidden.length) settings.hidden = hidden;
+      }
+      if (src.counts && typeof src.counts === 'object') {
+        const counts = {};
+        ['goal', 'interest', 'career'].forEach(k => {
+          const n = parseInt(src.counts[k], 10);
+          if (Number.isFinite(n)) counts[k] = Math.max(0, Math.min(12, n));
+        });
+        if (Object.keys(counts).length) settings.counts = counts;
+      }
+    }
     clean.push({ key: b.key, on: b.on !== false, settings });
   }
   return clean;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable } from '../../lib/home-layout';
+import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable, DISCOVER_DEFAULT_COUNTS, DISCOVER_KINDS } from '../../lib/home-layout';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -2539,15 +2539,28 @@ function HomeLayoutTab() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [quizOpts, setQuizOpts] = useState(null); // Discover's eligible tags, grouped by kind
+  const [expanded, setExpanded] = useState({});   // which block rows are expanded (e.g. Discover)
 
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch('/api/admin/home-layout');
+      const [r, qr] = await Promise.all([
+        fetch('/api/admin/home-layout'),
+        fetch('/api/admin/quiz-options'),
+      ]);
       const d = await r.json();
       if (d.error) { setMsg(d.error); return; }
       setStore(d);
       setDraft({ logged_out: clone(d.logged_out.draft), logged_in: clone(d.logged_in.draft) });
+      // Group the active quiz options into Discover's three kinds.
+      const qd = await qr.json();
+      const grouped = { goal: [], interest: [], career: [] };
+      (qd.options || []).filter(o => o.active).forEach(o => {
+        const kind = DISCOVER_KINDS.find(k => k.quizKey === o.question_key);
+        if (kind) grouped[kind.kind].push(o.label);
+      });
+      setQuizOpts(grouped);
     } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -2573,6 +2586,27 @@ function HomeLayoutTab() {
       if (k !== i) return b;
       const settings = { ...(b.settings || {}) };
       if (value.trim()) settings.heading = value; else delete settings.heading;
+      return { ...b, settings };
+    }));
+  }
+  // Discover: toggle whether a single tag (row) appears; and set how many rows
+  // of a kind to show. Both live in the block's settings.
+  function toggleDiscoverTag(i, tag) {
+    setRows(rows.map((b, k) => {
+      if (k !== i) return b;
+      const cur = new Set((b.settings && b.settings.hidden) || []);
+      if (cur.has(tag)) cur.delete(tag); else cur.add(tag);
+      const settings = { ...(b.settings || {}) };
+      if (cur.size) settings.hidden = [...cur]; else delete settings.hidden;
+      return { ...b, settings };
+    }));
+  }
+  function setDiscoverCount(i, kind, value) {
+    const n = Math.max(0, Math.min(12, parseInt(value, 10) || 0));
+    setRows(rows.map((b, k) => {
+      if (k !== i) return b;
+      const settings = { ...(b.settings || {}) };
+      settings.counts = { ...(settings.counts || {}), [kind]: n };
       return { ...b, settings };
     }));
   }
@@ -2644,7 +2678,7 @@ function HomeLayoutTab() {
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Home Layout</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 18, lineHeight: 1.6 }}>
-        Arrange the home page for each audience — reorder with the arrows, switch rows on or off, add or remove sections, and rename what visitors see via the &ldquo;Shows as&rdquo; box (blank = the built-in title). Changes stay in your private <strong>draft</strong> until you hit <strong>Publish</strong>, which puts them live. Signed-out and signed-in homes are edited independently.
+        Arrange the home page for each audience — reorder with the arrows, switch rows on or off, add or remove sections, and rename what visitors see via the &ldquo;Shows as&rdquo; box (blank = the built-in title). The <strong>Discover</strong> section holds many rows: use &ldquo;Choose which rows show&rdquo; to uncheck ones you don&rsquo;t want and cap how many appear. Changes stay in your private <strong>draft</strong> until you hit <strong>Publish</strong>. Signed-out and signed-in homes are edited independently.
       </p>
 
       {/* Audience switcher */}
@@ -2682,39 +2716,49 @@ function HomeLayoutTab() {
         {rows.map((b, i) => {
           const meta = BLOCK_META[b.key] || { name: b.key, type: 'chrome' };
           const chip = TYPE_CHIP[meta.type] || TYPE_CHIP.chrome;
+          const isDiscover = b.key === 'discover';
+          const open = !!expanded[b.key];
           return (
-            <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-              borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, background: b.on ? '#fff' : '#fafafa', opacity: b.on ? 1 : 0.6 }}>
-              {/* Reorder */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <button onClick={() => move(i, -1)} disabled={i === 0} title="Move up"
-                  style={arrowBtn(i === 0)}>▲</button>
-                <button onClick={() => move(i, 1)} disabled={i === rows.length - 1} title="Move down"
-                  style={arrowBtn(i === rows.length - 1)}>▼</button>
+            <div key={b.key} style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, background: b.on ? '#fff' : '#fafafa' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', opacity: b.on ? 1 : 0.6 }}>
+                {/* Reorder */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <button onClick={() => move(i, -1)} disabled={i === 0} title="Move up"
+                    style={arrowBtn(i === 0)}>▲</button>
+                  <button onClick={() => move(i, 1)} disabled={i === rows.length - 1} title="Move down"
+                    style={arrowBtn(i === rows.length - 1)}>▼</button>
+                </div>
+                {/* Name + type + (for titled blocks) an editable visitor heading */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#111', textDecoration: b.on ? 'none' : 'line-through' }}>{meta.name}</div>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                    color: chip.fg, background: chip.bg, padding: '1px 6px', borderRadius: 4 }}>{meta.type}</span>
+                  {isRenamable(b.key) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}>
+                      <span style={{ fontSize: 10, color: '#bbb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>Shows as</span>
+                      <input value={(b.settings && b.settings.heading) || ''} onChange={e => setHeading(i, e.target.value)}
+                        placeholder={meta.heading} title="The heading visitors see above this section. Leave blank to use the default."
+                        style={{ flex: 1, maxWidth: 240, fontSize: 12, padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 5, fontFamily: FONT, color: '#333', background: '#fff' }} />
+                    </div>
+                  )}
+                  {isDiscover && (
+                    <button onClick={() => setExpanded(prev => ({ ...prev, [b.key]: !prev[b.key] }))}
+                      style={{ marginTop: 7, fontSize: 11.5, fontWeight: 600, color: GREEN, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FONT }}>
+                      {open ? '▾ Hide rows' : '▸ Choose which rows show'}
+                    </button>
+                  )}
+                </div>
+                {/* On/off */}
+                <button onClick={() => toggle(i)} title={b.on ? 'Turn off' : 'Turn on'}
+                  style={{ fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', fontFamily: FONT,
+                    border: `1px solid ${b.on ? GREEN : BORDER}`, background: b.on ? '#e8f5f0' : '#fff', color: b.on ? GREEN : '#999' }}>
+                  {b.on ? 'On' : 'Off'}
+                </button>
+                {/* Remove */}
+                <button onClick={() => remove(i)} title="Remove section"
+                  style={{ fontSize: 16, lineHeight: 1, padding: '4px 8px', border: 'none', background: 'none', color: '#c9c9c9', cursor: 'pointer' }}>×</button>
               </div>
-              {/* Name + type + (for titled blocks) an editable visitor heading */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#111', textDecoration: b.on ? 'none' : 'line-through' }}>{meta.name}</div>
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                  color: chip.fg, background: chip.bg, padding: '1px 6px', borderRadius: 4 }}>{meta.type}</span>
-                {isRenamable(b.key) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}>
-                    <span style={{ fontSize: 10, color: '#bbb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>Shows as</span>
-                    <input value={(b.settings && b.settings.heading) || ''} onChange={e => setHeading(i, e.target.value)}
-                      placeholder={meta.heading} title="The heading visitors see above this section. Leave blank to use the default."
-                      style={{ flex: 1, maxWidth: 240, fontSize: 12, padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 5, fontFamily: FONT, color: '#333', background: '#fff' }} />
-                  </div>
-                )}
-              </div>
-              {/* On/off */}
-              <button onClick={() => toggle(i)} title={b.on ? 'Turn off' : 'Turn on'}
-                style={{ fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', fontFamily: FONT,
-                  border: `1px solid ${b.on ? GREEN : BORDER}`, background: b.on ? '#e8f5f0' : '#fff', color: b.on ? GREEN : '#999' }}>
-                {b.on ? 'On' : 'Off'}
-              </button>
-              {/* Remove */}
-              <button onClick={() => remove(i)} title="Remove section"
-                style={{ fontSize: 16, lineHeight: 1, padding: '4px 8px', border: 'none', background: 'none', color: '#c9c9c9', cursor: 'pointer' }}>×</button>
+              {isDiscover && open && <DiscoverRowEditor block={b} index={i} quizOpts={quizOpts} onToggleTag={toggleDiscoverTag} onSetCount={setDiscoverCount} />}
             </div>
           );
         })}
@@ -2762,6 +2806,59 @@ function arrowBtn(disabled) {
   return { fontSize: 9, lineHeight: 1, width: 22, height: 15, padding: 0, borderRadius: 4,
     border: `1px solid ${BORDER}`, background: '#fff', color: disabled ? '#ddd' : '#888',
     cursor: disabled ? 'default' : 'pointer', fontFamily: FONT };
+}
+
+// Expanded editor for the Discover container: for each of its three kinds, a
+// "rows to show" count and a checklist of the eligible tags. Unchecking a tag
+// hides that row; the count caps how many of the checked rows appear (they
+// rotate daily within your picks). Mirrors what visitors actually see.
+function DiscoverRowEditor({ block, index, quizOpts, onToggleTag, onSetCount }) {
+  const hidden = new Set((block.settings && block.settings.hidden) || []);
+  const counts = (block.settings && block.settings.counts) || {};
+  if (!quizOpts) return <div style={{ padding: '10px 14px 16px 44px', fontSize: 12, color: '#aaa' }}>Loading rows…</div>;
+
+  return (
+    <div style={{ padding: '4px 14px 16px 44px', background: '#fbfbfa', borderTop: `1px dashed ${BORDER}` }}>
+      <div style={{ fontSize: 11.5, color: '#999', margin: '10px 0 14px', lineHeight: 1.5 }}>
+        Discover shows a stack of episode rows, one per topic. Uncheck any you don&rsquo;t want, and set how many rows of each kind appear (rows rotate daily within your picks). A topic with too few episodes won&rsquo;t show even if checked.
+      </div>
+      {DISCOVER_KINDS.map(({ kind, label }) => {
+        const tags = (quizOpts[kind] || []);
+        const count = counts[kind] !== undefined ? counts[kind] : DISCOVER_DEFAULT_COUNTS[kind];
+        return (
+          <div key={kind} style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: GREEN, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 11, color: '#999' }}>
+                show
+                <input type="number" min={0} max={12} value={count} onChange={e => onSetCount(index, kind, e.target.value)}
+                  style={{ width: 46, fontSize: 12, padding: '3px 6px', border: `1px solid ${BORDER}`, borderRadius: 5, fontFamily: FONT, textAlign: 'center' }} />
+                rows
+              </span>
+            </div>
+            {tags.length === 0
+              ? <div style={{ fontSize: 12, color: '#bbb' }}>No options yet — add some in the Quiz Questions tab.</div>
+              : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {tags.map(tag => {
+                    const shown = !hidden.has(tag);
+                    return (
+                      <button key={tag} onClick={() => onToggleTag(index, tag)}
+                        title={shown ? 'Showing — click to hide this row' : 'Hidden — click to show this row'}
+                        style={{ fontSize: 12, padding: '5px 11px', borderRadius: 20, cursor: 'pointer', fontFamily: FONT, fontWeight: 500,
+                          border: `1px solid ${shown ? GREEN : BORDER}`, background: shown ? '#e8f5f0' : '#f3f4f6',
+                          color: shown ? GREEN : '#aaa', textDecoration: shown ? 'none' : 'line-through' }}>
+                        {shown ? '✓ ' : ''}{tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ══════════════════════════════════════════

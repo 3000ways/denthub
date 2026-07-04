@@ -9,17 +9,28 @@ const GREEN  = '#0F6E56';
 // carousels (goal-heavy), with a sign-in teaser woven in. Data comes from
 // /api/home-feed (cacheable, rotates daily). Renders nothing until rows arrive,
 // so there's never an empty shell.
-export function DiscoverFeed({ isMobile, signedIn, onSignInRequired }) {
+export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = [], counts = null }) {
   const [rows, setRows] = useState([]);
+
+  // Admin curation (which tags to hide, how many rows per kind) travels to the
+  // feed as query params so it applies live AND in draft preview.
+  const hiddenKey = JSON.stringify(hidden || []);
+  const countsKey = JSON.stringify(counts || {});
 
   useEffect(() => {
     let active = true;
-    fetch('/api/home-feed')
+    const params = new URLSearchParams();
+    const h = JSON.parse(hiddenKey);
+    if (h.length) params.set('hidden', hiddenKey);
+    const c = JSON.parse(countsKey);
+    ['goal', 'interest', 'career'].forEach(k => { if (c[k] !== undefined && c[k] !== null) params.set(k, String(c[k])); });
+    const qs = params.toString();
+    fetch(`/api/home-feed${qs ? `?${qs}` : ''}`)
       .then(r => r.json())
       .then(data => { if (active) setRows(data.rows || []); })
       .catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [hiddenKey, countsKey]);
 
   if (!rows.length) return null;
 
