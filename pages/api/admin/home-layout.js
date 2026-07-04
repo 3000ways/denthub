@@ -36,19 +36,18 @@ function sanitizeBlocks(blocks, audience) {
     const settings = {};
     const rawHeading = typeof src.heading === 'string' ? src.heading.trim().slice(0, 80) : '';
     if (rawHeading) settings.heading = rawHeading;
-    if (b.key === 'discover') {
-      if (Array.isArray(src.hidden)) {
-        const hidden = [...new Set(src.hidden.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim()))];
-        if (hidden.length) settings.hidden = hidden;
-      }
-      if (src.counts && typeof src.counts === 'object') {
-        const counts = {};
-        ['goal', 'interest', 'career'].forEach(k => {
-          const n = parseInt(src.counts[k], 10);
-          if (Number.isFinite(n)) counts[k] = Math.max(0, Math.min(12, n));
-        });
-        if (Object.keys(counts).length) settings.counts = counts;
-      }
+    if (b.key === 'discover' && Array.isArray(src.hidden)) {
+      const hidden = [...new Set(src.hidden.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim()))];
+      if (hidden.length) settings.hidden = hidden;
+    }
+    // Per-kind row caps for the two container blocks (Discover, Your carousels).
+    if ((b.key === 'discover' || b.key === 'personal') && src.counts && typeof src.counts === 'object') {
+      const counts = {};
+      ['goal', 'interest', 'career'].forEach(k => {
+        const n = parseInt(src.counts[k], 10);
+        if (Number.isFinite(n)) counts[k] = Math.max(0, Math.min(12, n));
+      });
+      if (Object.keys(counts).length) settings.counts = counts;
     }
     clean.push({ key: b.key, on: b.on !== false, settings });
   }

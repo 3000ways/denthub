@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable, DISCOVER_DEFAULT_COUNTS, DISCOVER_KINDS } from '../../lib/home-layout';
+import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable, DISCOVER_DEFAULT_COUNTS, DISCOVER_KINDS, PERSONAL_DEFAULT_COUNTS, PERSONAL_KINDS } from '../../lib/home-layout';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -2601,7 +2601,7 @@ function HomeLayoutTab() {
       return { ...b, settings };
     }));
   }
-  function setDiscoverCount(i, kind, value) {
+  function setKindCount(i, kind, value) {
     const n = Math.max(0, Math.min(12, parseInt(value, 10) || 0));
     setRows(rows.map((b, k) => {
       if (k !== i) return b;
@@ -2678,7 +2678,7 @@ function HomeLayoutTab() {
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Home Layout</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 18, lineHeight: 1.6 }}>
-        Arrange the home page for each audience — reorder with the arrows, switch rows on or off, add or remove sections, and rename what visitors see via the &ldquo;Shows as&rdquo; box (blank = the built-in title). The <strong>Discover</strong> section holds many rows: use &ldquo;Choose which rows show&rdquo; to uncheck ones you don&rsquo;t want and cap how many appear. Changes stay in your private <strong>draft</strong> until you hit <strong>Publish</strong>. Signed-out and signed-in homes are edited independently.
+        Arrange the home page for each audience — reorder with the arrows, switch rows on or off, add or remove sections, and rename what visitors see via the &ldquo;Shows as&rdquo; box (blank = the built-in title). The <strong>Discover</strong> and <strong>Your carousels</strong> sections each hold many rows: use their &ldquo;rows&rdquo; link to trim which show and cap how many appear. Changes stay in your private <strong>draft</strong> until you hit <strong>Publish</strong>. Signed-out and signed-in homes are edited independently.
       </p>
 
       {/* Audience switcher */}
@@ -2717,6 +2717,8 @@ function HomeLayoutTab() {
           const meta = BLOCK_META[b.key] || { name: b.key, type: 'chrome' };
           const chip = TYPE_CHIP[meta.type] || TYPE_CHIP.chrome;
           const isDiscover = b.key === 'discover';
+          const isPersonal = b.key === 'personal';
+          const isExpandable = isDiscover || isPersonal;
           const open = !!expanded[b.key];
           return (
             <div key={b.key} style={{ borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`, background: b.on ? '#fff' : '#fafafa' }}>
@@ -2741,10 +2743,10 @@ function HomeLayoutTab() {
                         style={{ flex: 1, maxWidth: 240, fontSize: 12, padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 5, fontFamily: FONT, color: '#333', background: '#fff' }} />
                     </div>
                   )}
-                  {isDiscover && (
+                  {isExpandable && (
                     <button onClick={() => setExpanded(prev => ({ ...prev, [b.key]: !prev[b.key] }))}
                       style={{ marginTop: 7, fontSize: 11.5, fontWeight: 600, color: GREEN, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FONT }}>
-                      {open ? '▾ Hide rows' : '▸ Choose which rows show'}
+                      {open ? '▾ Hide row settings' : (isDiscover ? '▸ Choose which rows show' : '▸ Set how many rows show')}
                     </button>
                   )}
                 </div>
@@ -2758,7 +2760,8 @@ function HomeLayoutTab() {
                 <button onClick={() => remove(i)} title="Remove section"
                   style={{ fontSize: 16, lineHeight: 1, padding: '4px 8px', border: 'none', background: 'none', color: '#c9c9c9', cursor: 'pointer' }}>×</button>
               </div>
-              {isDiscover && open && <DiscoverRowEditor block={b} index={i} quizOpts={quizOpts} onToggleTag={toggleDiscoverTag} onSetCount={setDiscoverCount} />}
+              {isDiscover && open && <DiscoverRowEditor block={b} index={i} quizOpts={quizOpts} onToggleTag={toggleDiscoverTag} onSetCount={setKindCount} />}
+              {isPersonal && open && <PersonalRowEditor block={b} index={i} onSetCount={setKindCount} />}
             </div>
           );
         })}
@@ -2854,6 +2857,38 @@ function DiscoverRowEditor({ block, index, quizOpts, onToggleTag, onSetCount }) 
                   })}
                 </div>
               )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Expanded editor for "Your carousels" (the personal block). Its rows come from
+// each signed-in dentist's OWN profile answers, so there are no specific topics
+// to check — only how many rows of each kind to show (0 hides that kind for
+// everyone). This is the switch to turn off, e.g., the career-stage row globally.
+function PersonalRowEditor({ block, index, onSetCount }) {
+  const counts = (block.settings && block.settings.counts) || {};
+  return (
+    <div style={{ padding: '4px 14px 16px 44px', background: '#fbfbfa', borderTop: `1px dashed ${BORDER}` }}>
+      <div style={{ fontSize: 11.5, color: '#999', margin: '10px 0 14px', lineHeight: 1.5 }}>
+        These rows are personalized from each signed-in dentist&rsquo;s own profile answers, so you can&rsquo;t pick specific topics here — only how many rows of each kind to show. Set a kind to <strong>0</strong> to hide it for everyone.
+      </div>
+      {PERSONAL_KINDS.map(({ kind, label, eyebrow }) => {
+        const count = counts[kind] !== undefined ? counts[kind] : PERSONAL_DEFAULT_COUNTS[kind];
+        return (
+          <div key={kind} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: count === 0 ? '#bbb' : '#111', textDecoration: count === 0 ? 'line-through' : 'none' }}>{label}</div>
+              <div style={{ fontSize: 11, color: '#aaa' }}>Shows as &ldquo;{eyebrow}…&rdquo;</div>
+            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 11, color: '#999' }}>
+              show
+              <input type="number" min={0} max={12} value={count} onChange={e => onSetCount(index, kind, e.target.value)}
+                style={{ width: 46, fontSize: 12, padding: '3px 6px', border: `1px solid ${BORDER}`, borderRadius: 5, fontFamily: FONT, textAlign: 'center' }} />
+              rows
+            </span>
           </div>
         );
       })}

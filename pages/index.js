@@ -854,7 +854,7 @@ export default function Home({ initialResources }) {
       case 'recommended':
         return <RecommendedForYou episodes={recommendedEpisodes} profile={profile} isMobile={isMobile} heading={blockHeading('recommended', settings)} />;
       case 'personal':
-        return user ? <PersonalFeed isMobile={isMobile} /> : null;
+        return user ? <PersonalFeed isMobile={isMobile} counts={settings.counts || null} ready={homeLayoutLoaded} /> : null;
       case 'essentials':
         return essentials.length > 0 ? (
           <EssentialsSection items={essentials} isMobile={isMobile} heading={blockHeading('essentials', settings)} onOpen={(id) => router.push(`/resource/${id}`)} onSignInRequired={() => setShowSignIn(true)} />
