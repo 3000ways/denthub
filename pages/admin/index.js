@@ -1425,46 +1425,27 @@ function Deduplication() {
     }
   }
 
-  async function archiveRecord(id, groupIdx) {
+  async function keepRecord(id, groupIdx) {
     setBusy(b => ({ ...b, [id]: true }));
     try {
-      const r = await fetch('/api/admin/resources', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, fields: { Status: 'Archived' } }),
-      });
-      if (!r.ok) throw new Error('Failed');
-      setGroups(gs => {
-        const updated = gs.map((g, i) => i !== groupIdx ? g : {
-          ...g,
-          records: g.records.map(rec => rec.id !== id ? rec : { ...rec, fields: { ...rec.fields, Status: 'Archived' } }),
-        });
-        saveCache(updated, totalScanned, scannedAt, dismissed);
-        return updated;
-      });
-    } catch (e) {
-      alert('Archive failed: ' + e.message);
-    } finally {
-      setBusy(b => { const n = { ...b }; delete n[id]; return n; });
-    }
-  }
-
-  async function deleteRecord(id, groupIdx) {
-    if (!confirm('Permanently delete this record from Airtable?')) return;
-    setBusy(b => ({ ...b, [id]: true }));
-    try {
-      const r = await fetch(`/api/admin/resources?id=${id}`, { method: 'DELETE' });
-      if (!r.ok) throw new Error('Failed');
-      setGroups(gs => {
-        const updated = gs.map((g, i) => i !== groupIdx ? g : {
-          ...g,
-          records: g.records.filter(rec => rec.id !== id),
-        }).filter(g => g.records.length >= 2);
-        saveCache(updated, totalScanned, scannedAt, dismissed);
-        return updated;
+      const group = groups[groupIdx];
+      const toArchive = group.records.filter(r => r.id !== id && r.fields['Status'] !== 'Archived');
+      await Promise.all(toArchive.map(r =>
+        fetch('/api/admin/resources', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: r.id, fields: { Status: 'Archived' } }),
+        })
+      ));
+      // Dismiss the group now that duplicates are archived
+      const gKey = groupKey(group);
+      setDismissed(d => {
+        const next = new Set([...d, gKey]);
+        saveCache(groups, totalScanned, scannedAt, next);
+        return next;
       });
     } catch (e) {
-      alert('Delete failed: ' + e.message);
+      alert('Keep failed: ' + e.message);
     } finally {
       setBusy(b => { const n = { ...b }; delete n[id]; return n; });
     }
@@ -1482,7 +1463,7 @@ function Deduplication() {
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6 }}>Deduplicate</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>
-        Scan all resources for duplicate entries — matched by URL, exact name, or similar name. Archive or delete the copy, or dismiss false positives.
+        Scan all resources for duplicate entries — matched by URL, exact name, or similar name. Click Keep on the record you want to keep; the other will be automatically archived.
       </p>
 
       <button onClick={scan} disabled={loading} style={{ padding: '10px 20px', background: GREEN, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: FONT, opacity: loading ? 0.7 : 1, marginBottom: 12 }}>
@@ -1657,18 +1638,11 @@ function Deduplication() {
                     {/* Action buttons */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                       <button
-                        onClick={() => archiveRecord(rec.id, groupIdx)}
-                        disabled={isBusy || f['Status'] === 'Archived'}
-                        style={{ padding: '5px 12px', fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#555', fontFamily: FONT, opacity: (isBusy || f['Status'] === 'Archived') ? 0.5 : 1 }}
-                      >
-                        {isBusy ? '…' : f['Status'] === 'Archived' ? 'Archived' : 'Archive'}
-                      </button>
-                      <button
-                        onClick={() => deleteRecord(rec.id, groupIdx)}
+                        onClick={() => keepRecord(rec.id, groupIdx)}
                         disabled={isBusy}
-                        style={{ padding: '5px 12px', fontSize: 12, border: '1px solid #fca5a5', borderRadius: 5, cursor: 'pointer', background: '#fff', color: '#dc2626', fontFamily: FONT, opacity: isBusy ? 0.5 : 1 }}
+                        style={{ padding: '5px 12px', fontSize: 12, border: `1px solid ${GREEN}`, borderRadius: 5, cursor: isBusy ? 'default' : 'pointer', background: isBusy ? '#f9fafb' : '#f0fdf4', color: GREEN, fontFamily: FONT, fontWeight: 600, opacity: isBusy ? 0.5 : 1 }}
                       >
-                        {isBusy ? '…' : 'Delete'}
+                        {isBusy ? '…' : 'Keep'}
                       </button>
                     </div>
                   </div>
