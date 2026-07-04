@@ -17,8 +17,16 @@ function fmt(secs) {
 const ART_SIZE = 150;
 const BAR_HEIGHT = 72;
 
+// Playback speeds cycled by the speed button, in tap order.
+const SPEEDS = [1, 1.25, 1.5, 1.75, 2, 2.5];
+const fmtRate = (r) => `${r}×`;
+
 export default function PlayerBar() {
-  const { currentEpisode, isPlaying, position, duration, percent, pause, resume, seek, markListened, completedIds } = usePlayer();
+  const { currentEpisode, isPlaying, position, duration, percent, rate, pause, resume, seek, setRate, markListened, completedIds } = usePlayer();
+  const cycleRate = () => {
+    const i = SPEEDS.indexOf(rate);
+    setRate(SPEEDS[(i + 1) % SPEEDS.length]);
+  };
   const isListened = completedIds?.has(currentEpisode?.id);
   const [isMobile, setIsMobile] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -91,7 +99,7 @@ export default function PlayerBar() {
         </div>
 
         {/* Bottom row: transport + rate/share + mark as listened */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '4px 14px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '4px 10px 10px' }}>
           <button
             onClick={() => seek(Math.max(0, position - 15))}
             title="Back 15 seconds"
@@ -116,6 +124,19 @@ export default function PlayerBar() {
             title="Forward 15 seconds"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 13, fontWeight: 600, padding: '4px 6px' }}>
             15↻
+          </button>
+
+          <button
+            onClick={cycleRate}
+            title="Playback speed (tap to change)"
+            style={{
+              background: rate !== 1 ? '#E8F5F0' : '#f0f0f0',
+              border: `1px solid ${rate !== 1 ? GREEN : '#ccc'}`,
+              borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
+              fontSize: 11, fontWeight: 700, color: rate !== 1 ? GREEN : '#555',
+              minWidth: 40, whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+            {fmtRate(rate)}
           </button>
 
           {currentEpisode.id && <EpisodeBookmarkButton episodeId={currentEpisode.id} onSignInRequired={() => setShowSignIn(true)} />}
@@ -220,6 +241,19 @@ export default function PlayerBar() {
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888',
             fontSize: 13, fontWeight: 600, padding: '4px 6px', lineHeight: 1 }}>
           15↻
+        </button>
+
+        <button
+          onClick={cycleRate}
+          title="Playback speed (click to change)"
+          style={{
+            background: rate !== 1 ? '#E8F5F0' : '#f0f0f0',
+            border: `1px solid ${rate !== 1 ? GREEN : '#ccc'}`,
+            borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+            fontSize: 11, fontWeight: 700, color: rate !== 1 ? GREEN : '#555',
+            minWidth: 40, whiteSpace: 'nowrap', lineHeight: 1,
+          }}>
+          {fmtRate(rate)}
         </button>
       </div>
 
