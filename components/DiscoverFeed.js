@@ -9,7 +9,7 @@ const GREEN  = '#0F6E56';
 // carousels (goal-heavy), with a sign-in teaser woven in. Data comes from
 // /api/home-feed (cacheable, rotates daily). Renders nothing until rows arrive,
 // so there's never an empty shell.
-export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = [], counts = null }) {
+export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = [], counts = null, ready = true }) {
   const [rows, setRows] = useState([]);
 
   // Admin curation (which tags to hide, how many rows per kind) travels to the
@@ -18,6 +18,9 @@ export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = []
   const countsKey = JSON.stringify(counts || {});
 
   useEffect(() => {
+    // Wait until the admin layout (and thus the curation) is known, so we fetch
+    // ONCE with the right settings instead of flashing the un-curated feed first.
+    if (!ready) return;
     let active = true;
     const params = new URLSearchParams();
     const h = JSON.parse(hiddenKey);
@@ -30,7 +33,7 @@ export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = []
       .then(data => { if (active) setRows(data.rows || []); })
       .catch(() => {});
     return () => { active = false; };
-  }, [hiddenKey, countsKey]);
+  }, [hiddenKey, countsKey, ready]);
 
   if (!rows.length) return null;
 
