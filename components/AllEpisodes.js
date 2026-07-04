@@ -32,13 +32,28 @@ export function AllEpisodes({ showResourceId, showName, initialEpisodes = [], in
   const isSearching = term.trim().length >= 2;
   const showSearchBox = initialTotal >= EPISODE_SEARCH_THRESHOLD;
 
-  // Creator-featured episodes (owner picks). Set of ids for badging inline, plus
-  // the full objects for pinning to the top of the browse view. When browsing
-  // (not searching), featured episodes are shown first — badged — and filtered
-  // out of the main list below so they don't appear twice. When searching, we
-  // don't pin, but any matching row still gets the ★ badge.
+  // Creator-featured episodes (owner picks). They're badged inline in their
+  // natural chronological position — never reordered — so recent episodes stay
+  // on top. A "★ Featured" toggle filters the list down to just these (rendered
+  // client-side from the already-loaded picks, sorted by the current order).
+  const [featuredOnly, setFeaturedOnly] = useState(false);
   const featuredIds = new Set((featuredEpisodes || []).map(e => e.id));
-  const pinFeatured = !isSearching && featuredEpisodes.length > 0;
+  const hasFeatured = (featuredEpisodes || []).length > 0;
+
+  const featuredList = (() => {
+    if (!hasFeatured) return [];
+    const q = term.trim().toLowerCase();
+    let list = [...featuredEpisodes];
+    if (q.length >= 2) list = list.filter(e => (e.title || '').toLowerCase().includes(q));
+    return list.sort((a, b) => {
+      const ta = a.publishedAt ? Date.parse(a.publishedAt) : null;
+      const tb = b.publishedAt ? Date.parse(b.publishedAt) : null;
+      if (ta == null && tb == null) return 0;
+      if (ta == null) return 1;   // undated sink to the bottom
+      if (tb == null) return -1;
+      return sort === 'oldest' ? ta - tb : tb - ta;
+    });
+  })();
 
   // Refresh-on-view: pull this show's newest episodes into the archive on load
   // (throttled server-side), then quietly reload page 1 if the count grew. Runs
@@ -109,9 +124,11 @@ export function AllEpisodes({ showResourceId, showName, initialEpisodes = [], in
   }
 
   const cardStyle = { background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 };
-  const countLabel = isSearching
-    ? `${total} ${total === 1 ? 'result' : 'results'}`
-    : `${total} ${total === 1 ? 'episode' : 'episodes'}`;
+  const countLabel = featuredOnly
+    ? `${featuredList.length} featured`
+    : isSearching
+      ? `${total} ${total === 1 ? 'result' : 'results'}`
+      : `${total} ${total === 1 ? 'episode' : 'episodes'}`;
 
   return (
     <div style={cardStyle}>
@@ -137,52 +154,65 @@ export function AllEpisodes({ showResourceId, showName, initialEpisodes = [], in
         )}
       </div>
 
-      {/* In-show search — only on larger catalogs */}
-      {showSearchBox && (
-        <div style={{ position: 'relative', marginBottom: 16 }}>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={`Search ${showName || 'this show'}'s episodes…`}
-            style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, fontFamily: FONT,
-              padding: '9px 32px 9px 12px', borderRadius: 8, border: `1px solid ${BORDER}`,
-              outline: 'none', background: '#fff', color: '#111' }}
-            onFocus={e => e.currentTarget.style.borderColor = GREEN}
-            onBlur={e => e.currentTarget.style.borderColor = BORDER}
-          />
-          {input && (
-            <button onClick={() => { setInput(''); setTerm(''); }} aria-label="Clear search"
-              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', fontSize: 15, lineHeight: 1, padding: 4 }}>
-              ×
+      {/* In-show search (larger catalogs) + a "★ Featured" filter toggle. */}
+      {(showSearchBox || hasFeatured) && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
+          {showSearchBox && (
+            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder={`Search ${showName || 'this show'}'s episodes…`}
+                style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, fontFamily: FONT,
+                  padding: '9px 32px 9px 12px', borderRadius: 8, border: `1px solid ${BORDER}`,
+                  outline: 'none', background: '#fff', color: '#111' }}
+                onFocus={e => e.currentTarget.style.borderColor = GREEN}
+                onBlur={e => e.currentTarget.style.borderColor = BORDER}
+              />
+              {input && (
+                <button onClick={() => { setInput(''); setTerm(''); }} aria-label="Clear search"
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', fontSize: 15, lineHeight: 1, padding: 4 }}>
+                  ×
+                </button>
+              )}
+            </div>
+          )}
+          {hasFeatured && (
+            <button onClick={() => setFeaturedOnly(v => !v)} aria-pressed={featuredOnly}
+              title={featuredOnly ? 'Show all episodes' : 'Show only featured episodes'}
+              style={{ fontSize: 12.5, fontWeight: 600, fontFamily: FONT, cursor: 'pointer', whiteSpace: 'nowrap',
+                padding: '9px 14px', borderRadius: 8,
+                border: `1px solid ${featuredOnly ? '#7c3aed' : BORDER}`,
+                background: featuredOnly ? '#f3e8ff' : '#fff',
+                color: featuredOnly ? '#7c3aed' : '#666' }}>
+              ★ Featured
             </button>
           )}
         </div>
       )}
 
-      {/* Episode list. When browsing, the creator's featured picks are pinned on
-          top (badged) and removed from the main list below to avoid duplicates. */}
+      {/* Episode list. Featured picks keep their natural position and just get a
+          ★ badge; the "★ Featured" toggle filters the list down to them. */}
       {(() => {
-        const mainList = pinFeatured ? episodes.filter(ep => !featuredIds.has(ep.id)) : episodes;
-        const isEmpty = mainList.length === 0 && !(pinFeatured && featuredEpisodes.length > 0);
-        if (isEmpty) {
+        const list = featuredOnly ? featuredList : episodes;
+        if (list.length === 0) {
           return (
             <div style={{ fontSize: 13, color: '#999', fontFamily: FONT, padding: '8px 0' }}>
-              {isSearching
-                ? <>No episodes match “{term.trim()}”.</>
-                : 'Episode archive coming soon for this show.'}
+              {featuredOnly
+                ? (isSearching ? <>No featured episodes match “{term.trim()}”.</> : 'No featured episodes yet.')
+                : isSearching
+                  ? <>No episodes match “{term.trim()}”.</>
+                  : 'Episode archive coming soon for this show.'}
             </div>
           );
         }
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {pinFeatured && featuredEpisodes.map(ep => (
-              <EpisodeCard key={`feat-${ep.id}`} ep={ep} isFeatured isNew={false} onSignInRequired={onSignInRequired} />
-            ))}
-            {mainList.map((ep, i) => {
+            {list.map((ep, i) => {
               // Divider where the list crosses from dated into undated episodes
               // (they always sort to the bottom). Only in browse mode.
-              const showUndatedDivider = !isSearching && ep.date == null && i > 0 && mainList[i - 1].date != null;
+              const showUndatedDivider = !isSearching && ep.date == null && i > 0 && list[i - 1].date != null;
               return (
                 <div key={ep.id ?? i}>
                   {showUndatedDivider && (
@@ -190,7 +220,7 @@ export function AllEpisodes({ showResourceId, showName, initialEpisodes = [], in
                       Undated episodes
                     </div>
                   )}
-                  <EpisodeCard ep={ep} isFeatured={featuredIds.has(ep.id)} isNew={false} onSignInRequired={onSignInRequired} />
+                  <EpisodeCard ep={ep} isFeatured={!featuredOnly && featuredIds.has(ep.id)} isNew={false} onSignInRequired={onSignInRequired} />
                 </div>
               );
             })}
@@ -198,8 +228,8 @@ export function AllEpisodes({ showResourceId, showName, initialEpisodes = [], in
         );
       })()}
 
-      {/* Load More */}
-      {hasMore && (
+      {/* Load More — only in the full list; featured picks are all loaded already */}
+      {!featuredOnly && hasMore && (
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <button onClick={loadMore} disabled={loading}
             style={{ fontSize: 12, fontWeight: 600, fontFamily: FONT, cursor: loading ? 'default' : 'pointer',
