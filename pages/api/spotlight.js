@@ -6,7 +6,7 @@ const AIRTABLE_BASE   = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
 const AIRTABLE_TABLE  = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
 const AIRTABLE_PAT    = process.env.AIRTABLE_PAT;
 
-const DISPLAY_COUNT = 4; // how many of each type to show in the grid
+const DISPLAY_COUNT = 12; // how many of each type to feed the "What's New" carousels
 
 // ─── Airtable fetch ──────────────────────────────────────────────────────────
 

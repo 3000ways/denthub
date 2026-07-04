@@ -15,6 +15,7 @@ import { CommunitySection } from '../components/Community';
 import { Pinboard } from '../components/Pinboard';
 import Footer from '../components/Footer';
 import { SpotlightCard } from '../components/SpotlightCard';
+import { Carousel } from '../components/Carousel';
 import { DiscoverFeed } from '../components/DiscoverFeed';
 import { PersonalFeed } from '../components/PersonalFeed';
 import { BooksForYou } from '../components/BooksForYou';
@@ -867,7 +868,7 @@ export default function Home({ initialResources }) {
         return user ? <BooksForYou resources={resources} isMobile={isMobile} heading={blockHeading('books', settings)} /> : null;
       case 'whats_new':
         return (spotlight.podcasts.length > 0 || spotlight.videos.length > 0) ? (
-          <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 16px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
+          <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 6px' : '28px 28px 10px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
             <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
               <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{blockHeading('whats_new', settings)}</div>
               <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
@@ -876,20 +877,17 @@ export default function Home({ initialResources }) {
                 <style>{`@keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }`}</style>
               </div>
             </div>
+            {/* Both sub-rows scroll like the other carousels; the box + labels stay. */}
             {spotlight.podcasts.length > 0 && (
-              <div style={{ marginBottom:28 }}>
+              <div style={{ marginBottom:8 }}>
                 <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
-                <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
-                  {spotlight.podcasts.slice(0,4).map((ep, i) => <SpotlightCard key={i} item={ep} />)}
-                </div>
+                <Carousel items={spotlight.podcasts} isMobile={isMobile} />
               </div>
             )}
             {spotlight.videos.length > 0 && (
               <div>
                 <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
-                <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
-                  {spotlight.videos.slice(0,4).map((vid, i) => <SpotlightCard key={i} item={vid} />)}
-                </div>
+                <Carousel items={spotlight.videos} isMobile={isMobile} />
               </div>
             )}
           </div>
