@@ -141,6 +141,10 @@ export default function PlayerBar() {
             <div style={{ fontSize: 10, color: '#aaa' }}>{fmt(position)}</div>
             <div style={{ fontSize: 10, color: '#ccc' }}>{fmt(duration)}</div>
           </div>
+
+          {/* AI-voice vote — lifted into the info row (rightmost) so the control
+              row below isn't overcrowded on mobile. */}
+          {currentEpisode.id && <VoiceVoteButton episodeId={currentEpisode.id} showName={showName} compact />}
         </div>
 
         {/* Bottom row: transport + rate/share + mark as listened */}
@@ -186,7 +190,6 @@ export default function PlayerBar() {
           </button>
 
           {currentEpisode.id && <EpisodeBookmarkButton episodeId={currentEpisode.id} onSignInRequired={() => setShowSignIn(true)} />}
-          {currentEpisode.id && <VoiceVoteButton episodeId={currentEpisode.id} showName={showName} compact />}
           {(currentEpisode.id || showId) && <ShareButton resourceId={showId} episodeId={currentEpisode.id} episodeTitle={currentEpisode.title} name={showName} type="Podcast" />}
 
           <button
