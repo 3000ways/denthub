@@ -9,6 +9,10 @@ const BASE_ID = 'appICV69R7tzizCDY';
 const TABLE_ID = 'tblBlou0rXbImoQ75';
 
 async function resourceNames(ids) {
+  // Only real Airtable record ids may be interpolated into the formula — a
+  // resource_id comes from a user-submitted claim row, so validate it to prevent
+  // formula injection. (audit security #9)
+  ids = [...new Set(ids)].filter(id => /^rec[A-Za-z0-9]{14}$/.test(id));
   if (!ids.length) return {};
   const pat = process.env.AIRTABLE_PAT;
   const formula = `OR(${ids.map(id => `RECORD_ID()='${id}'`).join(',')})`;
