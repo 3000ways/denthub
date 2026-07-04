@@ -2682,16 +2682,21 @@ function HomeLayoutTab() {
         })}
       </div>
 
-      {/* Add block */}
-      {available.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22 }}>
-          <select onChange={e => { if (e.target.value) { add(e.target.value); e.target.value = ''; } }} defaultValue=""
-            style={{ ...inp(), flex: 1 }}>
-            <option value="" disabled>+ Add a section…</option>
-            {available.map(k => <option key={k} value={k}>{BLOCK_META[k].name}</option>)}
-          </select>
+      {/* Add block — always visible so the affordance is discoverable, even when
+          every built-in section is already in the list. */}
+      <div style={{ marginBottom: 22 }}>
+        <select onChange={e => { if (e.target.value) { add(e.target.value); e.target.value = ''; } }} defaultValue=""
+          disabled={available.length === 0}
+          style={{ ...inp(), width: '100%', opacity: available.length === 0 ? 0.55 : 1 }}>
+          <option value="" disabled>+ Add a section…</option>
+          {available.map(k => <option key={k} value={k}>{BLOCK_META[k].name}</option>)}
+        </select>
+        <div style={{ fontSize: 11.5, color: '#aaa', marginTop: 6, lineHeight: 1.5 }}>
+          {available.length === 0
+            ? 'Every built-in section is already in this layout. Remove one (×) to free it up to re-add, or turn a section Off to hide it without removing it.'
+            : 'These are the built-in sections not currently in this layout. A brand-new kind of section is a quick code change — just ask.'}
         </div>
-      )}
+      </div>
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderTop: `1px solid ${BORDER}`, paddingTop: 16 }}>
