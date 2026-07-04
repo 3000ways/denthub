@@ -23,8 +23,10 @@ export default function SiteNav() {
   return (
     <>
     <div style={{
-      // Sticky on desktop; on mobile it scrolls away with the page.
-      position: isMobile ? 'static' : 'sticky', top: 0, zIndex: 200,
+      // Sticky on desktop; on mobile it scrolls away with the page. Uses
+      // 'relative' (not 'static') on mobile so its z-index takes effect and the
+      // account dropdown layers above the hero instead of behind it.
+      position: isMobile ? 'relative' : 'sticky', top: 0, zIndex: 200,
       background: 'rgba(245,242,235,0.97)',
       backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       borderBottom: `1px solid ${BORDER}`,

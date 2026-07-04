@@ -1014,8 +1014,8 @@ export default function Home({ initialResources }) {
         </div>
       )}
 
-      {/* Nav bar — sticky on desktop; on mobile it scrolls away with the page. Logo bursts down on mobile. */}
-      <div style={{ position: isMobile ? 'static' : 'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
+      {/* Nav bar — sticky on desktop; on mobile it scrolls away with the page (relative, not static, so its z-index actually lifts the dropdown above the hero). Logo bursts down on mobile. */}
+      <div style={{ position: isMobile ? 'relative' : 'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
         <div style={{ height:3, background:GREEN }} />
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:56, position:'relative', overflow:'visible' }}>
           {/* Nav logo — breaks out downward on mobile, wide crop on desktop */}
