@@ -3143,6 +3143,113 @@ function ReportsTab() {
 }
 
 // ══════════════════════════════════════════
+//  TAB — AI Voice (listener votes → confirm)
+// ══════════════════════════════════════════
+// Aggregated crowd votes from the player, grouped by show. This is the
+// human-confirm step: review the tally, then one click sets the Airtable Voice
+// Type/Status. Nothing here is auto-published — a badge only appears once you
+// mark a show AI-generated + Confirmed (see lib/voice.js).
+function VoiceVotesTab() {
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/voice-votes');
+      const d = await r.json();
+      setGroups(Array.isArray(d.groups) ? d.groups : []);
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function setVoice(g, voiceType, voiceStatus) {
+    if (!g.resourceId) return;
+    setActing(g.key);
+    try {
+      const r = await fetch('/api/admin/voice-votes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resourceId: g.resourceId, voiceType, voiceStatus }),
+      });
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      setGroups(prev => prev.map(x => x.key === g.key ? { ...x, voiceType: voiceType || '', voiceStatus: voiceStatus || '' } : x));
+    } finally { setActing(null); }
+  }
+
+  const btn = (bg, color, border) => ({
+    fontSize: 11.5, fontWeight: 600, fontFamily: FONT, cursor: 'pointer',
+    padding: '6px 10px', borderRadius: 6, border: `1px solid ${border || bg}`, background: bg, color,
+  });
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111', margin: '0 0 4px' }}>AI Voice</h2>
+      <p style={{ fontSize: 13, color: '#888', margin: '0 0 18px', lineHeight: 1.5 }}>
+        Listener votes from the player (&ldquo;Is this an AI voice?&rdquo;), grouped by show and sorted by how
+        AI-leaning they are. These are a <strong>signal only</strong> — set <strong>AI-generated + Confirmed</strong> to
+        turn on the public 🤖 badge, or <strong>Human + Confirmed</strong> to record that it&rsquo;s a real person.
+        Nothing is ever auto-published.
+      </p>
+
+      {loading ? (
+        <div style={{ fontSize: 13, color: '#999' }}>Loading…</div>
+      ) : groups.length === 0 ? (
+        <div style={{ fontSize: 13, color: '#999' }}>No listener votes yet.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {groups.map(g => {
+            const decisive = g.ai + g.human;
+            const pct = decisive ? Math.round((g.ai / decisive) * 100) : 0;
+            const confirmed = g.voiceStatus === 'Confirmed';
+            const isAiConfirmed = confirmed && (g.voiceType === 'AI-generated' || g.voiceType === 'Mixed');
+            const isHumanConfirmed = confirmed && g.voiceType === 'Human';
+            return (
+              <div key={g.key} style={{ border: `1px solid ${BORDER}`, borderRadius: 10, padding: '14px 16px', background: '#fff' }}>
+                <div style={{ display: 'flex', gap: 14, justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <a href={g.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, fontWeight: 700, color: '#111', textDecoration: 'none' }}>{g.title}</a>
+                      {g.type && <span style={{ fontSize: 10, color: '#fff', background: '#6b7280', padding: '2px 7px', borderRadius: 20, fontWeight: 600 }}>{g.type}</span>}
+                      {g.voiceType && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                          background: isAiConfirmed ? '#fef3c7' : isHumanConfirmed ? '#d1fae5' : '#f3f4f6',
+                          color: isAiConfirmed ? '#b45309' : isHumanConfirmed ? '#065f46' : '#9ca3af' }}>
+                          {g.voiceType} · {g.voiceStatus || 'not set'}
+                        </span>
+                      )}
+                    </div>
+                    {/* tally bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <div style={{ flex: 1, maxWidth: 260, height: 8, background: '#e8f5f0', borderRadius: 5, overflow: 'hidden', display: 'flex' }}>
+                        <div style={{ width: `${pct}%`, background: '#d97706' }} />
+                      </div>
+                      <span style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>{pct}% AI</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#777' }}>
+                      🤖 {g.ai} AI · 👤 {g.human} human · 🤷 {g.unsure} not sure · {g.total} total
+                    </div>
+                  </div>
+                  {g.resourceId && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', flexShrink: 0, width: 168 }}>
+                      <button disabled={acting === g.key} onClick={() => setVoice(g, 'AI-generated', 'Confirmed')} style={btn('#fef3c7', '#b45309', '#fde68a')}>🤖 Confirm AI</button>
+                      <button disabled={acting === g.key} onClick={() => setVoice(g, 'Human', 'Confirmed')} style={btn('#f0fdf4', '#065f46', '#a7f3d0')}>👤 Confirm Human</button>
+                      <button disabled={acting === g.key} onClick={() => setVoice(g, 'AI-generated', 'Suspected')} style={btn('#fff', '#666', BORDER)}>Mark suspected</button>
+                      {g.voiceType && <button disabled={acting === g.key} onClick={() => setVoice(g, '', '')} style={btn('#fff', '#b91c1c', '#fecaca')}>Clear</button>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
 //  TAB GROUPS
 // ══════════════════════════════════════════
 // Each group becomes a labeled section in the top bar. Add new tabs by dropping
@@ -3157,6 +3264,7 @@ const TAB_GROUPS = [
       { label: 'All Resources', Component: AllResources },
       { label: 'Claims',        Component: ClaimsTab },
       { label: 'Reports',       Component: ReportsTab },
+      { label: 'AI Voice',      Component: VoiceVotesTab },
     ],
   },
   {

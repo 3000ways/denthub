@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePlayer } from '../lib/player-context';
 import { EpisodeBookmarkButton } from './EpisodeBookmarkButton';
 import { ShareButton } from './ShareButton';
+import { VoiceVoteButton } from './VoiceVoteButton';
 import { SignInModal } from './AuthModal';
 
 const GREEN = '#0F6E56';
@@ -185,6 +186,7 @@ export default function PlayerBar() {
           </button>
 
           {currentEpisode.id && <EpisodeBookmarkButton episodeId={currentEpisode.id} onSignInRequired={() => setShowSignIn(true)} />}
+          {currentEpisode.id && <VoiceVoteButton episodeId={currentEpisode.id} showName={showName} compact />}
           {(currentEpisode.id || showId) && <ShareButton resourceId={showId} episodeId={currentEpisode.id} episodeTitle={currentEpisode.title} name={showName} type="Podcast" />}
 
           <button
@@ -320,6 +322,7 @@ export default function PlayerBar() {
       {(currentEpisode.id || showId) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {currentEpisode.id && <EpisodeBookmarkButton episodeId={currentEpisode.id} variant="labeled" onSignInRequired={() => setShowSignIn(true)} />}
+          {currentEpisode.id && <VoiceVoteButton episodeId={currentEpisode.id} showName={showName} />}
           <ShareButton resourceId={showId} episodeId={currentEpisode.id} episodeTitle={currentEpisode.title} name={showName} type="Podcast" />
         </div>
       )}
