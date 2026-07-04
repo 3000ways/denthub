@@ -4,7 +4,9 @@ import Link from 'next/link';
 import SiteNav from '../components/SiteNav';
 import Footer from '../components/Footer';
 import { SpotlightCard } from '../components/SpotlightCard';
+import { AiVoiceToggle } from '../components/AiVoiceToggle';
 import { fetchEpisodesByTag, BROWSE_PAGE_SIZE } from '../lib/home-feed';
+import { useAiVoiceExclusion } from '../lib/use-ai-voice-pref';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -39,6 +41,7 @@ export default function BrowsePage({ tag, kind, initialItems, total }) {
   const [input, setInput] = useState('');
   const [term, setTerm]   = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const { isHiddenShow } = useAiVoiceExclusion();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -54,6 +57,7 @@ export default function BrowsePage({ tag, kind, initialItems, total }) {
   }, [input]);
 
   const searching = term.trim().length >= 2;
+  const visibleItems = items.filter(it => !isHiddenShow(it.resourceId));
 
   // Re-fetch from the top when the query changes (skip first mount = SSR data).
   const [mounted, setMounted] = useState(false);
@@ -111,24 +115,29 @@ export default function BrowsePage({ tag, kind, initialItems, total }) {
             </p>
           </div>
 
-          {/* Search within this tag */}
-          <div style={{ position:'relative', marginBottom:24, maxWidth:520 }}>
-            <input value={input} onChange={e => setInput(e.target.value)} placeholder={`Search these episodes…`}
-              style={{ width:'100%', boxSizing:'border-box', fontSize:14, fontFamily:FONT_BODY, padding:'11px 34px 11px 14px', borderRadius:8, border:`1px solid ${BORDER}`, outline:'none', background:'#fff', color:'#111' }}
-              onFocus={e => e.currentTarget.style.borderColor = GREEN}
-              onBlur={e => e.currentTarget.style.borderColor = BORDER} />
-            {input && (
-              <button onClick={() => { setInput(''); setTerm(''); }} aria-label="Clear search"
-                style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#bbb', fontSize:16, lineHeight:1, padding:4 }}>×</button>
-            )}
+          {/* Search within this tag + AI-voice filter */}
+          <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', marginBottom:24 }}>
+            <div style={{ position:'relative', flex:'1 1 320px', maxWidth:520 }}>
+              <input value={input} onChange={e => setInput(e.target.value)} placeholder={`Search these episodes…`}
+                style={{ width:'100%', boxSizing:'border-box', fontSize:14, fontFamily:FONT_BODY, padding:'11px 34px 11px 14px', borderRadius:8, border:`1px solid ${BORDER}`, outline:'none', background:'#fff', color:'#111' }}
+                onFocus={e => e.currentTarget.style.borderColor = GREEN}
+                onBlur={e => e.currentTarget.style.borderColor = BORDER} />
+              {input && (
+                <button onClick={() => { setInput(''); setTerm(''); }} aria-label="Clear search"
+                  style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#bbb', fontSize:16, lineHeight:1, padding:4 }}>×</button>
+              )}
+            </div>
+            <AiVoiceToggle isMobile={isMobile} />
           </div>
 
-          {items.length > 0 ? (
+          {visibleItems.length > 0 ? (
             <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 10 : 16 }}>
-              {items.map((item, i) => <SpotlightCard key={item.guid || item.url || i} item={item} />)}
+              {visibleItems.map((item, i) => <SpotlightCard key={item.guid || item.url || i} item={item} />)}
             </div>
           ) : (
-            <div style={{ fontSize:14, color:'#999', padding:'40px 0' }}>No episodes match “{term.trim()}”.</div>
+            <div style={{ fontSize:14, color:'#999', padding:'40px 0' }}>
+              {searching ? `No episodes match “${term.trim()}”.` : 'No episodes to show.'}
+            </div>
           )}
 
           {hasMore && (

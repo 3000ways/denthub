@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Carousel } from './Carousel';
 import { useAuth } from '../lib/auth-context';
 import { buildPersonalFeed } from '../lib/home-feed';
+import { useAiVoiceExclusion } from '../lib/use-ai-voice-pref';
 
 // Signed-in personalization: a stack of episode carousels built from the
 // dentist's own quiz answers ("Because you're working on …", "More on …",
@@ -10,6 +11,7 @@ import { buildPersonalFeed } from '../lib/home-feed';
 export function PersonalFeed({ isMobile, counts = null, ready = true }) {
   const { user, profile } = useAuth();
   const [rows, setRows] = useState([]);
+  const { isHiddenShow } = useAiVoiceExclusion();
   const countsKey = JSON.stringify(counts || {});
 
   useEffect(() => {
@@ -22,11 +24,15 @@ export function PersonalFeed({ isMobile, counts = null, ready = true }) {
     return () => { active = false; };
   }, [profile, countsKey, ready]);
 
-  if (!user || !rows.length) return null;
+  const visibleRows = rows
+    .map(row => ({ ...row, items: (row.items || []).filter(it => !isHiddenShow(it.resourceId)) }))
+    .filter(row => row.items.length >= 3);
+
+  if (!user || !visibleRows.length) return null;
 
   return (
     <div style={{ marginBottom: 8 }}>
-      {rows.map(row => (
+      {visibleRows.map(row => (
         <Carousel key={`${row.kind}-${row.tag}`} eyebrow={row.eyebrow} title={row.title}
           seeAllHref={row.seeAllHref} items={row.items} isMobile={isMobile} />
       ))}

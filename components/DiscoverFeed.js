@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Carousel } from './Carousel';
+import { useAiVoiceExclusion } from '../lib/use-ai-voice-pref';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -11,6 +12,7 @@ const GREEN  = '#0F6E56';
 // so there's never an empty shell.
 export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = [], counts = null, ready = true }) {
   const [rows, setRows] = useState([]);
+  const { isHiddenShow } = useAiVoiceExclusion();
 
   // Admin curation (which tags to hide, how many rows per kind) travels to the
   // feed as query params so it applies live AND in draft preview.
@@ -35,7 +37,13 @@ export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = []
     return () => { active = false; };
   }, [hiddenKey, countsKey, ready]);
 
-  if (!rows.length) return null;
+  // Drop episodes from confirmed AI-voice shows when the visitor has opted out,
+  // then drop any row left too thin to be worth a carousel.
+  const visibleRows = rows
+    .map(row => ({ ...row, items: (row.items || []).filter(it => !isHiddenShow(it.resourceId)) }))
+    .filter(row => row.items.length >= 3);
+
+  if (!visibleRows.length) return null;
 
   // Weave the teaser in after the third row (once they're clearly engaged),
   // but only for signed-out visitors.
@@ -43,7 +51,7 @@ export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = []
 
   return (
     <div style={{ marginBottom: 8 }}>
-      {rows.map((row, i) => (
+      {visibleRows.map((row, i) => (
         <div key={`${row.kind}-${row.tag}`}>
           <Carousel eyebrow={row.eyebrow} title={row.title} seeAllHref={row.seeAllHref} items={row.items} isMobile={isMobile} />
           {!signedIn && i === TEASER_AFTER && <Teaser onSignInRequired={onSignInRequired} isMobile={isMobile} />}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable, DISCOVER_DEFAULT_COUNTS, DISCOVER_KINDS, PERSONAL_DEFAULT_COUNTS, PERSONAL_KINDS } from '../../lib/home-layout';
+import { VOICE_TYPES, VOICE_STATUSES } from '../../lib/voice';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -520,6 +521,8 @@ function ResourceCard({ item, onDelete }) {
     'RSS Feed URL':     f['RSS Feed URL'] || '',
     'Image URL':        f['Image URL'] || '',
     Status:             f.Status || 'Published',
+    'Voice Type':       f['Voice Type'] || '',
+    'Voice Status':     f['Voice Status'] || '',
   });
 
   function toggleTag(field, val) {
@@ -537,6 +540,9 @@ function ResourceCard({ item, onDelete }) {
         Type: form.Type, 'Host or Author': form['Host or Author'],
         'RSS Feed URL': form['RSS Feed URL'], 'Image URL': form['Image URL'],
         Specialty: form.Specialty, Topic: form.Topic, Status: form.Status,
+        // Empty string clears the single-select in Airtable (null); a value sets it.
+        'Voice Type':   form['Voice Type']   || null,
+        'Voice Status': form['Voice Status'] || null,
         ...(form['Expert Score'] !== '' ? { 'Expert Score': Number(form['Expert Score']) } : {}),
         ...(form['Community Score'] !== '' ? { 'Community Score': Number(form['Community Score']) } : {}),
         ...(form['Popularity Score'] !== '' ? { 'Popularity Score': Number(form['Popularity Score']) } : {}),
@@ -600,6 +606,30 @@ function ResourceCard({ item, onDelete }) {
               </label>
             </div>
             <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>🤖 AI Voice disclosure</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <label style={{ fontSize: 12, color: '#666' }}>
+                  Voice Type
+                  <select value={form['Voice Type']} onChange={e => setForm(p => ({ ...p, 'Voice Type': e.target.value }))} style={{ ...inp({ fontSize: 13, marginTop: 3, padding: '7px 10px' }) }}>
+                    <option value="">— not set —</option>
+                    {VOICE_TYPES.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: '#666' }}>
+                  Voice Status
+                  <select value={form['Voice Status']} onChange={e => setForm(p => ({ ...p, 'Voice Status': e.target.value }))} style={{ ...inp({ fontSize: 13, marginTop: 3, padding: '7px 10px' }) }}>
+                    <option value="">— not set —</option>
+                    {VOICE_STATUSES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div style={{ fontSize: 11, color: '#999', marginTop: 6, lineHeight: 1.5 }}>
+                The public 🤖 badge (and the &ldquo;hide AI-narrated&rdquo; filter) only fire when Voice Type is
+                <strong> AI-generated</strong> or <strong>Mixed</strong> AND Voice Status is <strong>Confirmed</strong>.
+                Leave as <strong>Suspected</strong> for anything you haven&rsquo;t personally verified — it stays internal.
+              </div>
+            </div>
+            <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Specialty</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {VALID_SPECIALTIES.map(s => <TagToggle key={s} label={s} active={form.Specialty.includes(s)} onToggle={() => toggleTag('Specialty', s)} />)}
@@ -640,6 +670,11 @@ function ResourceCard({ item, onDelete }) {
                   <SourceBadge source={f.Source} />
                   {form.Type && <span style={{ fontSize: 11, color: '#fff', background: '#6b7280', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>{form.Type}</span>}
                   <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: form.Status === 'Published' ? '#d1fae5' : '#fef3c7', color: form.Status === 'Published' ? '#065f46' : '#92400e' }}>{form.Status || 'Draft'}</span>
+                  {form['Voice Type'] && (form['Voice Type'] === 'AI-generated' || form['Voice Type'] === 'Mixed') && (
+                    <span title={`${form['Voice Type']} · ${form['Voice Status'] || 'not set'}`} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: form['Voice Status'] === 'Confirmed' ? '#fef3c7' : '#f3f4f6', color: form['Voice Status'] === 'Confirmed' ? '#b45309' : '#9ca3af' }}>
+                      🤖 {form['Voice Status'] === 'Confirmed' ? 'AI voice' : 'AI? (suspected)'}
+                    </span>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -3011,7 +3046,7 @@ function PersonalRowEditor({ block, index, onSetCount }) {
 // ══════════════════════════════════════════
 const REPORT_REASON_LABEL = {
   broken: 'Broken', inappropriate: 'Inappropriate', irrelevant: 'Irrelevant',
-  offensive: 'Offensive', other: 'Other',
+  offensive: 'Offensive', ai_voice: '🤖 Sounds AI', other: 'Other',
 };
 
 function ReportsTab() {

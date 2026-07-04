@@ -10,6 +10,7 @@ const TURNSTILE_SITEKEY = '0x4AAAAAADknPTUZKfiTfeQc';
 
 const REASONS = [
   { value: 'broken',        label: 'Broken link or feed' },
+  { value: 'ai_voice',      label: 'Sounds AI-generated' },
   { value: 'inappropriate', label: 'Inappropriate' },
   { value: 'irrelevant',    label: 'Not relevant to dentistry' },
   { value: 'offensive',     label: 'Offensive' },

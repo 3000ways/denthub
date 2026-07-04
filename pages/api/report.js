@@ -7,7 +7,9 @@
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '../../lib/supabase-admin';
 
-const VALID_REASONS = ['broken', 'inappropriate', 'irrelevant', 'offensive', 'other'];
+// 'ai_voice' — a listener's hunch that a show is AI-narrated. It's just a
+// signal for the admin queue; a human still confirms before any public label.
+const VALID_REASONS = ['broken', 'inappropriate', 'irrelevant', 'offensive', 'ai_voice', 'other'];
 
 async function verifyTurnstile(token, ip) {
   if (!process.env.TURNSTILE_SECRET_KEY) return false;

@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { RateButton } from './RateButton';
 import { ShareButton } from './ShareButton';
 import { SignInModal } from './AuthModal';
+import { aiVoiceBadge } from '../lib/voice';
+import { useAiVoiceExclusion } from '../lib/use-ai-voice-pref';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -32,6 +34,7 @@ function ResourceCard({ record, artworkUrl, onSignInRequired }) {
   })();
   const score  = f['Final Score'] || f.Score;
   const isYouTube = domain && domain.includes('youtube.com') && f.URL;
+  const voiceBadge = aiVoiceBadge(f);
 
   // Pick the best image source. YouTube channels/videos expose a real thumbnail
   // via our og:image proxy; everything else uses its logo (favicon) fallback.
@@ -77,6 +80,13 @@ function ResourceCard({ record, artworkUrl, onSignInRequired }) {
               {Math.round(score)}
             </div>
           )}
+          {voiceBadge && (
+            <div title={voiceBadge.title} style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 9,
+              fontWeight: 700, letterSpacing: '0.03em', color: '#fff', background: 'rgba(180,83,9,0.92)',
+              borderRadius: 3, padding: '3px 7px' }}>
+              {voiceBadge.label}
+            </div>
+          )}
         </div>
 
         {/* Text: fixed 70px height — no card-to-card variation */}
@@ -107,6 +117,7 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
   const [artworkMap, setArtworkMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [showSignIn, setShowSignIn] = useState(false);
+  const { isHiddenShow } = useAiVoiceExclusion();
 
   useEffect(() => {
     fetch(`/api/admin/featured?section=${encodeURIComponent(section)}`)
@@ -135,9 +146,10 @@ export function FeaturedCards({ section, title, subtitle, isMobile = false }) {
       .finally(() => setLoading(false));
   }, [section]);
 
-  if (loading || records.length === 0) return null;
+  const visible = records.filter(r => !isHiddenShow(r.id));
+  if (loading || visible.length === 0) return null;
 
-  const display = records.slice(0, 6);
+  const display = visible.slice(0, 6);
   const cols = isMobile ? 2 : Math.min(display.length, 6);
 
   return (

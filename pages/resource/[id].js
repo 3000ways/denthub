@@ -14,6 +14,7 @@ import { ReportButton } from '../../components/ReportButton';
 import { AllEpisodes } from '../../components/AllEpisodes';
 import { supabase } from '../../lib/supabase';
 import { fetchResourceEpisodes, mapEpisodeRow, EPISODES_PAGE_SIZE } from '../../lib/resource-episodes';
+import { aiVoiceBadge } from '../../lib/voice';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -343,6 +344,9 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                   ))}
                   {isClaimed && (
                     <span title="This listing is managed by its creator" style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '3px 10px', borderRadius: 20 }}>✓ Claimed</span>
+                  )}
+                  {aiVoiceBadge(f) && (
+                    <span title={aiVoiceBadge(f).title} style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '3px 10px', borderRadius: 20 }}>{aiVoiceBadge(f).label}</span>
                   )}
                 </div>
                 <h1 style={{ fontSize: 26, fontWeight: 700, color: '#111', margin: '0 0 4px', fontFamily: FONT_DISPLAY, letterSpacing: -0.5, lineHeight: 1.2 }}>{f.Name}</h1>

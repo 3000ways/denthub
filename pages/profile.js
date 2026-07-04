@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { supabase } from '../lib/supabase';
 import SiteNav from '../components/SiteNav';
+import { AiVoiceToggle } from '../components/AiVoiceToggle';
 import { QUESTION_KEYS, MAX_PICKS, fetchQuizOptions } from '../lib/onboarding';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
@@ -346,6 +347,21 @@ export default function ProfilePage() {
               )}
 
           </div>{/* end listening card */}
+
+          {/* ── Section 2b: Listening preferences ── */}
+          <div style={{ background:'rgba(255,255,255,0.85)', border:`1px solid ${BORDER}`, borderRadius:12,
+            boxShadow:'0 1px 6px rgba(0,0,0,0.05)', padding:'32px 32px 28px', marginBottom:16 }}>
+              <div style={{ marginBottom:16 }}>
+                <SectionHeader label="Listening Preferences" />
+              </div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
+                <div style={{ fontSize:13, color:'#666', fontFamily:FONT_BODY, lineHeight:1.5, maxWidth:440 }}>
+                  Hide podcasts our team has confirmed use an AI-generated voice. Applies across the
+                  home feed, browsing and search. Only human-verified shows are ever affected.
+                </div>
+                <AiVoiceToggle />
+              </div>
+          </div>{/* end preferences card */}
 
           {/* ── Section 3: Saved Resources ── */}
           <div style={{ background:'rgba(255,255,255,0.85)', border:`1px solid ${BORDER}`, borderRadius:12,
