@@ -17,9 +17,9 @@ them. Findings reported by two auditors independently are marked ⭐ (higher con
 - **PR-3 (#76):** stale resource-page state fixed (key by `record.id`); "sample data" banner on
   demo fallback; change-password auto-redeploy fixed (real repoId + branch).
 
-**⚠️ Post-merge actions still required:**
-1. **Apply migration `0017_profiles_owner_read.sql` to Supabase** — the PII fix does NOT take
-   effect until the migration runs against the live DB (merging code alone doesn't apply it).
+**Post-merge actions:**
+1. ✅ **DONE — migration `0017_profiles_owner_read.sql` applied** to Supabase (2026-07-04, via
+   dashboard SQL editor). `profiles` is now owner-read-only; PII exposure closed.
 2. **Re-log into the admin panel** after deploy (old unsigned cookies are now rejected).
 3. (Optional) set `ADMIN_SESSION_SECRET` in Vercel for defense-in-depth.
 

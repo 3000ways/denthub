@@ -386,7 +386,7 @@ user-accounts backend — the phased auth/voting work below now builds on it.
 - **🔧 Harden & Fix — from the 2026-07-04 audits.** Four full audits found several
   exploitable/critical issues. Master list + status in **`docs/audits/TRIAGE.md`**.
   **Shipped:** PR-1 (#75) critical security, PR-2 (#77) data integrity, PR-3 (#76) frontend
-  criticals — merged 2026-07-04. **Post-merge TODO:** apply migration 0017 to Supabase +
+  criticals — merged 2026-07-04. Migration 0017 (profiles PII) applied ✅. **Post-merge TODO:**
   re-login to admin. **Still open:** harvester CE-deletion, upsert-episode, AI-judge injection,
   CE server-side check, mobile/a11y, PR-4 hardening.
   ⚠️ Until the harvester fix ships, do NOT unpublish/merge podcasts in Airtable (can delete CE data).
