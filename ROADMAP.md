@@ -281,6 +281,42 @@ certificate (learner name, episode, date, CE hours, provider line + disclaimer).
   a US state, or general) so the regulatory wording is accurate.
 - Per-episode vs batch certificates; include the quiz or not.
 
+## 🤖 Big Theme: "AI Voice" disclosure — flag AI-narrated podcasts
+
+Tell visitors upfront whether a podcast is narrated by a real human or an AI voice, via a
+clear badge on the resource. AI-generated podcasts are proliferating and are often more
+frustrating/less engaging to listen to, so upfront disclosure = listener trust (very
+on-brand "Wirecutter honesty"). Purely informational — sets expectations.
+
+**⚠️ Crux — false positives are dangerous.** Wrongly labeling a *real human's* podcast as
+"AI" is insulting and potentially defamatory, and would alienate the exact creators we court
+via Claim Your Profile. Guardrails:
+- Distinguish **"suspected"** (bot guess) from **"confirmed"** (human-verified). Never publish
+  a bald "AI voice" label off a bot hunch alone.
+- **Human-gate it** — Andrei confirms before any public creator-facing label goes live (same
+  pattern as claims/moderation).
+- Let creators **contest / self-declare** through Claim Your Profile.
+
+**Decision to make on purpose:** does the AI-voice tag only **disclose** (a badge), or also
+**affect the score**? Recommendation: **disclose transparently first**; treat any score
+impact as a separate, deliberate editorial decision (echoes the claim-vs-score debate).
+
+**Detection — combine, cheapest first:**
+1. **User reports** — add an "AI voice" reason to the existing report system
+   (`resource_reports` / `components/ReportButton.js`). Cheap, reuses infra.
+2. **YODA_Bot heuristic pre-pass** — telltale signals in metadata/description/cover art →
+   a **"suspected"** flag for Andrei to confirm (not auto-published as fact).
+3. **Audio analysis (later, ambitious)** — actually analyze episode audio for synthetic-voice
+   artifacts. The accurate route, but expensive/heavier. Honest limit: text/metadata can only
+   *suspect*; confirming AI *voice* really needs the audio.
+
+**Infra fit:** an Airtable "Voice Type / AI Voice" field (value + confidence + source:
+suspected/reported/confirmed); a badge on the resource card + page (like the Claimed badge);
+reuse the report queue and YODA_Bot's existing research pass.
+
+**Phasing:** (1) report reason + manual Andrei flag + badge → (2) bot heuristic "suspected"
+pre-classification with human confirm → (3) optional audio analysis.
+
 ## 🧲 Big Theme: Community Home Page — a trace left by the last visitor
 
 Make the home page feel *inhabited*: one visitor leaves something that the next visitor
@@ -376,6 +412,9 @@ user-accounts backend — the phased auth/voting work below now builds on it.
   player and bookmarks already sync across devices).
 - **NPI-verified voting.** Basic voting/rating is built; add NPI verification so votes carry
   a verified-dentist weight. Later: Bayesian vote-confidence adjustment to prevent gaming.
+- **"AI Voice" disclosure badge** (see theme above) — flag AI-narrated podcasts so listeners
+  know what to expect. User reports + YODA_Bot "suspected" heuristic + human confirmation;
+  disclose-first (score impact is a separate decision). Guard hard against false positives.
 - **Episode recommendations / AI discovery (Episode Archive phases B–C)** — goal-based
   episode matching and semantic search, building on the podcast archive already live.
 - **Channels (revisit).** The onboarding quiz + carousels/personal feed may already cover
