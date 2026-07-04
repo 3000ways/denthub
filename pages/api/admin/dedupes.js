@@ -79,7 +79,10 @@ export default async function handler(req, res) {
     const seen = new Set();
     const groups = [];
 
-    // Pass 1: exact URL match
+    // Pass 1: exact URL match — only flag pairs whose names are also similar.
+    // Two resources sharing a URL but with clearly different names are likely
+    // different resources hosted at the same organization page (e.g. two AAP
+    // podcasts both linking to perio.org/research-science/podcasts/).
     const byUrl = new Map();
     for (const r of records) {
       const url = normalizeUrl(r.fields['URL']);
@@ -89,10 +92,19 @@ export default async function handler(req, res) {
     }
     for (const [url, recs] of byUrl) {
       if (recs.length < 2) continue;
-      const key = recs.map(r => r.id).sort().join('|');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      groups.push({ reason: 'Same URL', matchValue: url, records: recs });
+      // Compare all pairs; only keep pairs whose names match (exact or fuzzy)
+      for (let i = 0; i < recs.length; i++) {
+        for (let j = i + 1; j < recs.length; j++) {
+          const nameA = normalizeName(recs[i].fields['Name'] || '');
+          const nameB = normalizeName(recs[j].fields['Name'] || '');
+          const namesMatch = nameA === nameB || fuzzyMatchNames(nameA, nameB);
+          if (!namesMatch) continue;
+          const key = [recs[i].id, recs[j].id].sort().join('|');
+          if (seen.has(key)) continue;
+          seen.add(key);
+          groups.push({ reason: 'Same URL', matchValue: url, records: [recs[i], recs[j]] });
+        }
+      }
     }
 
     // Pass 2: exact name match (after normalization)
