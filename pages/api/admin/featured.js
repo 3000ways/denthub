@@ -1,9 +1,13 @@
-// GET  ?section=Books  → returns resources with FeaturedSection matching section
-// PATCH { id, section } → sets FeaturedSection on a resource (pass null to clear)
+// GET  ?section=Books  → returns resources with FeaturedSection matching section (public read)
+// PATCH { id, section } → sets FeaturedSection on a resource (pass null to clear) — ADMIN ONLY
+
+import { isAdminAuthenticated } from '../../../lib/admin-auth';
 
 const BASE = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
 const TABLE = 'tblBlou0rXbImoQ75';
 const FEATURED_FIELD = 'fldW2Gn1fsmIT3ujI';
+const AIRTABLE_ID_RE = /^rec[A-Za-z0-9]{14}$/;       // valid Airtable record id
+const SECTION_RE = /^[\w &/-]{1,40}$/;                // safe section label (no quote injection)
 
 function airtableHeaders() {
   return { Authorization: `Bearer ${process.env.AIRTABLE_PAT}`, 'Content-Type': 'application/json' };
@@ -15,6 +19,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { section } = req.query;
     if (!section) return res.status(400).json({ error: 'section required' });
+    if (!SECTION_RE.test(section)) return res.status(400).json({ error: 'invalid section' });
 
     const params = new URLSearchParams();
     params.set('filterByFormula', `{FeaturedSection}='${section}'`);
@@ -36,8 +41,11 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
+    if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
     const { id, section } = req.body;
     if (!id) return res.status(400).json({ error: 'id required' });
+    if (!AIRTABLE_ID_RE.test(id)) return res.status(400).json({ error: 'invalid id' });
+    if (section != null && !SECTION_RE.test(section)) return res.status(400).json({ error: 'invalid section' });
 
     const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}/${id}`, {
       method: 'PATCH',
