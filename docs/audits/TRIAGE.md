@@ -29,9 +29,8 @@ them. Findings reported by two auditors independently are marked ⭐ (higher con
 
 ## 🆕 New finding (from the build, not the original audits)
 
-- **Next.js 14.2.3 has a known security vulnerability** — upgrade to a patched release
-  (see https://nextjs.org/blog/security-update-2025-12-11). Run `npm install next@latest`
-  (or a patched 14.2.x), rebuild, and smoke-test. Dependency-level, not app code.
+- ✅ **DONE — Next.js upgraded 14.2.3 → 14.2.35** (security patch, PR #82). Build-verified
+  ("✓ Compiled successfully"). Was: known vulnerability in 14.2.3.
 
 **Post-merge actions:**
 1. ✅ **DONE — migration `0017_profiles_owner_read.sql` applied** to Supabase (2026-07-04, via
