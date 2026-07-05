@@ -179,7 +179,7 @@ export default function EpisodePage({ ep, more }) {
                   {ep.link && (
                     <a href={ep.link} target="_blank" rel="noopener noreferrer"
                       style={{ fontSize: 13, fontWeight: 500, color: '#555', background: '#fff', textDecoration: 'none', padding: '10px 18px', borderRadius: 6, border: `1px solid ${BORDER}` }}>
-                      Episode page ↗
+                      Show notes ↗
                     </a>
                   )}
                   <PinButton episodeId={ep.id} onSignInRequired={() => setShowSignIn(true)} />

@@ -130,23 +130,14 @@ export function EpisodeCard({ ep, isNew, isFeatured, onSignInRequired }) {
         <EpisodeBookmarkButton episodeId={ep.id} onSignInRequired={onSignInRequired} />
       )}
 
-      {/* Play / show-notes actions. Fixed width so the bookmark button to the
-          left lines up across every row regardless of the label's length. The
-          secondary link is "Show notes →" only when the episode has a real
-          external page; archived rows without one just show Play (their title
-          already links to the episode page), rather than an odd "Open → audio". */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0, width: 80 }}>
+      {/* Play action only. Show notes now live on the episode page (reached via
+          the title link), so the row keeps just Play — a narrower column lets the
+          bookmark sit closer and gives the title more room. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0, width: 52 }}>
         <button onClick={handlePlay}
           style={{ fontSize: 11, color: GREEN, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
           {isActive && isPlaying ? 'Pause' : isActive ? 'Resume' : '▶ Play'}
         </button>
-        {ep.link
-          ? <a href={ep.link} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 10, color: '#ccc', textDecoration: 'none', whiteSpace: 'nowrap' }}>Show notes →</a>
-          : (!ep.id && ep.audioUrl)
-            ? <a href={ep.audioUrl} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 10, color: '#ccc', textDecoration: 'none', whiteSpace: 'nowrap' }}>Open →</a>
-            : null}
       </div>
     </div>
   );
