@@ -1,13 +1,21 @@
-// Child sitemap: the site's static public pages plus one entry per Published
-// resource (each podcast/show/channel/etc. has its own page at /resource/[id]).
+// Child sitemap: the site's static public pages, one entry per Published
+// resource (each podcast/show/channel/etc. has its own page at /resource/[id]),
+// and the public "See all" topic pages at /browse?tag=…&kind=…
 // Referenced by the top-level sitemap index at /sitemap.xml. Episode pages live
 // in a separate child sitemap (/sitemap-episodes.xml) because they come from a
 // different data source (Supabase) and can be far more numerous.
 //
-// Generated on request from live Airtable data, so it stays current as
-// resources are added or removed — no hand-maintained file.
+// Generated on request from live data (Airtable resources + Supabase quiz
+// tags), so it stays current as resources/topics are added or removed — no
+// hand-maintained file.
+
+import { supabase } from '../lib/supabase';
 
 const SITE = 'https://thedentalcommute.com';
+
+// /browse's `kind` param labels come from the quiz taxonomy's question_key.
+// (See lib/onboarding.js QUESTION_KEYS and lib/home-feed.js seeAllHref.)
+const KIND_BY_QUESTION = { working_on: 'goal', interest: 'interest', career_stage: 'career' };
 
 // Public, indexable static pages. (privacy/terms are noindex; profile/saved/
 // my-* are auth-gated, so none of those belong in the sitemap.)
@@ -42,13 +50,43 @@ async function fetchResourceRecords() {
   return records;
 }
 
+// The public /browse topic pages. Each active quiz-option tag that actually has
+// episodes becomes a "See all" landing page; we skip tags with no episodes
+// because /browse returns a 404 for those (never advertise a dead URL).
+async function fetchBrowsePages() {
+  try {
+    const { data, error } = await supabase
+      .from('quiz_options')
+      .select('question_key, label')
+      .eq('active', true)
+      .order('sort_order');
+    if (error || !data) return [];
+
+    const checked = await Promise.all(
+      data.map(async o => {
+        const kind = KIND_BY_QUESTION[o.question_key];
+        if (!kind || !o.label) return null;
+        const { count } = await supabase
+          .from('episodes')
+          .select('id', { count: 'exact', head: true })
+          .not('audio_url', 'is', null)
+          .overlaps('quiz_tags', [o.label]);
+        return count && count > 0 ? { tag: o.label, kind } : null;
+      })
+    );
+    return checked.filter(Boolean);
+  } catch (err) {
+    return [];
+  }
+}
+
 function xmlEscape(s) {
   return String(s).replace(/[<>&'"]/g, c =>
     ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c])
   );
 }
 
-function buildSitemap(records) {
+function buildSitemap(records, browsePages) {
   const urls = [];
 
   for (const p of STATIC_PAGES) {
@@ -65,20 +103,29 @@ function buildSitemap(records) {
     );
   }
 
+  for (const b of browsePages) {
+    const loc = xmlEscape(`${SITE}/browse?tag=${encodeURIComponent(b.tag)}&kind=${b.kind}`);
+    urls.push(
+      `  <url>\n    <loc>${loc}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>`
+    );
+  }
+
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
 }
 
 export async function getServerSideProps({ res }) {
+  // On any failure, still emit a valid sitemap of whatever we did get, so we
+  // never serve a broken document to crawlers.
   let records = [];
+  let browsePages = [];
   try {
-    records = await fetchResourceRecords();
+    [records, browsePages] = await Promise.all([fetchResourceRecords(), fetchBrowsePages()]);
   } catch (err) {
-    // On any failure, still emit a valid sitemap with the static pages so we
-    // never serve a broken document to crawlers.
     records = [];
+    browsePages = [];
   }
 
-  const xml = buildSitemap(records);
+  const xml = buildSitemap(records, browsePages);
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
   res.write(xml);
