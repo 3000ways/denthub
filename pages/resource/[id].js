@@ -587,6 +587,9 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 40px' }}>
               {breakdown.map(b => <ScoreBar key={b.label} label={`${b.label} (${b.weight}%)`} value={b.value} />)}
             </div>
+            <div style={{ fontSize: 11.5, color: '#999', lineHeight: 1.55, marginTop: 18, paddingTop: 14, borderTop: `1px solid ${BORDER}`, fontStyle: 'italic' }}>
+              Treat this score as a guide, not a verdict on quality. It reflects measurable signals — the value you actually get from any resource depends on your own goals, circumstances, and how you use it.
+            </div>
           </div>
 
           {/* Community */}
