@@ -2,7 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import SiteNav from '../../components/SiteNav';
 import Footer from '../../components/Footer';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
@@ -177,6 +177,65 @@ function ScoreBar({ label, value }) {
         <div style={{ height: 3, width: value ? `${Math.min(value, 100)}%` : '0%', background: GREEN, borderRadius: 2, transition: 'width 0.4s' }} />
       </div>
     </div>
+  );
+}
+
+// Plain-English "how the score works" tooltip next to the Score Breakdown
+// heading — a pared-down version of the detailed block owners see on /creator.
+// Opens on hover (desktop) or tap (mobile); closes on tap-away.
+const SCORE_PARTS = [
+  ['Expert', 25, "an AI reviewer reads its recent content and checks the creator's credentials against a fixed rubric"],
+  ['Community', 25, 'how dentists here engage with it — votes, comments, bookmarks, and pins'],
+  ['Popularity', 20, 'audience size, compared only to others of the same type'],
+  ['Recency', 15, 'how fresh and actively updated it is'],
+  ['Clinical Depth', 15, 'how clinically useful and substantive it is for practitioners'],
+];
+
+function ScoreInfoTooltip() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const closeTimer = useRef(null);
+  const openNow = () => { clearTimeout(closeTimer.current); setOpen(true); };
+  const closeSoon = () => { closeTimer.current = setTimeout(() => setOpen(false), 120); };
+
+  // Tap-away close (mobile, where there's no mouseleave).
+  useEffect(() => {
+    if (!open) return;
+    const onDown = e => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('touchstart', onDown); };
+  }, [open]);
+
+  return (
+    <span ref={wrapRef} style={{ position: 'relative', display: 'inline-flex', textTransform: 'none', letterSpacing: 0 }}>
+      <button
+        onClick={() => setOpen(v => !v)} onMouseEnter={openNow} onMouseLeave={closeSoon}
+        aria-label="How the score is calculated"
+        style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid #c4c4c4', background: '#fff', color: '#888',
+          fontSize: 10.5, fontWeight: 700, fontStyle: 'italic', lineHeight: 1, cursor: 'pointer', padding: 0, fontFamily: 'Georgia, serif',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        i
+      </button>
+      {open && (
+        <div onMouseEnter={openNow} onMouseLeave={closeSoon}
+          style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 60, width: 310, maxWidth: '78vw',
+            background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: '0 8px 30px rgba(0,0,0,0.14)',
+            padding: '14px 16px', fontFamily: FONT, cursor: 'default' }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 7 }}>How the score works</div>
+          <p style={{ fontSize: 12, color: '#666', lineHeight: 1.55, margin: '0 0 10px' }}>
+            Each resource earns a score out of 100 from five weighted parts — computed from real signals, never hand-set or paid for.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {SCORE_PARTS.map(([name, weight, desc]) => (
+              <div key={name} style={{ fontSize: 12, color: '#555', lineHeight: 1.4 }}>
+                <strong style={{ color: GREEN }}>{name} ({weight}%)</strong> — {desc}.
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </span>
   );
 }
 
@@ -521,7 +580,10 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
 
           {/* Score breakdown */}
           <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 20 }}>Score Breakdown</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999' }}>Score Breakdown</span>
+              <ScoreInfoTooltip />
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 40px' }}>
               {breakdown.map(b => <ScoreBar key={b.label} label={`${b.label} (${b.weight}%)`} value={b.value} />)}
             </div>
