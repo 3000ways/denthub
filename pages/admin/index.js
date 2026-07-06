@@ -3305,6 +3305,7 @@ function VoiceVotesTab() {
                   {g.resourceId && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', flexShrink: 0, width: 168 }}>
                       <button disabled={acting === g.key} onClick={() => setVoice(g, 'AI-generated', 'Confirmed')} style={btn('#fef3c7', '#b45309', '#fde68a')}>🤖 Confirm AI</button>
+                      <button disabled={acting === g.key} onClick={() => setVoice(g, 'Mixed', 'Confirmed')} style={btn('#fffbeb', '#b45309', '#fde68a')}>🤖 Confirm Partial</button>
                       <button disabled={acting === g.key} onClick={() => setVoice(g, 'Human', 'Confirmed')} style={btn('#f0fdf4', '#065f46', '#a7f3d0')}>👤 Confirm Human</button>
                       <button disabled={acting === g.key} onClick={() => setVoice(g, 'AI-generated', 'Suspected')} style={btn('#fff', '#666', BORDER)}>Mark suspected</button>
                       {g.voiceType && <button disabled={acting === g.key} onClick={() => setVoice(g, '', '')} style={btn('#fff', '#b91c1c', '#fecaca')}>Clear</button>}
