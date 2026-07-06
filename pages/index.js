@@ -622,7 +622,7 @@ export default function Home({ initialResources }) {
   const [episodes, setEpisodes] = useState([]);
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [episodeSearched, setEpisodeSearched] = useState(false);
-  const [episodeCount, setEpisodeCount] = useState(0);
+  const [episodeCount, setEpisodeCount] = useState(37784);
 
   const [submitOpen, setSubmitOpen] = useState(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('submit') === '1');
   const [submitUrl, setSubmitUrl] = useState('');
