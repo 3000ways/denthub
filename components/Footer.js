@@ -17,7 +17,7 @@ export default function Footer({ maxWidth = 1140 }) {
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', alignItems: 'center' }}>
           <Link href="/about" style={linkStyle}>About</Link>
-          <Link href="/privacy" style={linkStyle}>Privacy</Link>
+          <Link href="/privacy" style={linkStyle}>Privacy Policy</Link>
           <Link href="/terms" style={linkStyle}>Terms</Link>
         </div>
         <div style={{ fontSize: 12, color: '#bbb' }}>© {new Date().getFullYear()} The Dental Commute. All rights reserved.</div>
