@@ -595,7 +595,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
           {/* Community */}
           <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 16 }}>Community</div>
-            <CommunitySection resourceId={record.id} onSignInRequired={() => setShowSignIn(true)} />
+            <CommunitySection resourceId={record.id} kind={(isPodcast || isYouTube) ? 'follow' : 'save'} onSignInRequired={() => setShowSignIn(true)} />
           </div>
 
           {/* You might also like */}
