@@ -585,7 +585,7 @@ export default function Home({ initialResources }) {
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
   const [homeLayout, setHomeLayout] = useState({}); // published layout per audience (admin-composed); empty = use DEFAULT_LAYOUT
   const [homeLayoutLoaded, setHomeLayoutLoaded] = useState(false); // gate settings-driven fetches (Discover) until the layout is known, to avoid a flash of un-curated content
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
     check();
