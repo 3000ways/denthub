@@ -1147,9 +1147,9 @@ export default function Home({ initialResources }) {
                       </div>
                     ))}
                   </div>
-                  {/* Episodes — full-width centered hero stat at bottom */}
+                  {/* Episodes — full-width centered at bottom, same size as the rest */}
                   <div style={{ textAlign:'center', paddingTop:16, borderTop:`1px solid ${BORDER}` }}>
-                    <div style={{ fontSize:36, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-1.2 }}>{epDisplay}</div>
+                    <div style={{ fontSize:24, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{epDisplay}</div>
                     <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{epStat.label}</div>
                   </div>
                 </div>
@@ -1158,7 +1158,7 @@ export default function Home({ initialResources }) {
               return (
                 <div style={{ display:'flex', gap:0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding:'22px 0' }}>
                   <div style={{ flex:1.4, paddingRight:28, borderRight:`1px solid ${BORDER}` }}>
-                    <div style={{ fontSize:42, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-1.2 }}>{epDisplay}</div>
+                    <div style={{ fontSize:34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{epDisplay}</div>
                     <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{epStat.label}</div>
                   </div>
                   {otherStats.map((s, i) => (
