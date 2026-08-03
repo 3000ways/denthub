@@ -1,76 +1,52 @@
 // Admin API for the "AI Voice" tab. Reads listener votes (voice_votes) via the
 // service-role client, groups them by SHOW (resource), and enriches each with the
-// show's name + current Voice Type/Voice Status from Airtable. A POST sets those
-// two Airtable fields — the human-confirm step that turns a crowd signal into a
-// public label (or clears it). Nothing here is automatic.
+// show's name + current Voice Type/Voice Status. A POST sets those two fields —
+// the human-confirm step that turns a crowd signal into a public label (or
+// clears it). Nothing here is automatic.
 
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { VOICE_TYPES, VOICE_STATUSES } from '../../../lib/voice';
+import { adminListResources, adminUpdateResource, getAdminClient } from '../../../lib/resources-db-admin';
 
-const BASE_ID  = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+const metaFromRecord = rec => ({
+  name: rec.fields.Name || '(untitled)',
+  type: rec.fields.Type || '',
+  voiceType: rec.fields['Voice Type'] || '',
+  voiceStatus: rec.fields['Voice Status'] || '',
+  voiceNote: rec.fields['Voice Note'] || '',
+});
 
-// Look up name + current voice fields for a set of Airtable record ids.
+// Look up name + current voice fields for a set of record ids.
 async function fetchResourceMeta(ids) {
   const out = {};
-  if (!ids.length || !process.env.AIRTABLE_PAT) return out;
-  for (let i = 0; i < ids.length; i += 40) {
-    const chunk = ids.slice(i, i + 40);
-    const formula = `OR(${chunk.map(id => `RECORD_ID()='${id}'`).join(',')})`;
-    const params = new URLSearchParams({ filterByFormula: formula, pageSize: '100' });
-    ['Name', 'Type', 'Voice Type', 'Voice Status', 'Voice Note'].forEach(f => params.append('fields[]', f));
-    try {
-      const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-      });
-      if (r.ok) {
-        const data = await r.json();
-        for (const rec of data.records || []) {
-          out[rec.id] = {
-            name: rec.fields.Name || '(untitled)',
-            type: rec.fields.Type || '',
-            voiceType: rec.fields['Voice Type'] || '',
-            voiceStatus: rec.fields['Voice Status'] || '',
-            voiceNote: rec.fields['Voice Note'] || '',
-          };
-        }
-      }
-    } catch { /* best-effort enrichment */ }
-  }
+  if (!ids.length) return out;
+  try {
+    const records = await adminListResources({ ids, select: 'id, name, type, voice_type, voice_status, voice_note' });
+    for (const rec of records) out[rec.id] = metaFromRecord(rec);
+  } catch { /* best-effort enrichment */ }
   return out;
 }
 
-// Shows already flagged in Airtable (Voice Status set) — so bot "Suspected"
-// pre-classifications and past confirmations show in the tab even with no votes.
+// Shows already flagged (Voice Status set) — so bot "Suspected" pre-
+// classifications and past confirmations show in the tab even with no votes.
 async function fetchFlaggedShows() {
-  const out = [];
-  if (!process.env.AIRTABLE_PAT) return out;
-  let offset;
-  do {
-    const params = new URLSearchParams({ pageSize: '100', filterByFormula: `{Voice Status}!=''` });
-    ['Name', 'Type', 'Voice Type', 'Voice Status', 'Voice Note'].forEach(f => params.append('fields[]', f));
-    if (offset) params.set('offset', offset);
-    try {
-      const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-      });
-      if (!r.ok) break;
-      const data = await r.json();
-      for (const rec of data.records || []) {
-        out.push({
-          id: rec.id,
-          name: rec.fields.Name || '(untitled)',
-          type: rec.fields.Type || '',
-          voiceType: rec.fields['Voice Type'] || '',
-          voiceStatus: rec.fields['Voice Status'] || '',
-          voiceNote: rec.fields['Voice Note'] || '',
-        });
-      }
-      offset = data.offset;
-    } catch { break; }
-  } while (offset);
-  return out;
+  try {
+    const db = getAdminClient();
+    const { data, error } = await db.from('resources')
+      .select('id, name, type, voice_type, voice_status, voice_note')
+      .not('voice_status', 'is', null)
+      .neq('voice_status', '');
+    if (error) return [];
+    return (data || []).map(row => ({
+      id: row.id,
+      name: row.name || '(untitled)',
+      type: row.type || '',
+      voiceType: row.voice_type || '',
+      voiceStatus: row.voice_status || '',
+      voiceNote: row.voice_note || '',
+    }));
+  } catch { return []; }
 }
 
 export default async function handler(req, res) {
@@ -84,15 +60,7 @@ export default async function handler(req, res) {
     if (voiceType && !VOICE_TYPES.includes(voiceType)) return res.status(400).json({ error: 'invalid voiceType' });
     if (voiceStatus && !VOICE_STATUSES.includes(voiceStatus)) return res.status(400).json({ error: 'invalid voiceStatus' });
     try {
-      const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          records: [{ id: resourceId, fields: { 'Voice Type': voiceType || null, 'Voice Status': voiceStatus || null } }],
-          typecast: true,
-        }),
-      });
-      if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+      await adminUpdateResource(resourceId, { 'Voice Type': voiceType || null, 'Voice Status': voiceStatus || null });
       return res.status(200).json({ ok: true });
     } catch (e) {
       return res.status(500).json({ error: e.message });

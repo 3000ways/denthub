@@ -4,28 +4,17 @@
 
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
-
-const BASE_ID = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+import { adminListResources } from '../../../lib/resources-db-admin';
 
 async function resourceNames(ids) {
-  // Only real Airtable record ids may be interpolated into the formula — a
-  // resource_id comes from a user-submitted claim row, so validate it to prevent
-  // formula injection. (audit security #9)
   ids = [...new Set(ids)].filter(id => /^rec[A-Za-z0-9]{14}$/.test(id));
   if (!ids.length) return {};
-  const pat = process.env.AIRTABLE_PAT;
-  const formula = `OR(${ids.map(id => `RECORD_ID()='${id}'`).join(',')})`;
-  const params = new URLSearchParams({ filterByFormula: formula, pageSize: '100' });
-  ['Name', 'URL'].forEach(f => params.append('fields[]', f));
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-    headers: { Authorization: `Bearer ${pat}` },
-  });
-  if (!res.ok) return {};
-  const data = await res.json();
-  const map = {};
-  (data.records || []).forEach(r => { map[r.id] = { name: r.fields.Name || '(untitled)', url: r.fields.URL || '' }; });
-  return map;
+  try {
+    const records = await adminListResources({ ids, select: 'id, name, url' });
+    const map = {};
+    records.forEach(r => { map[r.id] = { name: r.fields.Name || '(untitled)', url: r.fields.URL || '' }; });
+    return map;
+  } catch { return {}; }
 }
 
 export default async function handler(req, res) {

@@ -14,13 +14,12 @@
 
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
+import { adminCreateResource, getAdminClient } from '../../../lib/resources-db-admin';
 import { RESEARCH_PLAN, RESEARCH_GROUPS, typeNoun } from '../../../lib/research-plan';
 import { resolvePodcastFeed } from '../../../lib/resolve-feed';
 
 export const config = { maxDuration: 60 };
 
-const BASE_ID = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
 
 const TARGET_PER_SUBCATEGORY = 8;
 
@@ -52,29 +51,16 @@ function normalizeUrl(url) {
 // can be re-suggested. Also collect RSS feed URLs so the same podcast listed on
 // a different platform (its site vs Apple vs Spotify) is caught by feed match.
 async function fetchExistingResources() {
-  let records = [];
-  let offset;
-  do {
-    const params = new URLSearchParams({
-      pageSize: '100',
-      filterByFormula: `NOT({Submission Status}="Rejected")`,
-    });
-    params.append('fields[]', 'Name');
-    params.append('fields[]', 'URL');
-    params.append('fields[]', 'RSS Feed URL');
-    if (offset) params.set('offset', offset);
-    const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-      headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-    });
-    if (!res.ok) throw new Error(`Airtable fetch error ${res.status}`);
-    const data = await res.json();
-    records = records.concat(data.records);
-    offset = data.offset;
-  } while (offset);
+  const db = getAdminClient();
+  const { data, error } = await db.from('resources')
+    .select('name, url, rss_feed_url')
+    .or('submission_status.is.null,submission_status.neq.Rejected');
+  if (error) throw new Error(`resources fetch error: ${error.message}`);
 
-  const names = new Set(records.map(r => (r.fields.Name || '').toLowerCase().trim()).filter(Boolean));
-  const urls  = new Set(records.map(r => normalizeUrl(r.fields.URL || '')).filter(Boolean));
-  const feeds = new Set(records.map(r => normalizeUrl(r.fields['RSS Feed URL'] || '')).filter(Boolean));
+  const rows = data || [];
+  const names = new Set(rows.map(r => (r.name || '').toLowerCase().trim()).filter(Boolean));
+  const urls  = new Set(rows.map(r => normalizeUrl(r.url || '')).filter(Boolean));
+  const feeds = new Set(rows.map(r => normalizeUrl(r.rss_feed_url || '')).filter(Boolean));
   return { names, urls, feeds };
 }
 
@@ -156,13 +142,9 @@ Aim for ${TARGET_PER_SUBCATEGORY}; it is better to return 4 real ones than pad w
 }
 
 async function insertRecords(records) {
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ records, typecast: true }),
-  });
-  if (!res.ok) throw new Error(`Airtable error ${res.status}: ${await res.text()}`);
-  return res.json();
+  const out = [];
+  for (const rec of records) out.push(await adminCreateResource(rec.fields));
+  return { records: out };
 }
 
 // Best-effort activity log — a failure here must never fail the actual research.

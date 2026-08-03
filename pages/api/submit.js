@@ -1,5 +1,4 @@
-const BASE_ID  = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+import { adminCreateResource } from '../../lib/resources-db-admin';
 
 const VALID_SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
 const VALID_TOPICS      = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
@@ -129,14 +128,10 @@ export default async function handler(req, res) {
     ...(parsed.ClinicalDepthScore != null ? { 'Clinical Depth Score': Number(parsed.ClinicalDepthScore) } : {}),
   };
 
-  const atRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ records: [{ fields }], typecast: true }),
-  });
-  if (!atRes.ok) {
-    const err = await atRes.text();
-    return res.status(500).json({ error: `Failed to save submission: ${err}` });
+  try {
+    await adminCreateResource(fields);
+  } catch (e) {
+    return res.status(500).json({ error: `Failed to save submission: ${e.message}` });
   }
 
   return res.status(200).json({ ok: true, name: fields.Name, type: finalType });

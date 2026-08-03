@@ -10,28 +10,13 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { allSubcategories, RESEARCH_GROUPS } from '../../../lib/research-plan';
-
-const BASE_ID = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+import { adminListResources } from '../../../lib/resources-db-admin';
 
 const STALE_DAYS = 45;
 const THIN_LIVE = 5;
 
 async function fetchResourcesForCounts() {
-  let records = [];
-  let offset;
-  do {
-    const params = new URLSearchParams({ pageSize: '100' });
-    ['Type', 'Specialty', 'Status', 'Submission Status'].forEach(f => params.append('fields[]', f));
-    if (offset) params.set('offset', offset);
-    const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-      headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-    });
-    if (!res.ok) throw new Error(`Airtable fetch error ${res.status}`);
-    const data = await res.json();
-    records = records.concat(data.records);
-    offset = data.offset;
-  } while (offset);
+  const records = await adminListResources({ select: 'id, type, specialty, status, submission_status' });
   return records.map(r => r.fields);
 }
 

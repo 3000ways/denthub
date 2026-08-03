@@ -2,32 +2,21 @@
 // Description, Image URL, Host or Author, RSS Feed URL).
 //   GET  → list proposals (pending first), merged with the resource's Name.
 //   POST → { proposalId, action: 'approve' | 'reject' }
-//          approve applies the changes to Airtable; reject just marks status.
+//          approve applies the changes to the resource; reject just marks status.
 
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
-
-const BASE_ID = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+import { adminListResources, adminUpdateResource } from '../../../lib/resources-db-admin';
 
 async function resourceNames(ids) {
-  // Only real Airtable record ids may be interpolated into the formula — a
-  // resource_id comes from a user-submitted proposal row, so validate it to
-  // prevent formula injection. (audit security #9)
   ids = [...new Set(ids)].filter(id => /^rec[A-Za-z0-9]{14}$/.test(id));
   if (!ids.length) return {};
-  const pat = process.env.AIRTABLE_PAT;
-  const formula = `OR(${ids.map(id => `RECORD_ID()='${id}'`).join(',')})`;
-  const params = new URLSearchParams({ filterByFormula: formula, pageSize: '100' });
-  params.append('fields[]', 'Name');
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-    headers: { Authorization: `Bearer ${pat}` },
-  });
-  if (!res.ok) return {};
-  const data = await res.json();
-  const map = {};
-  (data.records || []).forEach(r => { map[r.id] = r.fields.Name || '(untitled)'; });
-  return map;
+  try {
+    const records = await adminListResources({ ids, select: 'id, name' });
+    const map = {};
+    records.forEach(r => { map[r.id] = r.fields.Name || '(untitled)'; });
+    return map;
+  } catch { return {}; }
 }
 
 export default async function handler(req, res) {
@@ -57,12 +46,11 @@ export default async function handler(req, res) {
     if (action === 'approve') {
       const fields = {};
       Object.entries(proposal.changes || {}).forEach(([key, diff]) => { fields[key] = diff.new; });
-      const patchRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: [{ id: proposal.resource_id, fields }] }),
-      });
-      if (!patchRes.ok) return res.status(500).json({ error: `Airtable PATCH failed: ${await patchRes.text()}` });
+      try {
+        await adminUpdateResource(proposal.resource_id, fields);
+      } catch (e) {
+        return res.status(500).json({ error: `Applying proposal failed: ${e.message}` });
+      }
     }
 
     const status = action === 'approve' ? 'approved' : 'rejected';

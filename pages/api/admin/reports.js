@@ -1,34 +1,20 @@
 // Admin API for the Reports tab. Reads/writes the resource_reports table via the
 // service-role client (the table has no client policies), enriches each report
-// with its resource name (Airtable) or episode title (Supabase), and groups them
-// by target so a resource flagged five times shows as one row with a count.
+// with its resource name or episode title, and groups them by target so a
+// resource flagged five times shows as one row with a count.
 
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
+import { adminListResources } from '../../../lib/resources-db-admin';
 
-const BASE_ID  = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
-
-// Look up resource names for a set of Airtable record ids (chunked OR formula).
+// Look up resource names for a set of record ids.
 async function fetchResourceNames(ids) {
   const out = {};
-  if (!ids.length || !process.env.AIRTABLE_PAT) return out;
-  for (let i = 0; i < ids.length; i += 40) {
-    const chunk = ids.slice(i, i + 40);
-    const formula = `OR(${chunk.map(id => `RECORD_ID()='${id}'`).join(',')})`;
-    const params = new URLSearchParams({ filterByFormula: formula, pageSize: '100' });
-    params.append('fields[]', 'Name');
-    params.append('fields[]', 'Type');
-    try {
-      const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-      });
-      if (r.ok) {
-        const data = await r.json();
-        for (const rec of data.records || []) out[rec.id] = { name: rec.fields.Name || '(untitled)', type: rec.fields.Type || '' };
-      }
-    } catch { /* best-effort enrichment */ }
-  }
+  if (!ids.length) return out;
+  try {
+    const records = await adminListResources({ ids, select: 'id, name, type' });
+    for (const rec of records) out[rec.id] = { name: rec.fields.Name || '(untitled)', type: rec.fields.Type || '' };
+  } catch { /* best-effort enrichment */ }
   return out;
 }
 

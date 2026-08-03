@@ -20,11 +20,11 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { scoreShow } from '../../../lib/voice-detect';
+import { adminGetResource, adminUpdateResource, getAdminClient } from '../../../lib/resources-db-admin';
+import { toAirtableRecord } from '../../../lib/resources-db';
 
 export const config = { maxDuration: 60 };
 
-const BASE_ID  = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
 const USER_AGENT = 'Mozilla/5.0 (compatible; DentalCommuteBot/1.0; +https://thedentalcommute.com)';
 
 // Extract the RSS <generator> tag (and a couple of author-ish fields) from feed
@@ -54,33 +54,22 @@ async function fetchGenerator(rssUrl) {
 
 // Candidate podcasts: published, has an RSS feed, and NOT already human-confirmed.
 async function fetchCandidates() {
-  const pat = process.env.AIRTABLE_PAT;
-  if (!pat) throw new Error('AIRTABLE_PAT not set');
-  let records = [], offset;
-  do {
-    const params = new URLSearchParams({
-      pageSize: '100',
-      filterByFormula: `AND({Type}='Podcast', {Status}='Published', {RSS Feed URL}!='', {Voice Status}!='Confirmed')`,
-    });
-    ['Name', 'Description', 'Host or Author', 'RSS Feed URL', 'Voice Type', 'Voice Status'].forEach(f => params.append('fields[]', f));
-    if (offset) params.set('offset', offset);
-    const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, { headers: { Authorization: `Bearer ${pat}` } });
-    if (!res.ok) throw new Error(`Airtable ${res.status}`);
-    const data = await res.json();
-    records = records.concat(data.records || []);
-    offset = data.offset;
-  } while (offset);
-  return records;
+  const db = getAdminClient();
+  const { data, error } = await db.from('resources')
+    .select('id, name, description, host_or_author, rss_feed_url, voice_type, voice_status, created_at')
+    .eq('type', 'Podcast').eq('status', 'Published')
+    .not('rss_feed_url', 'is', null).neq('rss_feed_url', '')
+    .or('voice_status.is.null,voice_status.neq.Confirmed');
+  if (error) throw new Error(error.message);
+  return (data || []).map(toAirtableRecord);
 }
 
 async function fetchRecord(id) {
-  const params = new URLSearchParams();
-  ['Name', 'Description', 'Host or Author', 'RSS Feed URL', 'Voice Type', 'Voice Status'].forEach(f => params.append('fields[]', f));
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}/${id}?${params}`, {
-    headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-  });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    return await adminGetResource(id, {
+      select: 'id, name, description, host_or_author, rss_feed_url, voice_type, voice_status, created_at',
+    });
+  } catch { return null; }
 }
 
 async function sampleEpisodes(admin, showId) {
@@ -146,12 +135,7 @@ Return ONLY a JSON object, no markdown:
 }
 
 async function writeSuspected(id, voiceType, note) {
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ records: [{ id, fields: { 'Voice Type': voiceType, 'Voice Status': 'Suspected', 'Voice Note': note } }], typecast: true }),
-  });
-  if (!res.ok) throw new Error(`Airtable write ${res.status}`);
+  await adminUpdateResource(id, { 'Voice Type': voiceType, 'Voice Status': 'Suspected', 'Voice Note': note });
 }
 
 export default async function handler(req, res) {

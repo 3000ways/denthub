@@ -17,9 +17,7 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { resolveFeedUrl } from '../../../lib/harvester';
-
-const BASE_ID  = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
-const TABLE_ID = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
+import { adminUpdateResource } from '../../../lib/resources-db-admin';
 const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 export const config = { maxDuration: 60 };
@@ -108,12 +106,7 @@ async function findViaItunes(show) {
 
 // ─── writes ──────────────────────────────────────────────────────────────────
 async function applyFix(admin, show, url) {
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ records: [{ id: show.show_resource_id, fields: { 'RSS Feed URL': url } }], typecast: true }),
-  });
-  if (!res.ok) throw new Error(`Airtable ${res.status}: ${(await res.text()).slice(0, 150)}`);
+  await adminUpdateResource(show.show_resource_id, { 'RSS Feed URL': url });
   await admin.from('harvest_state').update({
     feed_url: url, last_status: 'pending', last_error: null, last_harvested_at: null,
     updated_at: new Date().toISOString(),

@@ -1,7 +1,5 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
-
-const BASE_ID = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+import { adminListResources } from '../../../lib/resources-db-admin';
 
 function normalizeUrl(url) {
   if (!url) return '';
@@ -60,21 +58,8 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
   try {
-    let records = [];
-    let offset;
-    do {
-      const params = new URLSearchParams({ pageSize: '100' });
-      params.append('sort[0][field]', 'Name');
-      params.append('sort[0][direction]', 'asc');
-      if (offset) params.set('offset', offset);
-      const resp = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-      });
-      if (!resp.ok) throw new Error(`Airtable ${resp.status}`);
-      const data = await resp.json();
-      records = records.concat(data.records);
-      offset = data.offset;
-    } while (offset);
+    const records = await adminListResources();
+    records.sort((a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || ''));
 
     const seen = new Set();
     const groups = [];

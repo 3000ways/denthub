@@ -1,22 +1,5 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
-
-const BASE_ID = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
-
-async function airtableRequest(path, options = {}) {
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}${path}`, {
-    headers: {
-      Authorization: `Bearer ${process.env.AIRTABLE_PAT}`,
-      'Content-Type': 'application/json',
-    },
-    ...options,
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Airtable error ${res.status}: ${err}`);
-  }
-  return res.json();
-}
+import { adminListResources, adminUpdateResource, adminUpdateResources } from '../../../lib/resources-db-admin';
 
 export default async function handler(req, res) {
   if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -24,16 +7,7 @@ export default async function handler(req, res) {
   // GET — list all pending submissions (paginate through all pages)
   if (req.method === 'GET') {
     try {
-      const allRecords = [];
-      let offset = null;
-      do {
-        const params = new URLSearchParams({ filterByFormula: `{Submission Status}="Pending"`, pageSize: '100' });
-        if (offset) params.set('offset', offset);
-        const data = await airtableRequest(`?${params}`);
-        allRecords.push(...(data.records || []));
-        offset = data.offset || null;
-      } while (offset);
-
+      const allRecords = await adminListResources({ submissionStatus: 'Pending' });
       allRecords.sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
       return res.status(200).json(allRecords);
     } catch (e) {
@@ -47,29 +21,10 @@ export default async function handler(req, res) {
       const { id, action, approveAll } = req.body;
 
       if (approveAll) {
-        // Fetch all pending IDs then batch-approve in groups of 10 (Airtable limit)
-        const allIds = [];
-        let offset = null;
-        do {
-          const params = new URLSearchParams({ filterByFormula: `{Submission Status}="Pending"`, fields: ['Name'], pageSize: '100' });
-          if (offset) params.set('offset', offset);
-          const data = await airtableRequest(`?${params}`);
-          allIds.push(...(data.records || []).map(r => r.id));
-          offset = data.offset || null;
-        } while (offset);
-
+        const pending = await adminListResources({ submissionStatus: 'Pending', select: 'id' });
         const fields = { 'Submission Status': 'Approved', Status: 'Published' };
-        const batches = [];
-        for (let i = 0; i < allIds.length; i += 10) {
-          batches.push(allIds.slice(i, i + 10));
-        }
-        await Promise.all(batches.map(batch =>
-          airtableRequest('', {
-            method: 'PATCH',
-            body: JSON.stringify({ records: batch.map(rid => ({ id: rid, fields })), typecast: true }),
-          })
-        ));
-        return res.status(200).json({ approved: allIds.length });
+        await adminUpdateResources(pending.map(r => ({ id: r.id, fields })));
+        return res.status(200).json({ approved: pending.length });
       }
 
       // Single record
@@ -77,11 +32,8 @@ export default async function handler(req, res) {
         'Submission Status': action === 'approve' ? 'Approved' : 'Rejected',
         ...(action === 'approve' ? { Status: 'Published' } : {}),
       };
-      const data = await airtableRequest('', {
-        method: 'PATCH',
-        body: JSON.stringify({ records: [{ id, fields }], typecast: true }),
-      });
-      return res.status(200).json(data.records[0]);
+      const record = await adminUpdateResource(id, fields);
+      return res.status(200).json(record);
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }

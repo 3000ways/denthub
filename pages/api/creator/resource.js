@@ -5,20 +5,19 @@
 // Rationale (not shown publicly elsewhere, but not sensitive — it's the
 // evidence behind a score for a public listing).
 
-const BASE_ID = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+import { adminGetResource } from '../../../lib/resources-db-admin';
 
 export default async function handler(req, res) {
   const { id } = req.query;
   if (!id) return res.status(400).json({ error: 'id required' });
-  const pat = process.env.AIRTABLE_PAT;
-  if (!pat) return res.status(500).json({ error: 'AIRTABLE_PAT not set' });
 
-  const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}/${id}`, {
-    headers: { Authorization: `Bearer ${pat}` },
-  });
-  if (!r.ok) return res.status(r.status === 404 ? 404 : 500).json({ error: 'Resource not found' });
-  const record = await r.json();
+  let record;
+  try {
+    record = await adminGetResource(id);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+  if (!record) return res.status(404).json({ error: 'Resource not found' });
   const f = record.fields || {};
 
   return res.status(200).json({
