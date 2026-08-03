@@ -4,7 +4,7 @@ A running wish list of features and improvements. Plain English, no code require
 Move items between sections as work progresses. When an item is ready to actually
 build, we can promote it to a GitHub Issue.
 
-_Last updated: 2026-07-01_
+_Last updated: 2026-08-03_
 
 ---
 
@@ -392,8 +392,43 @@ building toward a hands-free, in-car experience.
 database + Google OAuth), added in PR #2. This is the project's first real
 user-accounts backend — the phased auth/voting work below now builds on it.
 
+## 🚨 Big Theme: Migrate off Airtable → Supabase (ACTIVE OUTAGE FIX)
+
+_Decided 2026-08-03. Airtable's free-tier API limit (1,000 calls/month) was exceeded
+(1,554 calls in ~3 days of August) and Airtable is now hard-blocking requests with 429
+errors — the live site cannot load resources/categories until the monthly reset or an
+upgrade. Root cause: the daily cron jobs (harvester cover-art writes ~75/day + full-table
+pagination reads ~18/day + weekly score writes) cost ~3,000 calls/month by themselves —
+visitor traffic (~55 users/month) was never the driver. Andrei barely uses the Airtable
+grid anymore (admin panel covers editing), so rather than patch around the limit, we're
+migrating resource/category content to Supabase, where there is no API-call cap and the
+data adds only ~3 MB to the 224/500 MB free-tier database._
+
+**The plan (each phase ships + verifies live before the next):**
+
+1. **Phase 1 — Build the new home.** `resources` + `categories` tables in Supabase,
+   keyed by the existing Airtable record IDs (so bookmarks/pins/votes/claims/reports
+   keep working untouched). `Final Score` becomes a computed column with the same
+   25/25/20/15/15 weighted math. Data comes out of Airtable via **UI CSV export**
+   (the API is blocked): add a `RECORD_ID()` formula field to each table, download
+   CSV. Migration `0020`.
+2. **Phase 2 — Switch the reads.** `/api/airtable` serves from Supabase → site back up,
+   visitor traffic costs zero Airtable calls forever.
+3. **Phase 3 — Switch the writers, one at a time.** Score engine, harvester auto-image,
+   research agent, claim-approved edits, admin All Resources editor.
+4. **Phase 4 — Retire Airtable.** Final CSV snapshot as keepsake backup; remove the PAT;
+   update CLAUDE.md architecture notes. Kills both Airtable caps (API calls + the
+   1,000-record ceiling we were at 837/1,000 on).
+
+_What we give up: the Airtable spreadsheet grid for bulk edits (mitigation if ever
+missed: a CSV-export button in the admin panel). The Airtable-formula `Final Score`
+moves into Postgres. Supabase watch-item: the 500 MB DB ceiling as the episode archive
+grows (episodes = 211 MB of 224 MB used today) — separate concern, unchanged by this._
+
 ## 🔨 Now (actively working on / next up)
 
+- **🚨 Airtable → Supabase migration** (see Big Theme above) — the active priority;
+  the site's resource lists are down until Phase 2 ships.
 - **🔧 Harden & Fix — from the 2026-07-04 audits.** Four full audits found several
   exploitable/critical issues. Master list + status in **`docs/audits/TRIAGE.md`**.
   **Shipped (8 PRs, merged 2026-07-04):** critical security (#75), data integrity (#77),
