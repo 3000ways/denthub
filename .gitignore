@@ -10,3 +10,7 @@ node_modules/
 .env.*
 !.env.example
 .env*
+
+# Final Airtable CSV exports (backup only — contain submitter emails, never commit)
+Resources-Grid view.csv
+Categories-Grid view.csv
