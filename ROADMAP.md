@@ -405,6 +405,8 @@ migrating resource/category content to Supabase, where there is no API-call cap 
 data adds only ~3 MB to the 224/500 MB free-tier database._
 
 **The plan (each phase ships + verifies live before the next):**
+_Status 2026-08-03: Phases 1–3 ✅ shipped and live-verified (site restored,
+write path proven via a live harvest). Phase 4 in progress._
 
 1. **Phase 1 — Build the new home.** `resources` + `categories` tables in Supabase,
    keyed by the existing Airtable record IDs (so bookmarks/pins/votes/claims/reports
