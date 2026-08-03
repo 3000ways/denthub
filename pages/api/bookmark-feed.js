@@ -1,14 +1,11 @@
 // "New from your bookmarks" feed.
-// Given a set of bookmarked resource IDs, fetches those records from Airtable,
+// Given a set of bookmarked resource IDs, fetches those records from Supabase,
 // keeps the ones that are Podcasts / YouTube channels with an RSS feed, and
 // returns their most recent episodes/videos merged and sorted by date.
 // Same live-RSS approach as /api/spotlight, but pointed at the user's shows.
 
 import { supabase } from '../../lib/supabase';
-
-const AIRTABLE_BASE  = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
-const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
-const AIRTABLE_PAT   = process.env.AIRTABLE_PAT;
+import { listPublishedResources } from '../../lib/resources-db';
 
 const PER_FEED  = 3;   // most recent items to pull from each followed show
 const MAX_IDS   = 60;  // safety cap on how many shows we'll fan out to
@@ -85,24 +82,21 @@ async function fetchFeed(url) {
 }
 
 async function fetchRecords(ids) {
-  if (!AIRTABLE_PAT || !ids.length) return [];
-  const formula = `AND({Status}='Published', {RSS Feed URL}!='', OR(${ids.map(id => `RECORD_ID()='${id}'`).join(',')}))`;
-  const params = new URLSearchParams();
-  params.set('filterByFormula', formula);
-  params.set('pageSize', '100');
-  const res = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) return [];
-  const json = await res.json();
-  return (json.records || []).map(r => ({
-    id:     r.id,
-    name:   r.fields['Name'],
-    type:   r.fields['Type'],
-    rssUrl: r.fields['RSS Feed URL'],
-    image:  r.fields['Image URL'] || null,
-  }));
+  if (!ids.length) return [];
+  try {
+    const records = await listPublishedResources({
+      ids,
+      hasRss: true,
+      select: 'id, name, type, rss_feed_url, image_url',
+    });
+    return records.map(r => ({
+      id:     r.id,
+      name:   r.fields['Name'],
+      type:   r.fields['Type'],
+      rssUrl: r.fields['RSS Feed URL'],
+      image:  r.fields['Image URL'] || null,
+    }));
+  } catch { return []; }
 }
 
 // ─── Tiny in-memory cache, keyed by the set of show IDs ──────────────────────

@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth-context';
+import { listPublishedResources } from '../lib/resources-db';
 import { useBookmarks } from '../lib/bookmarks-context';
 import { usePlayer } from '../lib/player-context';
 import { SignInModal, OnboardingModal } from '../components/AuthModal';
@@ -532,35 +533,14 @@ function EpisodeCard({ ep }) {
   );
 }
 
-// Cached at build time and refreshed at most once every 5 minutes (ISR),
-// so Airtable is hit roughly once per 5-minute window regardless of traffic
-// instead of once per visitor. The `initialResources` prop shape is unchanged.
+// Cached at build time and refreshed at most once every 5 minutes (ISR).
+// Resources come from Supabase (Airtable-shaped records, same prop shape).
 export async function getStaticProps() {
   try {
-    const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
-    const pat = process.env.AIRTABLE_PAT;
-    const params = new URLSearchParams();
-    params.set('filterByFormula', "{Status}='Published'");
-    params.set('sort[0][field]', 'Final Score');
-    params.set('sort[0][direction]', 'desc');
-    params.set('pageSize', '100');
-    // Page through every published resource (Airtable caps pageSize at 100), so
-    // curated picks and lower-ranked resources outside the top 100 are included.
-    const url = `https://api.airtable.com/v0/${base}/Resources`;
-    const headers = { Authorization: `Bearer ${pat}` };
-    let initialResources = [];
-    let offset;
-    do {
-      if (offset) params.set('offset', offset); else params.delete('offset');
-      const r = await fetch(`${url}?${params}`, { headers });
-      if (!r.ok) break;
-      const data = await r.json();
-      initialResources = initialResources.concat(data.records || []);
-      offset = data.offset;
-    } while (offset);
+    const initialResources = await listPublishedResources();
     return { props: { initialResources }, revalidate: 300 };
   } catch {
-    // On a transient Airtable error, retry sooner than the normal 5-min window.
+    // On a transient error, retry sooner than the normal 5-min window.
     return { props: { initialResources: [] }, revalidate: 60 };
   }
 }

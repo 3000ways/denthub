@@ -2,9 +2,7 @@
 // For each book, retrieves: cover image, description, page count, published year, publisher.
 // Cached for 24 hours (books don't change often).
 
-const AIRTABLE_BASE  = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
-const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
-const AIRTABLE_PAT   = process.env.AIRTABLE_PAT;
+import { listPublishedResources } from '../../lib/resources-db';
 
 let cache     = null;
 let cacheTime = 0;
@@ -50,18 +48,13 @@ export default async function handler(req, res) {
     return res.status(200).json(cache);
   }
 
-  if (!AIRTABLE_PAT) return res.status(500).json({ error: 'AIRTABLE_PAT not set' });
-
-  // 1. Fetch all Book records from Airtable
-  const params = new URLSearchParams();
-  params.set('filterByFormula', `{Type} = "Book"`);
-  const atRes = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${AIRTABLE_PAT}` }, signal: AbortSignal.timeout(10000) }
-  );
-  if (!atRes.ok) return res.status(500).json({ error: `Airtable ${atRes.status}` });
-  const atJson  = await atRes.json();
-  const records = atJson.records || [];
+  // 1. Fetch all published Book records
+  let records;
+  try {
+    records = await listPublishedResources({ type: 'Book', select: 'id, name, host_or_author' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
 
   // 2. Look up each book on Google Books in parallel
   const results = await Promise.allSettled(

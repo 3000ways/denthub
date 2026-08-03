@@ -2,36 +2,27 @@
 // Sorts all results by publish date and returns the 8 most recent of each type.
 // Cached for 6 hours. Per-feed timeout is 4s so slow feeds don't hold up the batch.
 
-const AIRTABLE_BASE   = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
-const AIRTABLE_TABLE  = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
-const AIRTABLE_PAT    = process.env.AIRTABLE_PAT;
+import { listPublishedResources } from '../../lib/resources-db';
 
 const DISPLAY_COUNT = 12; // how many of each type to feed the "What's New" carousels
 
-// ─── Airtable fetch ──────────────────────────────────────────────────────────
+// ─── Resource fetch (Supabase) ───────────────────────────────────────────────
 
 async function fetchAllFromAirtable(type) {
-  if (!AIRTABLE_PAT) return [];
-
-  const params = new URLSearchParams();
-  params.set('filterByFormula', `AND({Type} = "${type}", {RSS Feed URL} != "", {Status} = "Published")`);
-
-  const res = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${params.toString()}`,
-    {
-      headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
-      signal: AbortSignal.timeout(10000),
-    }
-  );
-  if (!res.ok) return [];
-  const json = await res.json();
-  return (json.records || []).map(r => ({
-    id:     r.id,
-    name:   r.fields['Name'],
-    type:   type,
-    rssUrl: r.fields['RSS Feed URL'],
-    score:  r.fields['Final Score'] || 0,
-  }));
+  try {
+    const records = await listPublishedResources({
+      type,
+      hasRss: true,
+      select: 'id, name, rss_feed_url, final_score',
+    });
+    return records.map(r => ({
+      id:     r.id,
+      name:   r.fields['Name'],
+      type:   type,
+      rssUrl: r.fields['RSS Feed URL'],
+      score:  r.fields['Final Score'] || 0,
+    }));
+  } catch { return []; }
 }
 
 // ─── RSS / Atom parsing ───────────────────────────────────────────────────────

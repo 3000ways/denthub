@@ -5,6 +5,7 @@ import Footer from '../../components/Footer';
 import { useState, useEffect, useRef } from 'react';
 import { CommunitySection } from '../../components/Community';
 import { useAuth } from '../../lib/auth-context';
+import { getPublishedResource, listPublishedResources } from '../../lib/resources-db';
 import { SignInModal, OnboardingModal } from '../../components/AuthModal';
 import { BookmarkButton } from '../../components/BookmarkButton';
 import { ShareButton } from '../../components/ShareButton';
@@ -61,17 +62,11 @@ export async function getStaticPaths() {
 // once per visitor. Returned props are unchanged from the previous version.
 export async function getStaticProps({ params }) {
   try {
-    const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
-    const pat = process.env.AIRTABLE_PAT;
     const origin = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://thedentalcommute.com';
 
-    // Fetch the main record
-    const r = await fetch(`https://api.airtable.com/v0/${base}/Resources/${params.id}`, {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-    if (!r.ok) return { notFound: true, revalidate: 60 };
-    const record = await r.json();
-    if (record.fields?.Status !== 'Published') return { notFound: true, revalidate: 60 };
+    // Fetch the main record from Supabase (null = missing or not Published)
+    const record = await getPublishedResource(params.id);
+    if (!record) return { notFound: true, revalidate: 60 };
 
     const type = record.fields?.Type;
 
@@ -94,14 +89,11 @@ export async function getStaticProps({ params }) {
     // Open Graph / social image: a human "Image URL" wins, else the auto image.
     const ogImage = record.fields?.['Image URL'] || autoImage || null;
 
-    // Fetch related resources (same type)
-    const filterFormula = `AND({Status}='Published', RECORD_ID() != '${params.id}', {Type}='${type}')`;
-    const relRes = await fetch(
-      `https://api.airtable.com/v0/${base}/Resources?filterByFormula=${encodeURIComponent(filterFormula)}&sort[0][field]=Final+Score&sort[0][direction]=desc&pageSize=4`,
-      { headers: { Authorization: `Bearer ${pat}` } }
-    );
-    const relData = await relRes.json();
-    const related = (relData.records || []).filter(rec => rec.id !== params.id).slice(0, 4);
+    // Fetch related resources (same type, best-scored first)
+    let related = [];
+    try {
+      related = await listPublishedResources({ type, excludeId: params.id, limit: 4 });
+    } catch {}
 
     // Fetch type-specific enrichment data
     let ytData = null;

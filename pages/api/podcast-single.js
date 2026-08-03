@@ -1,5 +1,4 @@
-const AIRTABLE_BASE = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
-const AIRTABLE_PAT  = process.env.AIRTABLE_PAT;
+import { getPublishedResource } from '../../lib/resources-db';
 
 function getTag(xml, tag) {
   const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
@@ -71,11 +70,8 @@ export default async function handler(req, res) {
   }
 
   // Fetch the record to get the RSS URL
-  const recRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/Resources/${id}`, {
-    headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
-  });
-  if (!recRes.ok) return res.status(404).json({ error: 'Not found' });
-  const record = await recRes.json();
+  const record = await getPublishedResource(id, { select: 'id, rss_feed_url' });
+  if (!record) return res.status(404).json({ error: 'Not found' });
   const rssUrl = record.fields?.['RSS Feed URL'];
   if (!rssUrl) return res.status(200).json({ showArt: null, recent: [], notable: [] });
 

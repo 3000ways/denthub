@@ -10,6 +10,7 @@
 // hand-maintained file.
 
 import { supabase } from '../lib/supabase';
+import { listPublishedResources } from '../lib/resources-db';
 
 const SITE = 'https://thedentalcommute.com';
 
@@ -24,30 +25,13 @@ const STATIC_PAGES = [
   { path: '/about', changefreq: 'monthly', priority: '0.7' },
 ];
 
-// Fetch every Published resource from Airtable, following pagination.
-// Mirrors the server-side fetch pattern used by pages/resource/[id].js.
+// Fetch every Published resource (Supabase, Airtable-shaped records).
 async function fetchResourceRecords() {
-  const base = process.env.AIRTABLE_BASE_ID || 'appICV69R7tzizCDY';
-  const pat = process.env.AIRTABLE_PAT;
-  if (!pat) return [];
-
-  const headers = { Authorization: `Bearer ${pat}` };
-  const records = [];
-  let offset;
-  do {
-    const params = new URLSearchParams();
-    params.set('filterByFormula', "{Status}='Published'");
-    if (offset) params.set('offset', offset);
-    const r = await fetch(
-      `https://api.airtable.com/v0/${base}/Resources?${params.toString()}`,
-      { headers }
-    );
-    if (!r.ok) break;
-    const data = await r.json();
-    records.push(...(data.records || []));
-    offset = data.offset;
-  } while (offset);
-  return records;
+  try {
+    return await listPublishedResources({ select: 'id, name, created_at' });
+  } catch {
+    return [];
+  }
 }
 
 // The public /browse topic pages. Each active quiz-option tag that actually has

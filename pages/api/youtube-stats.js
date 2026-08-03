@@ -4,9 +4,7 @@
 //   - YouTube URL field (@handle or /channel/ URL): looks up via YouTube API
 // Cached for 6 hours.
 
-const AIRTABLE_BASE  = process.env.AIRTABLE_BASE_ID  || 'appICV69R7tzizCDY';
-const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE_ID || 'tblBlou0rXbImoQ75';
-const AIRTABLE_PAT   = process.env.AIRTABLE_PAT;
+import { listPublishedResources } from '../../lib/resources-db';
 const YT_KEY         = process.env.YOUTUBE_API_KEY;
 
 let cache     = null;
@@ -80,19 +78,15 @@ export default async function handler(req, res) {
     return res.status(200).json(cache);
   }
 
-  if (!AIRTABLE_PAT) return res.status(500).json({ error: 'AIRTABLE_PAT not set' });
-  if (!YT_KEY)       return res.status(500).json({ error: 'YOUTUBE_API_KEY not set' });
+  if (!YT_KEY) return res.status(500).json({ error: 'YOUTUBE_API_KEY not set' });
 
-  // 1. Fetch all YouTube channels from Airtable
-  const params = new URLSearchParams();
-  params.set('filterByFormula', `{Type} = "YouTube"`);
-  const atRes = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${AIRTABLE_PAT}` }, signal: AbortSignal.timeout(10000) }
-  );
-  if (!atRes.ok) return res.status(500).json({ error: `Airtable ${atRes.status}` });
-  const atJson  = await atRes.json();
-  const records = atJson.records || [];
+  // 1. Fetch all published YouTube channels
+  let records;
+  try {
+    records = await listPublishedResources({ type: 'YouTube', select: 'id, name, url, rss_feed_url' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
 
   // 2. Build channel list — resolve IDs from RSS URL or YouTube URL
   const channels = records.map(r => {

@@ -9,35 +9,17 @@
 // visitors.
 
 import { isPublicAiVoice } from '../../lib/voice';
-
-const BASE_ID  = 'appICV69R7tzizCDY';
-const TABLE_ID = 'tblBlou0rXbImoQ75';
+import { listPublishedResources } from '../../lib/resources-db';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') { res.setHeader('Allow', ['GET']); return res.status(405).end(); }
-  if (!process.env.AIRTABLE_PAT) return res.status(200).json({ ids: [] });
 
   try {
-    let records = [];
-    let offset;
-    do {
-      const params = new URLSearchParams({
-        pageSize: '100',
-        // Only Confirmed rows can ever be public, so filter at the source.
-        filterByFormula: `{Voice Status}='Confirmed'`,
-      });
-      params.append('fields[]', 'Voice Type');
-      params.append('fields[]', 'Voice Status');
-      if (offset) params.set('offset', offset);
-      const r = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`, {
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_PAT}` },
-      });
-      if (!r.ok) return res.status(200).json({ ids: [] }); // fail open — never blocks the feed
-      const data = await r.json();
-      records = records.concat(data.records || []);
-      offset = data.offset;
-    } while (offset);
-
+    // Only Confirmed rows can ever be public, so filter at the source.
+    const records = await listPublishedResources({
+      voiceStatus: 'Confirmed',
+      select: 'id, voice_type, voice_status',
+    });
     const ids = records.filter(rec => isPublicAiVoice(rec.fields)).map(rec => rec.id);
 
     // Cache at the edge; the set changes rarely (only when Andrei confirms a flag).
