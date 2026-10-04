@@ -17,6 +17,7 @@ import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { adminCreateResource, getAdminClient } from '../../../lib/resources-db-admin';
 import { RESEARCH_PLAN, RESEARCH_GROUPS, typeNoun } from '../../../lib/research-plan';
 import { resolvePodcastFeed } from '../../../lib/resolve-feed';
+import { normalizeUrl, normalizeName } from '../../../lib/dedupe-keys';
 
 export const config = { maxDuration: 60 };
 
@@ -38,30 +39,32 @@ function isDirectoryUrl(url) {
   } catch { return false; }
 }
 
-function normalizeUrl(url) {
-  try {
-    const u = new URL(url);
-    return (u.hostname + u.pathname).replace(/\/$/, '').toLowerCase();
-  } catch {
-    return (url || '').toLowerCase().trim();
-  }
-}
-
 // Fetch existing Published/Pending resources for dedup — skip Rejected so they
 // can be re-suggested. Also collect RSS feed URLs so the same podcast listed on
 // a different platform (its site vs Apple vs Spotify) is caught by feed match.
-async function fetchExistingResources() {
+// Names are keyed per Type (see nameKey) and compared loosely via normalizeName,
+// so "The Savvy Dentist Podcast" matches an existing "Savvy Dentist".
+async function fetchExistingResources(type) {
   const db = getAdminClient();
   const { data, error } = await db.from('resources')
-    .select('name, url, rss_feed_url')
+    .select('name, url, rss_feed_url, type')
     .or('submission_status.is.null,submission_status.neq.Rejected');
   if (error) throw new Error(`resources fetch error: ${error.message}`);
 
   const rows = data || [];
-  const names = new Set(rows.map(r => (r.name || '').toLowerCase().trim()).filter(Boolean));
+  const names = new Set(rows.map(r => nameKey(r.type, r.name)).filter(Boolean));
   const urls  = new Set(rows.map(r => normalizeUrl(r.url || '')).filter(Boolean));
   const feeds = new Set(rows.map(r => normalizeUrl(r.rss_feed_url || '')).filter(Boolean));
-  return { names, urls, feeds };
+  // Display names of this Type, for the model's "don't suggest these" list.
+  const promptNames = rows.filter(r => r.type === type && r.name).map(r => r.name.trim());
+  return { names, urls, feeds, promptNames };
+}
+
+// Same name only counts as a duplicate within the same Type — "ACT Dental" the
+// podcast and "ACT Dental" the YouTube channel are different resources.
+function nameKey(type, name) {
+  const n = normalizeName(name);
+  return n ? `${type || ''}|${n}` : '';
 }
 
 // Verify a URL actually resolves — lenient: timeouts count as passing (many
@@ -114,10 +117,13 @@ async function callWebSearch(prompt) {
   return Array.isArray(found) ? found : [];
 }
 
+// Up to 400 same-Type names (was 80 across all types, so most existing shows
+// were never in the list and the model kept re-suggesting them). The code-level
+// dedup below is the real guard; this just saves wasted suggestions.
 function buildPrompt(sub, existingNames) {
   const noun = typeNoun(sub.type);
-  const exclusionNote = existingNames.size
-    ? `\n\nDo NOT include any of these — they are already in our database:\n${[...existingNames].slice(0, 80).join(', ')}`
+  const exclusionNote = existingNames.length
+    ? `\n\nDo NOT include any of these — they are already in our database:\n${existingNames.slice(0, 400).join(', ')}`
     : '';
   return `You are a dental industry researcher. Search the web to find up to ${TARGET_PER_SUBCATEGORY} high-quality, currently active ${noun} for dental professionals in this niche: "${sub.label}" (${sub.query}).
 
@@ -185,9 +191,9 @@ export default async function handler(req, res) {
   const done = index + 1 >= total;
 
   try {
-    const { names: existingNames, urls: existingUrls, feeds: existingFeeds } = await fetchExistingResources();
+    const { names: existingNames, urls: existingUrls, feeds: existingFeeds, promptNames } = await fetchExistingResources(sub.type);
 
-    const found = await callWebSearch(buildPrompt(sub, existingNames));
+    const found = await callWebSearch(buildPrompt(sub, promptNames));
 
     const counts = { directories: 0, duplicates: 0, dead_links: 0, incomplete: 0 };
     const skipped = [];
@@ -202,7 +208,7 @@ export default async function handler(req, res) {
     const seenNames = new Set();
     const seenUrls = new Set();
     const batchDeduped = nonDirectory.filter(r => {
-      const n = (r.Name || '').toLowerCase().trim();
+      const n = normalizeName(r.Name);
       const u = normalizeUrl(r.URL || '');
       if ((n && seenNames.has(n)) || (u && seenUrls.has(u))) return false;
       seenNames.add(n); seenUrls.add(u);
@@ -212,10 +218,10 @@ export default async function handler(req, res) {
     // 3. Dedup against existing DB — name, URL, or RSS feed (catches same show
     //    listed on a different platform)
     const deduped = batchDeduped.filter(r => {
-      const n = (r.Name || '').toLowerCase().trim();
+      const n = nameKey(sub.type, r.Name);
       const u = normalizeUrl(r.URL || '');
       const f = normalizeUrl(r.RSSFeedURL || '');
-      const dup = existingNames.has(n) || existingUrls.has(u) || (f && existingFeeds.has(f));
+      const dup = (n && existingNames.has(n)) || (u && existingUrls.has(u)) || (f && existingFeeds.has(f));
       if (dup) { counts.duplicates++; skipped.push({ name: r.Name, reason: 'already in database' }); }
       return !dup;
     });
@@ -242,10 +248,24 @@ export default async function handler(req, res) {
       }));
     }
 
+    // 4c. Re-check the VERIFIED feed for duplicates. Step 3 could only compare
+    //     the model's guessed feed (often blank or wrong); the real feed is only
+    //     known now. Skipping this re-check is how the same show got inserted
+    //     two, three, even four times under slightly different names/URLs.
+    const seenFeeds = new Set();
+    const feedDeduped = resolving.filter(r => {
+      const f = normalizeUrl(r.RSSFeedURL || '');
+      if (!f) return true; // no feed → the completeness gate below decides
+      const dup = existingFeeds.has(f) || seenFeeds.has(f);
+      seenFeeds.add(f);
+      if (dup) { counts.duplicates++; skipped.push({ name: r.Name, reason: 'already in database (same RSS feed)' }); }
+      return !dup;
+    });
+
     // 5. Completeness gate — only queue resources with every required field.
     //    Podcasts additionally require an RSS feed (that's what lets the
     //    harvester ingest and the episode tagger tag them after approval).
-    const complete = resolving.filter(r => {
+    const complete = feedDeduped.filter(r => {
       const hasCore = (r.Name || '').trim() && (r.URL || '').trim() && (r.Description || '').trim();
       const hasFeed = sub.type !== 'Podcast' || (r.RSSFeedURL || '').trim();
       if (!hasCore || !hasFeed) {

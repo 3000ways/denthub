@@ -3,6 +3,7 @@
 // Cached for 24 hours (books don't change often).
 
 import { listPublishedResources } from '../../lib/resources-db';
+import { setCdnCache } from '../../lib/cdn-cache';
 
 let cache     = null;
 let cacheTime = 0;
@@ -44,6 +45,7 @@ async function lookupBook(title, author) {
 
 export default async function handler(req, res) {
   if (cache && Date.now() - cacheTime < CACHE_TTL) {
+    setCdnCache(res, 86400, { ageMs: Date.now() - cacheTime });
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(cache);
   }
@@ -71,7 +73,7 @@ export default async function handler(req, res) {
   cache     = result;
   cacheTime = Date.now();
 
-  res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
+  setCdnCache(res, 86400);
   res.setHeader('X-Cache', 'MISS');
   return res.status(200).json(result);
 }

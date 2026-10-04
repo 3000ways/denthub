@@ -5,6 +5,7 @@
 // Cached for 6 hours.
 
 import { listPublishedResources } from '../../lib/resources-db';
+import { setCdnCache } from '../../lib/cdn-cache';
 
 let cache     = null;
 let cacheTime = 0;
@@ -63,6 +64,7 @@ function parsePodcastFeed(xml) {
 
 export default async function handler(req, res) {
   if (cache && Date.now() - cacheTime < CACHE_TTL) {
+    setCdnCache(res, 21600, { ageMs: Date.now() - cacheTime });
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(cache);
   }
@@ -104,7 +106,7 @@ export default async function handler(req, res) {
   cache     = result;
   cacheTime = Date.now();
 
-  res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate');
+  setCdnCache(res, 21600);
   res.setHeader('X-Cache', 'MISS');
   return res.status(200).json(result);
 }

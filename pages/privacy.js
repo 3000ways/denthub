@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Footer from '../components/Footer';
 import SiteNav from '../components/SiteNav';
+import { CONTACT_EMAIL } from '../lib/contact';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -121,7 +122,7 @@ export default function PrivacyPolicy() {
           <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Contact</h2>
           <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
             If you have questions about this Privacy Policy or your data, please contact us at{' '}
-            <a href="mailto:d.a.ionescu@gmail.com" style={{ color: GREEN }}>d.a.ionescu@gmail.com</a>.
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: GREEN }}>{CONTACT_EMAIL}</a>.
           </p>
         </section>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Script from 'next/script';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { AuthProvider } from '../lib/auth-context';
 import { BookmarkProvider } from '../lib/bookmarks-context';
 import { EpisodeBookmarkProvider } from '../lib/episode-bookmarks-context';
@@ -72,6 +73,9 @@ export default function App({ Component, pageProps }) {
         </>
       )}
       <AppShell Component={Component} pageProps={pageProps} />
+      {/* Real-visitor load times (Vercel → Speed Insights tab). Visitor counts
+          stay in Google Analytics above; this only measures page speed. */}
+      <SpeedInsights />
     </PlayerProvider>
     </VotesProvider>
     </EpisodeBookmarkProvider>

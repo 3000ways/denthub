@@ -3,6 +3,7 @@
 // Cached for 6 hours. Per-feed timeout is 4s so slow feeds don't hold up the batch.
 
 import { listPublishedResources } from '../../lib/resources-db';
+import { setCdnCache } from '../../lib/cdn-cache';
 
 const DISPLAY_COUNT = 12; // how many of each type to feed the "What's New" carousels
 
@@ -120,6 +121,7 @@ const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
 export default async function handler(req, res) {
   if (cache && Date.now() - cacheTime < CACHE_TTL) {
+    setCdnCache(res, 21600, { ageMs: Date.now() - cacheTime });
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(cache);
   }
@@ -176,7 +178,7 @@ export default async function handler(req, res) {
   cache     = data;
   cacheTime = Date.now();
 
-  res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate');
+  setCdnCache(res, 21600);
   res.setHeader('X-Cache', 'MISS');
   res.status(200).json(data);
 }

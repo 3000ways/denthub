@@ -1489,6 +1489,7 @@ function Deduplication() {
   const statusColor = s => s === 'Published' ? { bg: '#d1fae5', fg: '#065f46' } : s === 'Archived' ? { bg: '#f3f4f6', fg: '#6b7280' } : { bg: '#fef9c3', fg: '#92400e' };
 
   const reasonBadge = reason => {
+    if (reason === 'Same RSS feed') return { bg: '#fee2e2', fg: '#991b1b' };
     if (reason === 'Same URL') return { bg: '#dbeafe', fg: '#1e40af' };
     if (reason === 'Similar name') return { bg: '#fce7f3', fg: '#9d174d' };
     return { bg: '#fef9c3', fg: '#92400e' };

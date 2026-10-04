@@ -6,6 +6,7 @@
 
 import { supabase } from '../../lib/supabase';
 import { listPublishedResources } from '../../lib/resources-db';
+import { setCdnCache } from '../../lib/cdn-cache';
 
 const PER_FEED  = 3;   // most recent items to pull from each followed show
 const MAX_IDS   = 60;  // safety cap on how many shows we'll fan out to
@@ -112,6 +113,7 @@ export default async function handler(req, res) {
   const key = [...ids].sort().join(',');
   const hit = cache.get(key);
   if (hit && Date.now() - hit.time < CACHE_TTL) {
+    setCdnCache(res, 1800, { ageMs: Date.now() - hit.time });
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(hit.data);
   }
@@ -151,7 +153,7 @@ export default async function handler(req, res) {
   const data = { episodes, followedShows: shows.length, fetchedAt: new Date().toISOString() };
   cache.set(key, { data, time: Date.now() });
 
-  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate');
+  setCdnCache(res, 1800);
   res.setHeader('X-Cache', 'MISS');
   res.status(200).json(data);
 }

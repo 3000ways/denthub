@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Footer from '../components/Footer';
 import Head from 'next/head';
 import SiteNav from '../components/SiteNav';
+import { CONTACT_EMAIL } from '../lib/contact';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -177,24 +178,17 @@ export default function About() {
           </div>
 
           {/* ── Card 4: Contact ── */}
-          <div style={card}>
+          <div id="contact" style={card}>
             <SectionLabel>Get in touch</SectionLabel>
             <p style={{ fontSize:14, color:'#777', lineHeight:1.65, margin:'0 0 20px' }}>
               Questions, feedback, or partnership inquiries? Reach out directly.
             </p>
             <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:20 }}>
               <div style={{ fontSize:14, color:'#555' }}>
-                📬 Suggestions & positive feedback →{' '}
-                <a href="mailto:drionescu@thedentalcommute.com"
+                📬 Suggestions, feedback & complaints →{' '}
+                <a href={`mailto:${CONTACT_EMAIL}`}
                   style={{ color:GREEN, fontWeight:600, textDecoration:'none' }}>
-                  drionescu@thedentalcommute.com
-                </a>
-              </div>
-              <div style={{ fontSize:14, color:'#555' }}>
-                😤 Complaints →{' '}
-                <a href="mailto:YODA_Bot@thedentalcommute.com"
-                  style={{ color:'#aaa', fontWeight:600, textDecoration:'none' }}>
-                  YODA_Bot@thedentalcommute.com
+                  {CONTACT_EMAIL}
                 </a>
               </div>
             </div>
