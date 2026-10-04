@@ -1069,7 +1069,12 @@ function ScoringTab() {
           {status?.judgeRun?.summary?.failed?.length > 0 && (
             <div style={{ fontSize: 11, color: '#b45309', marginTop: 6, lineHeight: 1.45 }}>
               {status.judgeRun.summary.failed.slice(0, 5).map((f, i) => <div key={i}>• {f.name}: {f.error}</div>)}
-              <div style={{ color: '#999', marginTop: 2 }}>Failed resources wait 7 days before being retried.</div>
+              <div style={{ color: '#999', marginTop: 2 }}>Failed resources wait 7 days before being retried (rate-limit refusals don&rsquo;t count).</div>
+            </div>
+          )}
+          {status?.judgeRun?.summary?.rateLimited > 0 && (
+            <div style={{ fontSize: 11, color: '#b45309', marginTop: 6, lineHeight: 1.45 }}>
+              Paused by Perplexity&rsquo;s rate limit — the remaining {status.judgeRun.summary.deferred} go first next run.
             </div>
           )}
         </div>
@@ -1092,7 +1097,7 @@ function ScoringTab() {
         <div style={{ marginBottom: 20 }}>
           <div style={{ padding: '12px 16px', background: '#f3e8ff', borderRadius: 8, fontSize: 13, color: '#6b21a8', marginBottom: 12 }}>
             ✓ Judged {judgeResult.judged} of {judgeResult.attempted} · {judgeResult.neverJudgedRemaining} still never-judged (of {judgeResult.totalPublished} published)
-            {judgeResult.deferred > 0 && <> · {judgeResult.deferred} left for next run (time limit)</>}
+            {judgeResult.deferred > 0 && <> · {judgeResult.deferred} left for next run ({judgeResult.rateLimited > 0 ? 'Perplexity rate limit' : 'time limit'})</>}
           </div>
           {judgeResult.failed?.length > 0 && (
             <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, fontSize: 12, color: '#9a3412', marginBottom: 12, lineHeight: 1.5 }}>
