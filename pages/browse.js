@@ -18,7 +18,7 @@ const EYEBROW = { goal: 'Listen by goal', interest: 'By clinical area', career: 
 // "See all" page for one tag (goal / clinical area / career stage). Reached from
 // the home-page Discover carousels' "See all →" link. Server-renders the first
 // page for SEO, then Load More / search fetch client-side from /api/browse-episodes.
-export async function getServerSideProps({ query }) {
+export async function getServerSideProps({ query, res }) {
   const tag  = typeof query.tag  === 'string' ? query.tag  : '';
   const kind = typeof query.kind === 'string' ? query.kind : '';
   if (!tag) return { notFound: true };
@@ -29,6 +29,10 @@ export async function getServerSideProps({ query }) {
     total = r.total ?? 0;
   } catch {}
   if (!total) return { notFound: true }; // unknown / empty tag → 404, never an empty page
+  // Same HTML for every visitor (the AI-voice filter runs client-side), so let the
+  // CDN share it: fresh for 5 min, then served stale instantly while it refreshes.
+  // Without this every visit re-ran the slow tag-count query.
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
   return { props: { tag, kind, initialItems, total } };
 }
 

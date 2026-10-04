@@ -1,36 +1,6 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { adminListResources } from '../../../lib/resources-db-admin';
-
-function normalizeUrl(url) {
-  if (!url) return '';
-  try {
-    let u = url.trim().toLowerCase();
-    u = u.replace(/^https?:\/\//, '');
-    u = u.replace(/^www\./, '');
-    u = u.split('#')[0];
-    const qIdx = u.indexOf('?');
-    if (qIdx !== -1) {
-      const base = u.slice(0, qIdx);
-      const rawParams = u.slice(qIdx + 1);
-      const keep = [];
-      for (const pair of rawParams.split('&')) {
-        const [k] = pair.split('=');
-        if (k && !k.startsWith('utm_') && !['ref', 'source', 'fbclid', 'gclid'].includes(k)) {
-          keep.push(pair);
-        }
-      }
-      u = keep.length > 0 ? `${base}?${keep.join('&')}` : base;
-    }
-    return u.replace(/\/$/, '');
-  } catch {
-    return url.toLowerCase().trim();
-  }
-}
-
-function normalizeName(name) {
-  if (!name) return '';
-  return name.trim().toLowerCase().replace(/^the\s+/, '');
-}
+import { normalizeUrl, normalizeName } from '../../../lib/dedupe-keys';
 
 // Catches similar names missed by exact match — e.g. "Thriving Dentist Show" vs
 // "Thriving Dentist Show (Student & New Dentist Content)". Returns true if ≥75%
@@ -63,6 +33,30 @@ export default async function handler(req, res) {
 
     const seen = new Set();
     const groups = [];
+
+    // Pass 0: same RSS feed + same Type — the strongest signal (one feed = one
+    // show), and the one the old passes missed: most real duplicates were the
+    // same podcast added under a different name/URL (site vs Apple vs Spotify).
+    // Archived rows are skipped — an archived copy is a duplicate already handled.
+    const byFeed = new Map();
+    for (const r of records) {
+      if (r.fields['Status'] === 'Archived') continue;
+      const feed = normalizeUrl(r.fields['RSS Feed URL']);
+      if (!feed) continue;
+      const key = `${r.fields['Type'] || ''}|${feed}`;
+      if (!byFeed.has(key)) byFeed.set(key, []);
+      byFeed.get(key).push(r);
+    }
+    for (const [key, recs] of byFeed) {
+      if (recs.length < 2) continue;
+      const idKey = recs.map(r => r.id).sort().join('|');
+      if (seen.has(idKey)) continue;
+      seen.add(idKey);
+      // Also mark every pair seen so later passes don't re-list the same rows.
+      for (let i = 0; i < recs.length; i++)
+        for (let j = i + 1; j < recs.length; j++) seen.add([recs[i].id, recs[j].id].sort().join('|'));
+      groups.push({ reason: 'Same RSS feed', matchValue: key.slice(key.indexOf('|') + 1), records: recs });
+    }
 
     // Pass 1: exact URL match — only flag pairs whose names are also similar.
     // Two resources sharing a URL but with clearly different names are likely

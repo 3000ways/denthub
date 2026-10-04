@@ -19,7 +19,7 @@ export default async function handler(req, res) {
           .map(b => ({ key: b.key, settings: b.settings || {} }));
       }
     });
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=86400');
     return res.status(200).json(out);
   } catch (err) {
     return res.status(200).json({}); // fail soft — home uses its default layout

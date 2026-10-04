@@ -5,7 +5,7 @@ const FONT = "'Inter', system-ui, -apple-system, sans-serif";
 
 const linkStyle = { fontSize: 13, color: '#777', textDecoration: 'none', fontWeight: 500 };
 
-// Site footer with the standing nav links (About / Privacy / Terms) + copyright.
+// Site footer with the standing nav links (About / Contact / Privacy / Terms) + copyright.
 // These links live here so they're reachable on every page for everyone —
 // including signed-out visitors on mobile, where the top nav hides "About".
 export default function Footer({ maxWidth = 1140 }) {
@@ -17,6 +17,7 @@ export default function Footer({ maxWidth = 1140 }) {
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', alignItems: 'center' }}>
           <Link href="/about" style={linkStyle}>About</Link>
+          <Link href="/about#contact" style={linkStyle}>Contact</Link>
           <Link href="/privacy" style={linkStyle}>Privacy</Link>
           <Link href="/terms" style={linkStyle}>Terms</Link>
         </div>

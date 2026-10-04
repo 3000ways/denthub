@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Footer from '../components/Footer';
 import SiteNav from '../components/SiteNav';
+import { CONTACT_EMAIL } from '../lib/contact';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -120,7 +121,7 @@ export default function TermsOfService() {
           <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>10. Contact</h2>
           <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
             Questions about these terms? Contact us at{' '}
-            <a href="mailto:d.a.ionescu@gmail.com" style={{ color: GREEN }}>d.a.ionescu@gmail.com</a>.
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: GREEN }}>{CONTACT_EMAIL}</a>.
           </p>
         </section>
       </div>
