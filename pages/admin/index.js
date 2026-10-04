@@ -1065,7 +1065,13 @@ function ScoringTab() {
         <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px' }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#999', fontWeight: 600, marginBottom: 4 }}>AI judge · last run</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: status?.judgeRun ? '#111' : '#bbb' }}>{status ? ago(status.judgeRun?.ran_at) : '…'}</div>
-          {status?.judgeRun?.summary && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>judged {status.judgeRun.summary.judged} · {status.judgeRun.summary.neverJudgedRemaining} left to reach</div>}
+          {status?.judgeRun?.summary && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>judged {status.judgeRun.summary.judged} · {status.judgeRun.summary.neverJudgedRemaining} left to reach{status.judgeRun.summary.failed?.length ? <span style={{ color: '#b45309' }}> · {status.judgeRun.summary.failed.length} failed</span> : null}</div>}
+          {status?.judgeRun?.summary?.failed?.length > 0 && (
+            <div style={{ fontSize: 11, color: '#b45309', marginTop: 6, lineHeight: 1.45 }}>
+              {status.judgeRun.summary.failed.slice(0, 5).map((f, i) => <div key={i}>• {f.name}: {f.error}</div>)}
+              <div style={{ color: '#999', marginTop: 2 }}>Failed resources wait 7 days before being retried.</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1086,7 +1092,14 @@ function ScoringTab() {
         <div style={{ marginBottom: 20 }}>
           <div style={{ padding: '12px 16px', background: '#f3e8ff', borderRadius: 8, fontSize: 13, color: '#6b21a8', marginBottom: 12 }}>
             ✓ Judged {judgeResult.judged} of {judgeResult.attempted} · {judgeResult.neverJudgedRemaining} still never-judged (of {judgeResult.totalPublished} published)
+            {judgeResult.deferred > 0 && <> · {judgeResult.deferred} left for next run (time limit)</>}
           </div>
+          {judgeResult.failed?.length > 0 && (
+            <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, fontSize: 12, color: '#9a3412', marginBottom: 12, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{judgeResult.failed.length} couldn&rsquo;t be judged (retried after 7 days):</div>
+              {judgeResult.failed.map((f, i) => <div key={i}>• {f.name} — {f.error}</div>)}
+            </div>
+          )}
           <div style={{ display: 'grid', gap: 6 }}>
             {(judgeResult.sample || []).map((s, i) => (
               <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: '9px 12px', fontSize: 13 }}>
