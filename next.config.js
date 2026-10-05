@@ -10,10 +10,20 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
+const PRIVATE_PATHS = [
+  '/admin', '/admin/:path*', '/saved', '/profile', '/creator/:path*',
+  '/my-resources', '/my-listening', '/ce-report',
+];
+
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Private / signed-in pages: tell search engines not to index them. A
+      // header (not robots.txt Disallow) so Google can fetch the page and see it.
+      ...PRIVATE_PATHS.map(source => ({ source, headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] })),
+    ];
   },
 };
 module.exports = nextConfig;

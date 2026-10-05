@@ -22,7 +22,10 @@ async function episodeCount() {
   try {
     const { count, error } = await supabase
       .from('episodes')
-      .select('id', { count: 'exact', head: true })
+      // 'planned' reads Postgres' row estimate instantly; the exact count took
+      // ~20s on a cold start (Google fetches this first). Shard math below adds
+      // headroom, and an extra empty shard is harmless.
+      .select('id', { count: 'planned', head: true })
       .not('audio_url', 'is', null);
     if (error) throw error;
     return count ?? 0;
@@ -42,7 +45,7 @@ export async function getServerSideProps({ res }) {
   const count = await episodeCount();
   // If the count is unavailable (e.g. Supabase unreachable), still expose one
   // episode shard so production — which can reach Supabase — serves episodes.
-  const shards = count == null ? 1 : Math.max(1, Math.ceil(count / EPISODES_PER_SHARD));
+  const shards = count == null ? 1 : Math.max(1, Math.ceil((count * 1.1) / EPISODES_PER_SHARD));
 
   const paths = ['/sitemap-main.xml'];
   for (let i = 0; i < shards; i++) paths.push(`/sitemap-episodes.xml?p=${i}`);

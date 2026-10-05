@@ -571,6 +571,40 @@ const HOME_ABOVE_FOLD_CSS = `
 }
 `;
 
+// "The Index": top-ranked resources per type as crawlable links. Columns flow
+// via CSS grid (no isMobile), so the server HTML is final — no layout jump.
+const INDEX_GROUPS = [['Podcast', 'Podcasts'], ['YouTube', 'YouTube channels'], ['Book', 'Books']];
+function HomeIndex({ resources }) {
+  const groups = INDEX_GROUPS
+    .map(([type, label]) => ({ label, items: resources.filter(r => r.fields?.Type === type && r.fields?.['Final Score'] != null).slice(0, 10) }))
+    .filter(g => g.items.length);
+  if (!groups.length) return null;
+  return (
+    <section aria-labelledby="tdc-index-h" style={{ maxWidth:1140, margin:'0 auto', padding:'8px 16px 48px', boxSizing:'border-box' }}>
+      <div style={{ borderTop:'2px solid #111', paddingTop:14, marginBottom:22, display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap' }}>
+        <h2 id="tdc-index-h" style={{ margin:0, fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>The Index</h2>
+        <span style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>Top ranked this week</span>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:'8px 40px' }}>
+        {groups.map(g => (
+          <div key={g.label}>
+            <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:GREEN, fontWeight:700, marginBottom:8 }}>{g.label}</div>
+            <ol style={{ listStyle:'none', margin:0, padding:0 }}>
+              {g.items.map((r, i) => (
+                <li key={r.id} style={{ display:'flex', alignItems:'baseline', gap:10, padding:'7px 0', borderBottom:`1px solid ${BORDER}` }}>
+                  <span style={{ fontSize:11, color:'#bbb', minWidth:16, textAlign:'right', fontWeight:500 }}>{i + 1}</span>
+                  <Link href={`/resource/${r.id}`} style={{ flex:1, minWidth:0, fontSize:14, color:'#111', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.fields.Name}</Link>
+                  <span style={{ fontSize:12, color:GREEN, fontWeight:600, fontFamily:FONT_DISPLAY }}>{Math.round(r.fields['Final Score'])}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // Cached at build time and refreshed at most once every 5 minutes (ISR).
 // Resources come from Supabase (Airtable-shaped records, same prop shape).
 export async function getStaticProps() {
@@ -1025,11 +1059,6 @@ export default function Home({ initialResources }) {
           "@type": "Organization",
           "name": "The Dental Commute",
           "logo": { "@type": "ImageObject", "url": "https://thedentalcommute.com/og-image.jpg" }
-        },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://thedentalcommute.com/?search={search_term_string}",
-          "query-input": "required name=search_term_string"
         }
       })}} />
     </Head>
@@ -1667,6 +1696,12 @@ export default function Home({ initialResources }) {
       )}
 
     </div>
+
+    {/* The Index — a plain-link list of the top-ranked resources, rendered in the
+        page HTML itself. Every other home section loads client-side (and the
+        ranked list only appears after a search/tab), so without this Google
+        saw a home page linking to no resources at all. */}
+    {!anyFilterActive && resources.length > 0 && <HomeIndex resources={homeResources} />}
 
     {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
     {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}

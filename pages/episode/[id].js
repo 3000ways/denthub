@@ -29,6 +29,15 @@ function fmtDate(iso) {
   const d = new Date(iso);
   return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
+// Trim to max chars at a word boundary, adding an ellipsis when cut.
+function clip(text, max) {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max - 1);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,;:.—-]+$/, '') + '…';
+}
+
 function fmtDur(secs) {
   if (!secs) return null;
   const m = Math.floor(secs / 60);
@@ -54,14 +63,21 @@ export async function getStaticProps({ params }) {
 
     if (!ep || !ep.audio_url) return { notFound: true, revalidate: 60 };
 
-    // A few more episodes from the same show, for internal links + discovery.
-    const { data: more } = await supabase
-      .from('episodes')
-      .select('id, title, image, published_at, duration_seconds')
-      .eq('show_resource_id', ep.show_resource_id)
-      .neq('id', ep.id)
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .limit(6);
+    // A few more episodes from the same show, for internal links + discovery —
+    // and confirm the show itself is live. The public client only sees
+    // Published resources, so an archived/missing show reads as null: its
+    // episodes 404 rather than leaving a page whose "back to show" link is dead.
+    const [{ data: show }, { data: more }] = await Promise.all([
+      supabase.from('resources').select('id').eq('id', ep.show_resource_id).maybeSingle(),
+      supabase
+        .from('episodes')
+        .select('id, title, image, published_at, duration_seconds')
+        .eq('show_resource_id', ep.show_resource_id)
+        .neq('id', ep.id)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(6),
+    ]);
+    if (!show) return { notFound: true, revalidate: 3600 };
 
     return {
       props: {
@@ -117,8 +133,9 @@ export default function EpisodePage({ ep, more }) {
     return () => window.removeEventListener('resize', check);
   }, []);
   const title = `${ep.title} — ${ep.show_name || 'The Dental Commute'}`;
+  // ~155 chars at a word boundary: what Google shows before truncating.
   const description = ep.descriptionText
-    ? ep.descriptionText.slice(0, 200)
+    ? clip(ep.descriptionText, 155)
     : `Listen to ${ep.title}${ep.show_name ? ` from ${ep.show_name}` : ''} on The Dental Commute.`;
   const ogImage = ep.image || 'https://thedentalcommute.com/og-image.jpg';
   const url = `https://thedentalcommute.com/episode/${ep.id}`;
@@ -139,6 +156,19 @@ export default function EpisodePage({ ep, more }) {
         <meta name="twitter:image" content={ogImage} />
         <link rel="canonical" href={url} />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        {/* RSS text is untrusted: escape "<" so a title can't close the script tag. */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'PodcastEpisode',
+          name: ep.title,
+          description,
+          url,
+          ...(ep.image ? { image: ep.image } : {}),
+          ...(ep.published_at ? { datePublished: new Date(ep.published_at).toISOString() } : {}),
+          ...(ep.duration_seconds ? { timeRequired: `PT${Math.round(ep.duration_seconds / 60)}M` } : {}),
+          associatedMedia: { '@type': 'MediaObject', contentUrl: ep.audio_url },
+          ...(ep.show_name ? { partOfSeries: { '@type': 'PodcastSeries', name: ep.show_name, url: `https://thedentalcommute.com/resource/${ep.show_resource_id}` } } : {}),
+        }).replace(/</g, '\\u003c') }} />
       </Head>
 
       <div style={{ background: '#f5f2eb', backgroundImage: 'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize: '22px 22px', minHeight: '100vh', fontFamily: FONT }}>

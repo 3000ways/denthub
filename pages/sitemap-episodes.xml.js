@@ -10,6 +10,7 @@
 // /episode/[id] actually renders (others 404), so we never advertise dead URLs.
 
 import { supabase } from '../lib/supabase';
+import { listPublishedResources } from '../lib/resources-db';
 
 const SITE = 'https://thedentalcommute.com';
 // URLs per shard. Kept below the 50,000 hard cap for headroom. Must match the
@@ -37,7 +38,7 @@ async function fetchEpisodeShard(pageIndex) {
     const to = Math.min(from + BATCH, end) - 1;
     const { data, error } = await supabase
       .from('episodes')
-      .select('id, published_at')
+      .select('id, published_at, show_resource_id')
       .not('audio_url', 'is', null)
       .order('id', { ascending: true })
       .range(from, to);
@@ -62,7 +63,14 @@ export async function getServerSideProps({ res, query }) {
   const pageIndex = Math.max(0, parseInt(query.p, 10) || 0);
   let rows = [];
   try {
-    rows = await fetchEpisodeShard(pageIndex);
+    // Only list episodes whose show is live — an archived/missing show's
+    // episodes 404, and advertising them sends Google to dead ends.
+    const [shard, live] = await Promise.all([
+      fetchEpisodeShard(pageIndex),
+      listPublishedResources({ select: 'id' }),
+    ]);
+    const liveIds = new Set(live.map(r => r.id));
+    rows = shard.filter(r => liveIds.has(r.show_resource_id));
   } catch (err) {
     rows = [];
   }
