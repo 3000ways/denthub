@@ -6,6 +6,7 @@
 
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '../../lib/supabase-admin';
+import { sendOwnerAlert, oneLine, ADMIN_URL } from '../../lib/notify';
 
 // 'ai_voice' — a listener's hunch that a show is AI-narrated. It's just a
 // signal for the admin queue; a human still confirms before any public label.
@@ -72,6 +73,27 @@ export default async function handler(req, res) {
     // UI just says thanks rather than exposing the throttle.
     if (error && error.code === '23505') return res.status(200).json({ ok: true, duplicate: true });
     if (error) return res.status(500).json({ error: 'Could not save your report.' });
+
+    // Tell Andrei what was flagged (best-effort; never fails the report).
+    let target = hasResource ? resourceId.trim() : `episode ${epId}`;
+    try {
+      if (hasResource) {
+        const { data } = await admin.from('resources').select('name').eq('id', resourceId.trim()).maybeSingle();
+        if (data?.name) target = data.name;
+      } else {
+        const { data } = await admin.from('episodes').select('title').eq('id', epId).maybeSingle();
+        if (data?.title) target = `episode "${data.title}"`;
+      }
+    } catch {}
+    await sendOwnerAlert({
+      subject: `Report (${reason}): ${oneLine(target, 100)}`,
+      text: [
+        `A visitor flagged ${oneLine(target)} as "${reason}".`,
+        `Note: ${oneLine(note, 300) || '(none)'}`,
+        '',
+        `Triage it in Admin → Reports: ${ADMIN_URL}`,
+      ].join('\n'),
+    });
 
     return res.status(200).json({ ok: true });
   } catch (err) {
