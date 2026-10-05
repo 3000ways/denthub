@@ -677,7 +677,7 @@ export default function Home({ initialResources }) {
   const [ytStats, setYtStats] = useState({});
   const [podStats, setPodStats] = useState({});
   const [bookStats, setBookStats] = useState({});
-  const [episodeMode, setEpisodeMode] = useState(false);
+  const [episodeMode, setEpisodeMode] = useState(true);
   const [episodeQuery, setEpisodeQuery] = useState('');
   const [episodes, setEpisodes] = useState([]);
   const [episodeLoading, setEpisodeLoading] = useState(false);
@@ -1261,7 +1261,7 @@ export default function Home({ initialResources }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${filtered.length} resources…`}
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${filtered.length} titles…`}
                 style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
               {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
             </div>
@@ -1273,9 +1273,8 @@ export default function Home({ initialResources }) {
               </svg>
               <input value={episodeQuery} onChange={e => setEpisodeQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && searchEpisodes(episodeQuery)}
-                placeholder={`Search ${episodeCount.toLocaleString()} episodes… try "tax strategies" or "hiring an associate"`}
-                style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }}
-                autoFocus />
+                placeholder={`Search ${episodeCount ? episodeCount.toLocaleString() + ' ' : ''}episodes… try "tax strategies" or "hiring an associate"`}
+                style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
               {episodeQuery && <button onClick={() => { setEpisodeQuery(''); setEpisodes([]); setEpisodeSearched(false); }} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
               <button onClick={() => searchEpisodes(episodeQuery)}
                 style={{ fontSize:12, padding:'5px 14px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, whiteSpace:'nowrap' }}>
@@ -1285,13 +1284,13 @@ export default function Home({ initialResources }) {
           )}
           {/* Mode toggle — right of search bar always */}
           <div style={{ display:'flex', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', flexShrink:0, maxWidth:'fit-content' }}>
-            <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
-              style={{ fontSize:12, padding:'10px 16px', border:'none', background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
-              Resources
-            </button>
             <button onClick={() => { setEpisodeMode(true); setSearch(''); }}
-              style={{ fontSize:12, padding:'10px 16px', border:'none', borderLeft:`1px solid ${BORDER}`, background: episodeMode ? GREEN : '#fff', color: episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s', display:'flex', alignItems:'center', gap:6 }}>
+              style={{ fontSize:12, padding:'10px 16px', border:'none', background: episodeMode ? GREEN : '#fff', color: episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s', display:'flex', alignItems:'center', gap:6 }}>
               🎙 Episodes
+            </button>
+            <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
+              style={{ fontSize:12, padding:'10px 16px', border:'none', borderLeft:`1px solid ${BORDER}`, background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
+              Titles
             </button>
           </div>
         </div>
