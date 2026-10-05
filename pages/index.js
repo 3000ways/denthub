@@ -533,11 +533,56 @@ function EpisodeCard({ ep }) {
   );
 }
 
+// See the comment where this is rendered. Desktop values are the defaults; the
+// media query applies the phone values (isMobile = width < 640).
+const HOME_ABOVE_FOLD_CSS = `
+.tdc-mob{display:none}
+.tdc-desk{display:contents}
+.tdc-nav{position:sticky}
+.tdc-nav-in{padding:0 36px}
+.tdc-navlogo{overflow:hidden;height:44px}
+.tdc-navlinks{gap:20px}
+.tdc-submit{padding:7px 18px}
+.tdc-main{padding:0 36px 100px}
+.tdc-topzone{padding:0}
+.tdc-hero{min-height:460px;padding-top:16px}
+.tdc-herotext{margin-left:44%;text-align:right}
+.tdc-eyebrow{margin-top:32px}
+.tdc-h1{font-size:54px;letter-spacing:-2.2px}
+.tdc-tab{font-size:13px;padding:0 0 14px;margin-right:30px}
+.tdc-ph-whatsnew{min-height:800px}
+@media (max-width:639px){
+  .tdc-mob{display:contents}
+  .tdc-desk{display:none}
+  .tdc-nav{position:relative}
+  .tdc-nav-in{padding:0 16px}
+  .tdc-navlogo{overflow:visible;height:auto;position:absolute;top:3px;left:16px;z-index:101}
+  .tdc-navlinks{gap:12px}
+  .tdc-submit{padding:7px 12px}
+  .tdc-main{padding:0 7px 60px}
+  .tdc-main.tdc-filtering{padding-top:84px}
+  .tdc-topzone{padding:0 9px}
+  .tdc-hero{min-height:auto;padding-top:84px}
+  .tdc-herotext{margin-left:0;text-align:left}
+  .tdc-eyebrow{margin-top:0}
+  .tdc-h1{font-size:32px;letter-spacing:-1px}
+  .tdc-tab{font-size:14px;padding:10px 0 14px;margin-right:22px}
+  .tdc-ph-whatsnew{min-height:640px}
+}
+`;
+
 // Cached at build time and refreshed at most once every 5 minutes (ISR).
 // Resources come from Supabase (Airtable-shaped records, same prop shape).
 export async function getStaticProps() {
   try {
-    const initialResources = await listPublishedResources();
+    // Drop the AI judge's Score Rationale before shipping: the home page never
+    // shows it, and it was ~1/3 of the page's data (~335 KB of 1.07 MB) that
+    // every visitor's phone had to download and parse. It's still shown on the
+    // resource page and the creator editor, which fetch it themselves.
+    const initialResources = (await listPublishedResources()).map(r => {
+      const { 'Score Rationale': _omit, ...fields } = r.fields || {};
+      return { ...r, fields };
+    });
     return { props: { initialResources }, revalidate: 300 };
   } catch {
     // On a transient error, retry sooner than the normal 5-min window.
@@ -563,6 +608,7 @@ export default function Home({ initialResources }) {
   const RANKED_PAGE = 50;
   const [visibleCount, setVisibleCount] = useState(RANKED_PAGE);
   const [spotlight, setSpotlight] = useState({ podcasts: [], videos: [] });
+  const [spotlightLoaded, setSpotlightLoaded] = useState(false); // reserves What's New space until it arrives (no layout jump)
   const [homeLayout, setHomeLayout] = useState({}); // published layout per audience (admin-composed); empty = use DEFAULT_LAYOUT
   const [homeLayoutLoaded, setHomeLayoutLoaded] = useState(false); // gate settings-driven fetches (Discover) until the layout is known, to avoid a flash of un-curated content
   const [isMobile, setIsMobile] = useState(true);
@@ -681,7 +727,7 @@ export default function Home({ initialResources }) {
     fetch('/api/spotlight').then(r => r.json()).then(data => {
       const byDate = arr => [...(arr||[])].sort((a,b) => (b.sortDate||0) - (a.sortDate||0));
       setSpotlight({ ...data, podcasts: byDate(data.podcasts), videos: byDate(data.videos) });
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setSpotlightLoaded(true));
     // Fetch YouTube channel stats
     fetch('/api/youtube-stats').then(r => r.json()).then(data => setYtStats(data)).catch(() => {});
     fetch('/api/podcast-stats').then(r => r.json()).then(data => setPodStats(data)).catch(() => {});
@@ -854,6 +900,12 @@ export default function Home({ initialResources }) {
       case 'books':
         return user ? <BooksForYou resources={resources} isMobile={isMobile} heading={blockHeading('books', settings)} /> : null;
       case 'whats_new':
+        // While the feed loads, hold its space with a faint placeholder: without
+        // it, the sections below (e.g. the Pinboard) render in the first screen
+        // and then get shoved ~3000px down when this + Discover arrive — that
+        // jump was the remaining desktop layout shift. Height via CSS class
+        // (screen width), not isMobile, so it's right on the first paint.
+        if (!spotlightLoaded) return <div className="tdc-ph-whatsnew" aria-hidden="true" style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, border:`1px solid ${BORDER}` }} />;
         return (spotlight.podcasts.length > 0 || spotlight.videos.length > 0) ? (
           <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 6px' : '28px 28px 10px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
             <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
@@ -933,6 +985,12 @@ export default function Home({ initialResources }) {
 
   return (
     <>
+    {/* Above-the-fold phone/desktop layout is chosen by CSS (screen width) BEFORE
+        first paint, not by the isMobile state — that state starts as "mobile"
+        until JS runs, which made desktop visitors see the phone layout snap to
+        desktop (~0.45 layout shift; Speed Insights CLS 0.14). Keep these in sync
+        with the 640px isMobile breakpoint. Below-the-fold sections still use isMobile. */}
+    <style dangerouslySetInnerHTML={{ __html: HOME_ABOVE_FOLD_CSS }} />
     <Head>
       <title>The Dental Commute — Dentistry, Ranked & Curated</title>
       <meta name="description" content="The best dental podcasts, books, CE courses, YouTube channels, and software — ranked by dentists." />
@@ -995,29 +1053,27 @@ export default function Home({ initialResources }) {
       )}
 
       {/* Nav bar — sticky on desktop; on mobile it scrolls away with the page (relative, not static, so its z-index actually lifts the dropdown above the hero). Logo bursts down on mobile. */}
-      <div style={{ position: isMobile ? 'relative' : 'sticky', top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
+      <div className="tdc-nav" style={{ top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
         <div style={{ height:3, background:GREEN }} />
-        <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 16px' : '0 36px', display:'flex', alignItems:'center', justifyContent:'space-between', height:56, position:'relative', overflow:'visible' }}>
+        <div className="tdc-nav-in" style={{ maxWidth:1140, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', height:56, position:'relative', overflow:'visible' }}>
           {/* Nav logo — breaks out downward on mobile, wide crop on desktop */}
-          <a href="/" style={{ display:'flex', alignItems:'flex-start', textDecoration:'none', flexShrink:0, ...(isMobile ? { position:'absolute', top:3, left:16, zIndex:101 } : { overflow:'hidden', height:44 }) }}>
-            {isMobile
-              ? <img src="/logo.png" alt="The Dental Commute" style={{ height:135, width:'auto' }} />
-              : <img src="/wide-logo.png" alt="The Dental Commute" style={{ height:90, width:'auto', marginTop:-23, marginBottom:-23 }} />
-            }
+          <a href="/" className="tdc-navlogo" style={{ display:'flex', alignItems:'flex-start', textDecoration:'none', flexShrink:0 }}>
+            <span className="tdc-mob"><img src="/logo.png" alt="The Dental Commute" style={{ height:135, width:'auto' }} /></span>
+            <span className="tdc-desk"><img src="/wide-logo.png" alt="The Dental Commute" style={{ height:90, width:'auto', marginTop:-23, marginBottom:-23 }} /></span>
           </a>
           {/* Spacer on mobile so right-side links don't overlap logo */}
-          {isMobile && <div style={{ width:135, flexShrink:0 }} />}
+          <span className="tdc-mob"><div style={{ width:135, flexShrink:0 }} /></span>
           {/* Right-side nav links */}
-          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 20 }}>
-            {!isMobile && <Link href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</Link>}
-            <button onClick={openSubmitModal} style={{ fontSize:12, padding: isMobile ? '7px 12px' : '7px 18px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
-              {isMobile ? 'Submit' : 'Submit a resource'}
+          <div className="tdc-navlinks" style={{ display:'flex', alignItems:'center' }}>
+            <span className="tdc-desk"><Link href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</Link></span>
+            <button onClick={openSubmitModal} className="tdc-submit" style={{ fontSize:12, borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
+              <span className="tdc-mob">Submit</span><span className="tdc-desk">Submit a resource</span>
             </button>
-            {user && !isMobile && (
-              <Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
+            {user && (
+              <span className="tdc-desk"><Link href="/saved" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
                 {`Saved${bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}`}
-              </Link>
+              </Link></span>
             )}
             {user ? (
               <div style={{ position:'relative', minWidth:0, flexShrink:1 }}>
@@ -1030,12 +1086,12 @@ export default function Home({ initialResources }) {
                   {(profile?.avatar_url || user.user_metadata?.avatar_url) && (
                     <img src={profile?.avatar_url || user.user_metadata?.avatar_url} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:`1px solid ${BORDER}`, flexShrink:0 }} />
                   )}
-                  {!isMobile && (
+                  <span className="tdc-desk">
                     <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                       {profile?.full_name || (profile?.role ? `${profile.role}` : user.email?.split('@')[0])}
                     </span>
-                  )}
-                  {!isMobile && profile?.npi_verified && <span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span>}
+                  </span>
+                  {profile?.npi_verified && <span className="tdc-desk"><span style={{ fontSize:10, background:GREEN, color:'#fff', padding:'1px 6px', borderRadius:10, marginLeft:6, fontWeight:600, flexShrink:0 }}>✓ Verified</span></span>}
                   <span style={{ fontSize:10, color:'#ccc', marginLeft:2, flexShrink:0 }}>▾</span>
                 </button>
                 {showUserMenu && (
@@ -1072,24 +1128,24 @@ export default function Home({ initialResources }) {
       {/* When a filter is active the hero (which normally reserves mobile top space
           for the down-bursting logo) isn't rendered, so add that top padding here or
           the tab row / search slide under the logo on mobile. (audit frontend #4) */}
-      <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '0 7px 60px' : '0 36px 100px', paddingTop: isMobile && anyFilterActive ? 84 : undefined }}>
+      <div className={`tdc-main${anyFilterActive ? ' tdc-filtering' : ''}`} style={{ maxWidth:1140, margin:'0 auto' }}>
 
         {/* Top zone — roomier 16px mobile gutters (7px baseline + 9px here) */}
-        <div style={{ padding: TOP_ZONE_PAD }}>
+        <div className="tdc-topzone">
 
         {/* Hero — only on homepage */}
         {!anyFilterActive && (
-          <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 460, marginBottom:44, paddingTop: isMobile ? 84 : 16 }}>
+          <div className="tdc-hero" style={{ position:'relative', marginBottom:44 }}>
             {/* Large logo — desktop only, in page flow, scrolls away */}
-            {!isMobile && (
+            <span className="tdc-desk">
               <a href="/" style={{ position:'absolute', top:0, left:0, zIndex:10, textDecoration:'none' }}>
                 <img src="/logo.png" alt="The Dental Commute" style={{ height:437, width:'auto' }} />
               </a>
-            )}
+            </span>
             {/* Hero text */}
-            <div style={{ marginLeft: isMobile ? 0 : '44%', textAlign: isMobile ? 'left' : 'right' }}>
-            <div style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, marginTop: isMobile ? 0 : 32, fontWeight:600 }}>The home of dental education on the go</div>
-            <h1 style={{ fontSize: isMobile ? 32 : 54, fontWeight:900, color:'#111', lineHeight:1.05, margin:'0 0 20px', letterSpacing: isMobile ? -1 : -2.2, fontFamily:FONT_DISPLAY }}>
+            <div className="tdc-herotext">
+            <div className="tdc-eyebrow" style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, fontWeight:600 }}>The home of dental education on the go</div>
+            <h1 className="tdc-h1" style={{ fontWeight:900, color:'#111', lineHeight:1.05, margin:'0 0 20px', fontFamily:FONT_DISPLAY }}>
               Turn every commute<br/>into a <em style={{ color:GREEN, fontStyle:'italic' }}>masterclass.</em>
             </h1>
             <p style={{ fontSize:17, color:'#666', lineHeight:1.7, margin:'0 0 16px', fontWeight:400 }}>
@@ -1116,7 +1172,7 @@ export default function Home({ initialResources }) {
               ].filter(s => s.n > 0);
               if (!otherStats.length) return null;
               const epDisplay = epStat.n === 0 ? '37,000+' : epStat.n.toLocaleString();
-              if (isMobile) return (
+              const mobileBand = (
                 <div style={{ borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding:'18px 0' }}>
                   {/* 2x2 grid for the four secondary stats */}
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'18px 24px', marginBottom:20 }}>
@@ -1135,7 +1191,7 @@ export default function Home({ initialResources }) {
                 </div>
               );
               // Desktop: episodes first, larger, then the rest
-              return (
+              const desktopBand = (
                 <div style={{ display:'flex', gap:0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding:'22px 0' }}>
                   <div style={{ flex:1.4, paddingRight:28, borderRight:`1px solid ${BORDER}` }}>
                     <div style={{ fontSize:34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{epDisplay}</div>
@@ -1149,6 +1205,8 @@ export default function Home({ initialResources }) {
                   ))}
                 </div>
               );
+              // Both are sent; CSS shows the right one before first paint.
+              return <><span className="tdc-mob">{mobileBand}</span><span className="tdc-desk">{desktopBand}</span></>;
             })()}
             </div>{/* end right-justified text wrapper */}
           </div>
@@ -1159,8 +1217,8 @@ export default function Home({ initialResources }) {
           {[{label:'All', key:null}, ...VISIBLE_CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
             const isActive = activeCategory === key;
             return (
-              <button key={label} onClick={() => selectCategory(key)}
-                style={{ fontSize: isMobile ? 14 : 13, padding: isMobile ? '10px 0 14px' : '0 0 14px', marginRight: isMobile ? 22 : 30, background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
+              <button key={label} onClick={() => selectCategory(key)} className="tdc-tab"
+                style={{ background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
                 {label}
               </button>
             );
