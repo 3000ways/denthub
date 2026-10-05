@@ -1142,6 +1142,72 @@ function ScoringTab() {
   );
 }
 
+// Review-and-send box for an owner email (claim welcome / needs info / invite).
+// Sent through the app via Resend, from hello@thedentalcommute.com — not the
+// admin's own mail app. Everything is editable before sending.
+function OwnerEmailComposer({ draft, onClose }) {
+  const [to, setTo] = useState(draft.to || '');
+  const [subject, setSubject] = useState(draft.subject || '');
+  const [text, setText] = useState(draft.text || '');
+  const [state, setState] = useState('idle'); // idle | sending | sent
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setTo(draft.to || ''); setSubject(draft.subject || ''); setText(draft.text || '');
+    setState('idle'); setError('');
+  }, [draft]);
+
+  async function send() {
+    setState('sending'); setError('');
+    try {
+      const r = await fetch('/api/admin/send-owner-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, text }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setError(d.error || `Send failed (${r.status})`); setState('idle'); return; }
+      setState('sent');
+    } catch (e) { setError(String(e?.message || e)); setState('idle'); }
+  }
+
+  const box = { padding: 16, background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: 8, marginBottom: 20 };
+  if (state === 'sent') {
+    return (
+      <div style={{ ...box, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: '#075985' }}>✓ Email sent to {to}. A copy went to your inbox.</span>
+        <button onClick={onClose} style={{ fontSize: 12, color: '#075985', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+      </div>
+    );
+  }
+  const label = { display: 'block', fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 4 };
+  return (
+    <div style={box}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#075985' }}>Email the owner: {draft.label}</span>
+        <button onClick={onClose} title="Don't send" style={{ fontSize: 12, color: '#075985', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+      </div>
+      <label style={label}>To</label>
+      <input value={to} onChange={e => setTo(e.target.value)} type="email" style={{ ...inp(), marginBottom: 8, background: '#fff' }} />
+      <label style={label}>Subject</label>
+      <input value={subject} onChange={e => setSubject(e.target.value)} style={{ ...inp(), marginBottom: 8, background: '#fff' }} />
+      <label style={label}>Message</label>
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={12}
+        style={{ ...inp(), marginBottom: 10, background: '#fff', resize: 'vertical', lineHeight: 1.5 }} />
+      {error && <div style={{ fontSize: 12, color: '#c0392b', marginBottom: 10, lineHeight: 1.5 }}>⚠ {error}</div>}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button onClick={send} disabled={state === 'sending' || !to.trim() || !subject.trim() || !text.trim()} style={{
+          fontSize: 13, fontWeight: 600, padding: '8px 18px', borderRadius: 6, border: 'none',
+          background: '#0284c7', color: '#fff', cursor: state === 'sending' ? 'default' : 'pointer', fontFamily: FONT,
+          opacity: state === 'sending' ? 0.7 : 1,
+        }}>
+          {state === 'sending' ? 'Sending…' : 'Send email'}
+        </button>
+        <span style={{ fontSize: 11, color: '#888' }}>From hello@thedentalcommute.com · replies come to your inbox</span>
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════
 //  TAB 11 — Claims (Claim Your Profile review queue)
 // ══════════════════════════════════════════
@@ -1149,7 +1215,7 @@ function ClaimsTab() {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null); // claim id currently being approved/rejected
-  const [mailtoFor, setMailtoFor] = useState(null); // { claimId, href, label }
+  const [draft, setDraft] = useState(null); // { to, subject, text, label } — owner email awaiting send
   const [showInvite, setShowInvite] = useState(false);
   const [resources, setResources] = useState([]);
   const [inviteSearch, setInviteSearch] = useState('');
@@ -1212,7 +1278,7 @@ function ClaimsTab() {
       const d = await r.json();
       if (d.error) { alert(d.error); return; }
       setClaims(prev => prev.map(c => c.id === claimId ? { ...c, status: d.claim.status } : c));
-      setMailtoFor({ claimId, href: d.mailto, label: action === 'approve' ? 'Email the owner: welcome' : 'Email the owner: more info needed' });
+      if (d.email) setDraft({ ...d.email, label: action === 'approve' ? 'Welcome email' : 'More info needed' });
     } finally { setActing(null); }
   }
 
@@ -1223,13 +1289,16 @@ function ClaimsTab() {
     return q.length > 1 && (r.fields.Name || '').toLowerCase().includes(q);
   }).slice(0, 8);
 
-  function inviteMailto() {
+  function inviteDraft() {
     if (!invitePicked || !inviteEmail.trim()) return null;
     const site = 'https://thedentalcommute.com';
     const name = invitePicked.fields.Name;
-    return `mailto:${encodeURIComponent(inviteEmail.trim())}?subject=${encodeURIComponent(`Claim your listing for "${name}" on The Dental Commute`)}&body=${encodeURIComponent(
-      `Hi,\n\nI'm Andrei, founder of The Dental Commute — a ranked directory of dental podcasts, books, and resources. "${name}" is listed on the site, and I wanted to invite you to claim the page:\n\n${site}/resource/${invitePicked.id}\n\nClaiming lets you correct details, add your links and logo, feature your favorite episodes, and add a short creator bio — and you can see exactly how your score is calculated. Just sign in with Google on the page and click "Claim this page."\n\nLet me know if you have any questions!\n\nAndrei`
-    )}`;
+    return {
+      label: 'Invite to claim',
+      to: inviteEmail.trim(),
+      subject: `Claim your listing for "${name}" on The Dental Commute`,
+      text: `Hi,\n\nI'm Andrei, founder of The Dental Commute — a ranked directory of dental podcasts, books, and resources. "${name}" is listed on the site, and I wanted to invite you to claim the page:\n\n${site}/resource/${invitePicked.id}\n\nClaiming lets you correct details, add your links and logo, feature your favorite episodes, and add a short creator bio — and you can see exactly how your score is calculated. Just sign in with Google on the page and click "Claim this page."\n\nLet me know if you have any questions!\n\nAndrei`,
+    };
   }
 
   return (
@@ -1242,8 +1311,8 @@ function ClaimsTab() {
       </div>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.6 }}>
         Podcast owners can claim their listing to correct details, add a bio, and feature episodes. Every claim is
-        reviewed manually here — nothing publishes until you approve it. Approving or rejecting drafts an email for
-        you to review and send yourself.
+        reviewed manually here — nothing publishes until you approve it. Approving or rejecting drafts an email to the
+        owner — review it, then send it from here (it goes out from hello@thedentalcommute.com; replies reach your inbox).
       </p>
 
       {showInvite && (
@@ -1266,27 +1335,18 @@ function ClaimsTab() {
           )}
           <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="owner@example.com"
             style={{ ...inp(), marginBottom: 10 }} />
-          <a href={inviteMailto() || undefined}
-            onClick={e => { if (!inviteMailto()) e.preventDefault(); }}
+          <button onClick={() => { const d = inviteDraft(); if (d) setDraft(d); }} disabled={!inviteDraft()}
             style={{
-              display: 'inline-block', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 6,
-              background: inviteMailto() ? GREEN : '#ddd', color: '#fff', textDecoration: 'none', fontFamily: FONT,
-              cursor: inviteMailto() ? 'pointer' : 'default',
+              fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 6, border: 'none',
+              background: inviteDraft() ? GREEN : '#ddd', color: '#fff', fontFamily: FONT,
+              cursor: inviteDraft() ? 'pointer' : 'default',
             }}>
             Draft invite email ✉
-          </a>
+          </button>
         </div>
       )}
 
-      {mailtoFor && (
-        <div style={{ padding: '12px 16px', background: '#e0f2fe', border: '1px solid #7dd3fc', borderRadius: 8, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#075985' }}>Ready to notify the owner.</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <a href={mailtoFor.href} style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: '#0284c7', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>{mailtoFor.label} ✉</a>
-            <button onClick={() => setMailtoFor(null)} style={{ fontSize: 12, color: '#075985', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-          </div>
-        </div>
-      )}
+      {draft && <OwnerEmailComposer draft={draft} onClose={() => setDraft(null)} />}
 
       {loading ? <div style={{ color: '#888', fontSize: 14 }}>Loading…</div> : (
         <>
