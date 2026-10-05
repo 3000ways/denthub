@@ -306,7 +306,7 @@ function resourceJsonLd(record, description, image) {
 export default function ResourcePage({ record, related, ytData, bookData, ogImage, autoImage, initialEpisodes = [], episodeTotal = 0 }) {
   const f = record.fields;
   const { user, profile } = useAuth();
-  const [showSignIn, setShowSignIn] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false); // false | true | 'claim'
   const [showOnboarding, setShowOnboarding] = useState(false);
   // Resource icon, resolved through the ladder: owner logo (loads client-side,
   // wins) → human "Image URL" → machine "auto box" (RSS show art / AI guess) →
@@ -643,7 +643,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
             <div style={{ fontSize: 12, color: '#aaa', marginBottom: 10 }}>
               Are you the creator of {f.Name}? Claim this page to correct the info, add your links, and feature your favorite episodes.
             </div>
-            <ClaimButton resourceId={record.id} resourceName={f.Name} onSignInRequired={() => setShowSignIn(true)} />
+            <ClaimButton resourceId={record.id} resourceName={f.Name} onSignInRequired={() => setShowSignIn('claim')} />
           </div>
 
         </div>
@@ -651,7 +651,14 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
         <Footer />
       </div>
 
-      {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
+      {showSignIn && (
+        <SignInModal
+          onClose={() => setShowSignIn(false)}
+          variant={showSignIn === 'claim' ? 'claim' : undefined}
+          resourceName={f.Name}
+          returnPath={`/resource/${record.id}`}
+        />
+      )}
       {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
     </>
   );

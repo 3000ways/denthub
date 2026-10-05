@@ -6,6 +6,10 @@ import { supabase } from '../lib/supabase';
 const FONT = "'Inter', sans-serif";
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
+// Remembers "this person clicked Claim, then went off to sign in" across the
+// Google redirect, so the claim form opens by itself when they come back.
+const INTENT_KEY = 'tdc_claim_intent';
+const CLAIM_EMAIL = 'hello@thedentalcommute.com';
 
 // "Are you the creator?" claim flow. Signed-out visitors are prompted to sign
 // in; signed-in visitors get a short form (name, role, contact email,
@@ -36,8 +40,22 @@ export function ClaimButton({ resourceId, resourceName, onSignInRequired }) {
     if (profile) { setName(profile.full_name || ''); setEmail(profile.email || ''); }
   }, [profile]);
 
+  useEffect(() => {
+    if (!user || myClaim !== null) return;
+    try {
+      if (sessionStorage.getItem(INTENT_KEY) === resourceId) {
+        sessionStorage.removeItem(INTENT_KEY);
+        setOpen(true);
+      }
+    } catch {}
+  }, [user, myClaim, resourceId]);
+
   function handleClick() {
-    if (!user) { onSignInRequired?.(); return; }
+    if (!user) {
+      try { sessionStorage.setItem(INTENT_KEY, resourceId); } catch {}
+      onSignInRequired?.();
+      return;
+    }
     setOpen(o => !o);
   }
 
@@ -87,8 +105,9 @@ export function ClaimButton({ resourceId, resourceName, onSignInRequired }) {
         }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>Claim {resourceName}</div>
           <div style={{ fontSize: 12, color: '#888', marginBottom: 14, lineHeight: 1.5 }}>
-            Andrei reviews every claim personally, usually within a few days. Once approved, you can edit
-            the listing and add a creator bio.
+            An admin reviews every claim, usually within a few days. Once approved, you can edit
+            the listing and add a creator bio. Want to talk to us directly? Email{' '}
+            <a href={`mailto:${CLAIM_EMAIL}`} style={{ color: GREEN }}>{CLAIM_EMAIL}</a>.
           </div>
 
           <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 4 }}>Your name</label>

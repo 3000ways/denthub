@@ -16,17 +16,43 @@ function Overlay({ onClose, children }) {
   );
 }
 
-export function SignInModal({ onClose }) {
+// variant="claim" (with resourceName) swaps the listener pitch for a
+// creator-facing one; returnPath sends them back to the page they came from.
+export function SignInModal({ onClose, variant, resourceName, returnPath }) {
   const { signInWithGoogle } = useAuth();
+  const isClaim = variant === 'claim';
   return (
     <Overlay onClose={onClose}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>🦷</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 8 }}>Join The Dental Commute</div>
-        <div style={{ fontSize: 14, color: '#666', marginBottom: 28, lineHeight: 1.5 }}>
-          Sign in to save resources, follow your favorite shows, <strong style={{ color: '#111', fontWeight: 700 }}>track your CE</strong>, vote, and leave comments for the dental community.
+        <div style={{ fontSize: 28, marginBottom: 8 }}>{isClaim ? '🎙️' : '🦷'}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 8 }}>
+          {isClaim ? `Claim ${resourceName || 'your page'}` : 'Join The Dental Commute'}
         </div>
-        <button onClick={signInWithGoogle} style={{
+        {isClaim ? (
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 28, lineHeight: 1.5, textAlign: 'left' }}>
+            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+              Sign in first so we can link this page to you. Once an admin approves your claim, you can:
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 20, color: '#444' }}>
+              <li style={{ marginBottom: 4 }}>Correct your listing&rsquo;s details and logo</li>
+              <li style={{ marginBottom: 4 }}>Add a creator bio and your links</li>
+              <li style={{ marginBottom: 4 }}>Feature your favorite episodes</li>
+              <li>Get a <strong style={{ color: '#111' }}>✓ Claimed</strong> badge on your page</li>
+            </ul>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#999', marginTop: 14 }}>
+              Free, and claiming never changes your score.
+            </div>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#999', marginTop: 6 }}>
+              Prefer to talk first? Email{' '}
+              <a href="mailto:hello@thedentalcommute.com" style={{ color: GREEN }}>hello@thedentalcommute.com</a>
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 28, lineHeight: 1.5 }}>
+            Sign in to save resources, follow your favorite shows, <strong style={{ color: '#111', fontWeight: 700 }}>track your CE</strong>, vote, and leave comments for the dental community.
+          </div>
+        )}
+        <button onClick={() => signInWithGoogle(returnPath)} style={{
           width: '100%', padding: '13px 20px', borderRadius: 8, border: `1px solid ${BORDER}`,
           background: '#fff', color: '#111', fontSize: 15, fontWeight: 600, cursor: 'pointer',
           fontFamily: FONT, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -35,7 +61,7 @@ export function SignInModal({ onClose }) {
           Continue with Google
         </button>
         <div style={{ fontSize: 12, color: '#aaa', marginTop: 20 }}>
-          By signing in you agree to our terms. Your NPI status is optional and used only to display a verified badge.
+          By signing in you agree to our terms.{!isClaim && ' Your NPI status is optional and used only to display a verified badge.'}
         </div>
       </div>
     </Overlay>
