@@ -131,6 +131,10 @@ export default async function handler(req, res) {
   try {
     await adminCreateResource(fields);
   } catch (e) {
+    // Same RSS feed as a live listing (DB rule 0022) — it's already here.
+    if (e.code === 'DUPLICATE_FEED') {
+      return res.status(409).json({ error: 'Thanks! This one is already on The Dental Commute (or already waiting for review).' });
+    }
     return res.status(500).json({ error: `Failed to save submission: ${e.message}` });
   }
 
