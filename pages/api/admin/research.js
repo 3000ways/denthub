@@ -17,7 +17,7 @@ import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { adminCreateResource, getAdminClient } from '../../../lib/resources-db-admin';
 import { RESEARCH_PLAN, RESEARCH_GROUPS, typeNoun } from '../../../lib/research-plan';
 import { resolvePodcastFeed } from '../../../lib/resolve-feed';
-import { normalizeUrl, normalizeName } from '../../../lib/dedupe-keys';
+import { normalizeUrl, normalizeFeedUrl, normalizeName } from '../../../lib/dedupe-keys';
 
 export const config = { maxDuration: 60 };
 
@@ -54,7 +54,7 @@ async function fetchExistingResources(type) {
   const rows = data || [];
   const names = new Set(rows.map(r => nameKey(r.type, r.name)).filter(Boolean));
   const urls  = new Set(rows.map(r => normalizeUrl(r.url || '')).filter(Boolean));
-  const feeds = new Set(rows.map(r => normalizeUrl(r.rss_feed_url || '')).filter(Boolean));
+  const feeds = new Set(rows.map(r => normalizeFeedUrl(r.rss_feed_url || '')).filter(Boolean));
   // Display names of this Type, for the model's "don't suggest these" list.
   const promptNames = rows.filter(r => r.type === type && r.name).map(r => r.name.trim());
   return { names, urls, feeds, promptNames };
@@ -228,7 +228,7 @@ export default async function handler(req, res) {
     const deduped = batchDeduped.filter(r => {
       const n = nameKey(sub.type, r.Name);
       const u = normalizeUrl(r.URL || '');
-      const f = normalizeUrl(r.RSSFeedURL || '');
+      const f = normalizeFeedUrl(r.RSSFeedURL || '');
       const dup = (n && existingNames.has(n)) || (u && existingUrls.has(u)) || (f && existingFeeds.has(f));
       if (dup) { counts.duplicates++; skipped.push({ name: r.Name, reason: 'already in database' }); }
       return !dup;
@@ -262,7 +262,7 @@ export default async function handler(req, res) {
     //     two, three, even four times under slightly different names/URLs.
     const seenFeeds = new Set();
     const feedDeduped = resolving.filter(r => {
-      const f = normalizeUrl(r.RSSFeedURL || '');
+      const f = normalizeFeedUrl(r.RSSFeedURL || '');
       if (!f) return true; // no feed → the completeness gate below decides
       const dup = existingFeeds.has(f) || seenFeeds.has(f);
       seenFeeds.add(f);

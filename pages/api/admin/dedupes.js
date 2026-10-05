@@ -1,6 +1,6 @@
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
 import { adminListResources } from '../../../lib/resources-db-admin';
-import { normalizeUrl, normalizeName } from '../../../lib/dedupe-keys';
+import { normalizeUrl, normalizeFeedUrl, normalizeName } from '../../../lib/dedupe-keys';
 
 // Catches similar names missed by exact match — e.g. "Thriving Dentist Show" vs
 // "Thriving Dentist Show (Student & New Dentist Content)". Returns true if ≥75%
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const byFeed = new Map();
     for (const r of records) {
       if (r.fields['Status'] === 'Archived') continue;
-      const feed = normalizeUrl(r.fields['RSS Feed URL']);
+      const feed = normalizeFeedUrl(r.fields['RSS Feed URL']);
       if (!feed) continue;
       const key = `${r.fields['Type'] || ''}|${feed}`;
       if (!byFeed.has(key)) byFeed.set(key, []);
