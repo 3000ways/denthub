@@ -3411,10 +3411,10 @@ const TAB_GROUPS = [
     group: 'Resources',
     tabs: [
       { label: 'Add Resource',  Component: AddResource },
-      { label: 'Review Queue',  Component: ReviewQueue },
+      { label: 'Review Queue',  Component: ReviewQueue, badge: c => ({ urgent: c.submissions, quiet: c.aiQueue }) },
       { label: 'All Resources', Component: AllResources },
-      { label: 'Claims',        Component: ClaimsTab },
-      { label: 'Reports',       Component: ReportsTab },
+      { label: 'Claims',        Component: ClaimsTab,   badge: c => ({ urgent: c.claims + c.edits }) },
+      { label: 'Reports',       Component: ReportsTab,  badge: c => ({ urgent: c.reports }) },
       { label: 'AI Voice',      Component: VoiceVotesTab },
     ],
   },
@@ -3448,6 +3448,20 @@ const TAB_GROUPS = [
 // Flattened list, in visual order, so we can address tabs by a single index.
 const FLAT_TABS = TAB_GROUPS.flatMap(g => g.tabs);
 
+// Small count pill on a tab. Red = a person is waiting on you (claim, edit
+// proposal, visitor submission, report); grey = only AI-found resources waiting.
+function TabBadge({ urgent = 0, quiet = 0 }) {
+  const n = urgent || quiet;
+  if (!n) return null;
+  return (
+    <span title={urgent ? `${urgent} waiting for you` : `${quiet} AI-found, waiting for review`} style={{
+      display: 'inline-block', minWidth: 16, height: 16, lineHeight: '16px', padding: '0 5px', marginLeft: 6,
+      borderRadius: 8, fontSize: 10, fontWeight: 700, textAlign: 'center', verticalAlign: 'text-top',
+      background: urgent ? '#dc2626' : '#e5e5e5', color: urgent ? '#fff' : '#666',
+    }}>{n > 99 ? '99+' : n}</span>
+  );
+}
+
 // ══════════════════════════════════════════
 //  MAIN ADMIN PAGE
 // ══════════════════════════════════════════
@@ -3456,6 +3470,27 @@ export default function AdminPage() {
   const [checking, setChecking] = useState(true);
   const [tab, setTab] = useState(0);
   const ActiveTab = (FLAT_TABS[tab] || FLAT_TABS[0]).Component;
+  const [pending, setPending] = useState(null);
+
+  // Badge counts: load on login, refresh whenever you switch tabs (so handling
+  // an item and moving on clears its badge) and every 2 minutes while open.
+  useEffect(() => {
+    if (!authed) return;
+    let alive = true;
+    const load = () => fetch('/api/admin/pending-counts')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive && d) setPending(d); })
+      .catch(() => {});
+    load();
+    const t = setInterval(load, 120000);
+    return () => { alive = false; clearInterval(t); };
+  }, [authed, tab]);
+
+  // Total waiting-on-you count in the browser tab title, e.g. "(3) Admin".
+  useEffect(() => {
+    const n = pending ? pending.claims + pending.edits + pending.submissions + pending.reports : 0;
+    document.title = n ? `(${n}) Admin · The Dental Commute` : 'Admin · The Dental Commute';
+  }, [pending]);
 
   useEffect(() => {
     fetch('/api/admin/resources', { method: 'GET' })
@@ -3504,6 +3539,7 @@ export default function AdminPage() {
                     return (
                       <button key={t.label} onClick={() => setTab(i)} style={{ padding: '6px 12px 10px', background: 'none', border: 'none', borderBottom: tab === i ? `2px solid ${GREEN}` : '2px solid transparent', color: tab === i ? '#111' : '#aaa', fontWeight: tab === i ? 600 : 400, cursor: 'pointer', fontSize: 13, fontFamily: FONT, whiteSpace: 'nowrap', flexShrink: 0 }}>
                         {t.label}
+                        {pending && t.badge && <TabBadge {...t.badge(pending)} />}
                       </button>
                     );
                   })}
