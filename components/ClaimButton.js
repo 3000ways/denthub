@@ -50,6 +50,16 @@ export function ClaimButton({ resourceId, resourceName, onSignInRequired }) {
     } catch {}
   }, [user, myClaim, resourceId]);
 
+  // Escape closes the pop-up; lock the page behind it from scrolling.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') setOpen(false); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [open]);
+
   function handleClick() {
     if (!user) {
       try { sessionStorage.setItem(INTENT_KEY, resourceId); } catch {}
@@ -97,11 +107,18 @@ export function ClaimButton({ resourceId, resourceName, onSignInRequired }) {
         {myClaim?.status === 'rejected' ? 'Re-submit claim' : 'Are you the creator? Claim this page'}
       </button>
 
+      {/* A centred pop-up (not anchored to the button): the button sits at the
+          very bottom of the resource page, so an attached box opened off-screen. */}
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 20,
-          width: 320, background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 10,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.14)', padding: 18, fontFamily: FONT,
+        <div onClick={() => setOpen(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 16, overflowY: 'auto',
+        }}>
+        <div role="dialog" aria-modal="true" aria-label={`Claim ${resourceName}`} onClick={e => e.stopPropagation()} style={{
+          width: '100%', maxWidth: 400, maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
+          background: '#fff', borderRadius: 10, textAlign: 'left',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.25)', padding: 22, fontFamily: FONT, boxSizing: 'border-box',
         }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>Claim {resourceName}</div>
           <div style={{ fontSize: 12, color: '#888', marginBottom: 14, lineHeight: 1.5 }}>
@@ -141,6 +158,7 @@ export function ClaimButton({ resourceId, resourceName, onSignInRequired }) {
               Cancel
             </button>
           </div>
+        </div>
         </div>
       )}
     </span>

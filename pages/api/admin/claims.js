@@ -48,18 +48,23 @@ export default async function handler(req, res) {
     const names = await resourceNames([claim.resource_id]);
     const resourceName = names[claim.resource_id]?.name || claim.resource_id;
 
-    // Draft a notification email for Andrei to review and send himself
-    // (mailto-based semi-automation — no transactional email vendor needed).
+    // Draft the owner email; the Claims tab shows it for Andrei to edit, then
+    // sends it through the app (/api/admin/send-owner-email).
     const site = 'https://thedentalcommute.com';
-    const mailto = action === 'approve'
-      ? `mailto:${encodeURIComponent(claim.contact_email)}?subject=${encodeURIComponent(`You're approved to manage "${resourceName}" on The Dental Commute`)}&body=${encodeURIComponent(
-          `Hi ${claim.claimant_name || 'there'},\n\nGreat news — your claim on "${resourceName}" has been approved!\n\nYou can now edit the listing (description, links, logo, and more) and add a creator bio from your dashboard:\n${site}/my-resources\n\nA couple of things worth knowing:\n- Your score is never affected by claiming or editing your listing — it's computed independently from real activity data, and you can see exactly how on your dashboard.\n- Factual edits (like your URL or description) go through a quick review before they go live, just so we keep the directory accurate.\n\nThanks for being part of The Dental Commute!\n\nAndrei`
-        )}`
-      : `mailto:${encodeURIComponent(claim.contact_email)}?subject=${encodeURIComponent(`About your claim on "${resourceName}"`)}&body=${encodeURIComponent(
-          `Hi ${claim.claimant_name || 'there'},\n\nThanks for reaching out about "${resourceName}" on The Dental Commute. I wasn't able to verify this claim yet — could you reply with a bit more detail (e.g. a link showing your connection to the show)?\n\nHappy to take another look.\n\nAndrei`
-        )}`;
+    const hi = `Hi ${claim.claimant_name || 'there'},`;
+    const email = action === 'approve'
+      ? {
+          to: claim.contact_email,
+          subject: `You're approved to manage "${resourceName}" on The Dental Commute`,
+          text: `${hi}\n\nGreat news — your claim on "${resourceName}" has been approved!\n\nYou can now edit the listing (description, links, logo, and more) and add a creator bio from your dashboard:\n${site}/my-resources\n\nA couple of things worth knowing:\n- Your score is never affected by claiming or editing your listing — it's computed independently from real activity data, and you can see exactly how on your dashboard.\n- Factual edits (like your URL or description) go through a quick review before they go live, just so we keep the directory accurate.\n\nThanks for being part of The Dental Commute!\n\nAndrei`,
+        }
+      : {
+          to: claim.contact_email,
+          subject: `About your claim on "${resourceName}"`,
+          text: `${hi}\n\nThanks for reaching out about "${resourceName}" on The Dental Commute. I wasn't able to verify this claim yet — could you reply with a bit more detail (e.g. a link showing your connection to the show)?\n\nHappy to take another look.\n\nAndrei`,
+        };
 
-    return res.status(200).json({ status: 'ok', claim: { ...claim, status }, mailto });
+    return res.status(200).json({ status: 'ok', claim: { ...claim, status }, email });
   }
 
   return res.status(405).end();
