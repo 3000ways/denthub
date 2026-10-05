@@ -152,7 +152,7 @@ Weighted composite score shown on each resource card with a hover tooltip:
 3. **Verify live data through the live API routes** (e.g. `/api/airtable?table=Resources`) or the Supabase MCP
 4. **Category tabs must come from the `categories` table** — never hardcode them
 5. **Public API routes must send a CDN `Cache-Control` on EVERY success path** — including in-memory-cache HITs — via `setCdnCache` (`lib/cdn-cache.js`). A HIT path with no header was why the first visitor after a cold start waited ~25s while `/api/spotlight`/`podcast-stats` live-swept every RSS feed.
-6. **Duplicate detection keys live in `lib/dedupe-keys.js`** (shared by the Research agent and the admin Duplicates finder). Same RSS feed + same Type = same show; names compare loosely only within the same Type.
+6. **Duplicate detection keys live in `lib/dedupe-keys.js`** (shared by the Research agent and the admin Duplicates finder). Same RSS feed + same Type = same show; names compare loosely only within the same Type. **The database also enforces it:** unique index `resources_live_feed_key` (migration `0022`) — no two live (non-Archived, non-Rejected) resources may share a normalized feed URL. Writers get `err.code === 'DUPLICATE_FEED'` from `lib/resources-db-admin.js` and should treat it as "already listed".
 7. **Contact address is one constant** (`lib/contact.js`). Branded `@thedentalcommute.com` mail needs Cloudflare Email Routing (the old Namecheap forwarding broke when DNS moved to Cloudflare).
 8. **Historic quirk to preserve:** `final_score` must keep replicating the old Airtable formula (float math, half-up, blank when Expert/Recency blank-or-0) unless a re-rank is a deliberate decision
 

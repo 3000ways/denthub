@@ -147,10 +147,18 @@ Return ONLY a valid JSON array of objects with exactly these keys: Name, URL, De
 Aim for ${TARGET_PER_SUBCATEGORY}; it is better to return 4 real ones than pad with junk.`;
 }
 
+// Inserts one by one; a record the database rejects as a duplicate feed
+// (rule 0022) is skipped and reported instead of failing the whole run.
 async function insertRecords(records) {
-  const out = [];
-  for (const rec of records) out.push(await adminCreateResource(rec.fields));
-  return { records: out };
+  const out = [], duplicates = [];
+  for (const rec of records) {
+    try { out.push(await adminCreateResource(rec.fields)); }
+    catch (e) {
+      if (e.code === 'DUPLICATE_FEED') duplicates.push(rec.fields.Name);
+      else throw e;
+    }
+  }
+  return { records: out, duplicates };
 }
 
 // Best-effort activity log — a failure here must never fail the actual research.
@@ -298,9 +306,17 @@ export default async function handler(req, res) {
 
     const chunks = [];
     for (let i = 0; i < records.length; i += 10) chunks.push(records.slice(i, i + 10));
-    for (const chunk of chunks) await insertRecords(chunk);
+    const dbDuplicates = new Set();
+    for (const chunk of chunks) {
+      const r = await insertRecords(chunk);
+      r.duplicates.forEach(name => {
+        dbDuplicates.add(name);
+        counts.duplicates++;
+        skipped.push({ name, reason: 'already in database (same RSS feed)' });
+      });
+    }
 
-    const added = complete.map(r => ({ Name: r.Name, URL: r.URL, Description: r.Description, Type: sub.type, hasRss: !!(r.RSSFeedURL || '').trim() }));
+    const added = complete.filter(r => !dbDuplicates.has(r.Name.trim())).map(r => ({ Name: r.Name, URL: r.URL, Description: r.Description, Type: sub.type, hasRss: !!(r.RSSFeedURL || '').trim() }));
 
     await logRun({
       batch_id: batchId || null,
