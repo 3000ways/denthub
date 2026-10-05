@@ -116,7 +116,12 @@ export default function CreatorEditor() {
     const { data, error } = await supabase.from('resource_edit_proposals')
       .insert({ user_id: user.id, resource_id: id, changes }).select().single();
     setSavingProposal(false);
-    if (!error) { setPendingProposal(data); setProposalSaved(true); setTimeout(() => setProposalSaved(false), 3000); }
+    if (!error) {
+      setPendingProposal(data); setProposalSaved(true); setTimeout(() => setProposalSaved(false), 3000);
+      // Email Andrei (fire-and-forget; the endpoint sends at most once per proposal).
+      fetch('/api/notify-owner', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'edit', id: data.id }) }).catch(() => {});
+    }
   }
 
   async function saveOwnerContent() {

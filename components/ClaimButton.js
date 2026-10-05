@@ -50,7 +50,12 @@ export function ClaimButton({ resourceId, resourceName, onSignInRequired }) {
       claimant_role: role.trim() || null, message: message.trim() || null,
     }).select('id, status, created_at').single();
     setSubmitting(false);
-    if (!error) { setMyClaim(data); setOpen(false); }
+    if (!error) {
+      setMyClaim(data); setOpen(false);
+      // Email Andrei (fire-and-forget; the endpoint sends at most once per claim).
+      fetch('/api/notify-owner', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'claim', id: data.id }) }).catch(() => {});
+    }
   }
 
   const btnStyle = {

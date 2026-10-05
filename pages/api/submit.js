@@ -1,4 +1,5 @@
 import { adminCreateResource } from '../../lib/resources-db-admin';
+import { sendOwnerAlert, oneLine, ADMIN_URL } from '../../lib/notify';
 
 const VALID_SPECIALTIES = ['General Dentistry','Endodontics','Orthodontics','Periodontics','Oral Surgery','Prosthodontics','Pediatric Dentistry','Oral Radiology','Dental Anesthesiology','Pain'];
 const VALID_TOPICS      = ['Clinical','Technology','Leadership','Marketing','Finance & Investment','Practice Growth','Team & HR','Wellness'];
@@ -137,6 +138,21 @@ export default async function handler(req, res) {
     }
     return res.status(500).json({ error: `Failed to save submission: ${e.message}` });
   }
+
+  // Tell Andrei (never fails the submission — sendOwnerAlert swallows errors).
+  await sendOwnerAlert({
+    subject: `New submission: ${oneLine(fields.Name)}`,
+    text: [
+      `A visitor suggested a new resource for The Dental Commute.`,
+      '',
+      `Name: ${oneLine(fields.Name)}`,
+      `Type: ${finalType}`,
+      `URL:  ${oneLine(url, 500)}`,
+      `Description: ${oneLine(fields.Description, 600) || '(none)'}`,
+      '',
+      `Approve or reject it in Admin → Submissions: ${ADMIN_URL}`,
+    ].join('\n'),
+  });
 
   return res.status(200).json({ ok: true, name: fields.Name, type: finalType });
 }
