@@ -1,7 +1,13 @@
-// Fetches the latest episode/video from every podcast and YouTube channel in the database.
-// Sorts all results by publish date and returns the 8 most recent of each type.
-// Cached for 6 hours. Per-feed timeout is 4s so slow feeds don't hold up the batch.
+// "What's New": the latest episode from each podcast and the latest video from
+// each YouTube channel, newest first, DISPLAY_COUNT of each. Cached 6 hours.
+//
+// Podcasts come from the Supabase episode archive (kept fresh by the daily
+// harvester + refresh-on-view) — one fast query instead of a live sweep of ~200
+// RSS feeds, which made the first visitor after every deploy/cache expiry stare
+// at an empty "What's New" box for ~5s. YouTube channels aren't harvested, so
+// those feeds are still fetched live (they're fast; 4s timeout per feed).
 
+import { supabase } from '../../lib/supabase';
 import { listPublishedResources } from '../../lib/resources-db';
 import { setCdnCache } from '../../lib/cdn-cache';
 
@@ -47,36 +53,6 @@ function stripHtml(str) {
     .replace(/&#\d+;/g,'').replace(/&[a-z]+;/g,'').replace(/\s+/g,' ').trim();
 }
 
-function parsePodcastFeed(xml, meta) {
-  const showArt    = getAttr(xml, 'itunes:image', 'href') || null;
-  const itemMatch  = xml.match(/<item[\s>]([\s\S]*?)<\/item>/i);
-  if (!itemMatch) return null;
-  const item = itemMatch[1];
-
-  const title        = stripHtml(getTag(item, 'title'));
-  const link         = getTag(item, 'link') || meta.rssUrl;
-  const pubDate      = getTag(item, 'pubDate');
-  const description  = stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '');
-  const episodeArt   = getAttr(item, 'itunes:image', 'href') || showArt;
-  const enclosureUrl = getAttr(item, 'enclosure', 'url');
-  const guid         = getTag(item, 'guid') || enclosureUrl;
-  const parsedDate   = pubDate ? new Date(pubDate) : null;
-
-  return {
-    type:             'podcast',
-    show:             meta.name,
-    resourceId:       meta.id,
-    title:            title || 'New episode',
-    url:              enclosureUrl || link,
-    guid:             guid,
-    image:            episodeArt,
-    date:             parsedDate ? parsedDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
-    sortDate:         parsedDate ? parsedDate.getTime() : 0,
-    description:      description.slice(0, 200),
-    score:            meta.score,
-  };
-}
-
 function parseYouTubeFeed(xml, meta) {
   const entryMatch = xml.match(/<entry>([\s\S]*?)<\/entry>/i);
   if (!entryMatch) return null;
@@ -117,6 +93,47 @@ let cache     = null;
 let cacheTime = 0;
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
+// ─── Podcasts from the episode archive ───────────────────────────────────────
+
+const RECENT_WINDOW = 400; // newest rows to scan; plenty to find DISPLAY_COUNT distinct shows
+
+async function latestPodcastEpisodes(podcastMeta) {
+  const byId = new Map(podcastMeta.map(m => [m.id, m]));
+  const { data, error } = await supabase
+    .from('episodes')
+    .select('id, show_resource_id, show_name, title, description, published_at, audio_url, image, guid')
+    .not('audio_url', 'is', null)
+    .lte('published_at', new Date().toISOString()) // ignore future-dated feed items
+    // nullsFirst:false matches episodes_published_at_idx (DESC NULLS LAST); plain
+    // DESC means NULLS FIRST in Postgres, which skips the index and times out.
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .limit(RECENT_WINDOW);
+  if (error) throw new Error(`episodes: ${error.message}`);
+  const seenShows = new Set();
+  const out = [];
+  for (const e of data || []) {
+    const meta = byId.get(e.show_resource_id); // only live (Published) podcasts
+    if (!meta || seenShows.has(e.show_resource_id)) continue;
+    seenShows.add(e.show_resource_id);
+    const d = e.published_at ? new Date(e.published_at) : null;
+    out.push({
+      type:        'podcast',
+      show:        meta.name || e.show_name,
+      resourceId:  meta.id,
+      episodeId:   e.id,
+      title:       e.title || 'New episode',
+      url:         e.audio_url,
+      guid:        e.guid || e.audio_url,
+      image:       e.image || null,
+      date:        d ? d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
+      sortDate:    d ? d.getTime() : 0,
+      description: stripHtml(e.description || '').slice(0, 200),
+      score:       meta.score,
+    });
+  }
+  return out;
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -132,19 +149,13 @@ export default async function handler(req, res) {
     fetchAllFromAirtable('YouTube'),
   ]);
 
-  // Deduplicate by RSS URL so shared feeds don't produce duplicate episode cards
-  const uniquePodcastMeta = podcastMeta.filter((m, i, arr) => arr.findIndex(x => x.rssUrl === m.rssUrl) === i);
+  // Deduplicate by RSS URL so shared feeds don't produce duplicate video cards
   const uniqueVideoMeta   = videoMeta.filter((m, i, arr) => arr.findIndex(x => x.rssUrl === m.rssUrl) === i);
 
-  // 2. Fetch every RSS feed in parallel (4s timeout per feed — stragglers are dropped)
+  // 2. Podcasts: one archive query. YouTube: live feeds in parallel (4s timeout
+  //    each — stragglers are dropped). Both run at the same time.
   const [podcastResults, videoResults] = await Promise.all([
-    Promise.all(
-      uniquePodcastMeta.map(meta =>
-        fetchFeed(meta.rssUrl)
-          .then(xml => parsePodcastFeed(xml, meta))
-          .catch(() => null)
-      )
-    ),
+    latestPodcastEpisodes(podcastMeta).catch(() => []),
     Promise.all(
       uniqueVideoMeta.map(meta =>
         fetchFeed(meta.rssUrl)
@@ -174,6 +185,14 @@ export default async function handler(req, res) {
     videos,
     fetchedAt: new Date().toISOString(),
   };
+
+  // Don't pin an empty/failed result for 6 hours: if the archive query failed
+  // (no podcasts), serve it briefly and try again on the next request.
+  if (podcasts.length === 0) {
+    setCdnCache(res, 60, { staleSec: 60 });
+    res.setHeader('X-Cache', 'MISS');
+    return res.status(200).json(data);
+  }
 
   cache     = data;
   cacheTime = Date.now();
