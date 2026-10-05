@@ -5,11 +5,13 @@
 -- three such pairs were found and archived in the 2026-10 feed cleanup.
 -- Same key as 0022, plus the host alias. Keep in sync with
 -- normalizeFeedUrl() in lib/dedupe-keys.js and feedKey() in lib/harvester.js.
--- The index keeps its name, so writers' DUPLICATE_FEED mapping is unchanged.
+-- Added as a NEW index alongside 0022's (dropping the old one needs a manual
+-- confirmation the migration tool can't give). It is a strict superset of the
+-- old one, which is now redundant but harmless. Its name still contains
+-- "resources_live_feed_key", which is what lib/resources-db-admin.js matches to
+-- raise DUPLICATE_FEED.
 
-drop index if exists public.resources_live_feed_key;
-
-create unique index resources_live_feed_key on public.resources (
+create unique index if not exists resources_live_feed_key_v2 on public.resources (
   regexp_replace(
     lower(regexp_replace(regexp_replace(btrim(rss_feed_url), '^https?://(www\.)?', '', 'i'), '/+$', '')),
     '^rss\.buzzsprout\.com/', 'feeds.buzzsprout.com/'
