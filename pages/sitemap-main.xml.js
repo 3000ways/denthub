@@ -80,10 +80,10 @@ function buildSitemap(records, browsePages) {
   }
 
   for (const rec of records) {
-    const lastmodRaw = rec.fields?.['Last Modified'] || rec.createdTime;
-    const lastmod = lastmodRaw ? `\n    <lastmod>${xmlEscape(new Date(lastmodRaw).toISOString())}</lastmod>` : '';
+    // No <lastmod>: every row carried the 2026-08-03 migration date, which tells
+    // Google nothing (it ignores lastmod it can't trust). Omitting is honest.
     urls.push(
-      `  <url>\n    <loc>${SITE}/resource/${xmlEscape(rec.id)}</loc>${lastmod}\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`
+      `  <url>\n    <loc>${SITE}/resource/${xmlEscape(rec.id)}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`
     );
   }
 

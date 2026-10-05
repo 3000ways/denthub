@@ -102,7 +102,16 @@ export default function BrowsePage({ tag, kind, initialItems, total }) {
 
   return (
     <>
-      <Head><title>{tag} — The Dental Commute</title></Head>
+      <Head>
+        {/* One string, not {tag} + text: JSX interpolation put a literal "<!-- -->" in the title Google saw. */}
+        <title>{`${tag} — Dental podcast episodes | The Dental Commute`}</title>
+        <meta name="description" content={`${total.toLocaleString('en-US')} dental podcast episodes on ${tag}, newest first — curated for dentists on The Dental Commute.`} />
+        <link rel="canonical" href={`https://thedentalcommute.com/browse?tag=${encodeURIComponent(tag)}${kind ? `&kind=${encodeURIComponent(kind)}` : ''}`} />
+        <meta property="og:title" content={`${tag} — The Dental Commute`} />
+        <meta property="og:description" content={`Dental podcast episodes on ${tag}, curated for dentists.`} />
+        <meta property="og:image" content="https://thedentalcommute.com/og-image.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Head>
       <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
         <SiteNav />
         <div style={{ maxWidth:1140, margin:'0 auto', padding: isMobile ? '20px 12px 80px' : '40px 28px 100px' }}>

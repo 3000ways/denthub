@@ -60,7 +60,13 @@ export async function getStaticPaths() {
 // Cached per-resource and refreshed at most once every 5 minutes (ISR), so a
 // busy resource page hits Airtable roughly once per 5-minute window instead of
 // once per visitor. Returned props are unchanged from the previous version.
+// Resource ids are Airtable-format (rec + 14 chars; the table CHECK enforces it).
+// Anything else can't exist, so 404 immediately instead of running every
+// lookup below (a junk URL used to take ~20s to 404).
+const RESOURCE_ID_RE = /^rec[A-Za-z0-9]{14}$/;
+
 export async function getStaticProps({ params }) {
+  if (!RESOURCE_ID_RE.test(String(params.id || ''))) return { notFound: true, revalidate: 3600 };
   try {
     const origin = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://thedentalcommute.com';
 
@@ -273,6 +279,30 @@ function SmallLogo({ url, name, imageUrl, size = 40 }) {
   return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />;
 }
 
+// Structured data for Google: describe the listing as what it IS (a podcast
+// series, a book, software…). The old markup was a "Review" of a generic
+// "Thing" — Search Console flagged it invalid (Aug 2026), and Google treats a
+// site rating its own listings as a self-serving review, so no rating here.
+const SCHEMA_TYPE = { Podcast: 'PodcastSeries', Book: 'Book', Software: 'SoftwareApplication', YouTube: 'CreativeWorkSeries' };
+function resourceJsonLd(record, description, image) {
+  const f = record.fields || {};
+  const type = SCHEMA_TYPE[f.Type] || 'CreativeWork';
+  const host = f['Host or Author'];
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': type,
+    name: f.Name,
+    description,
+    url: `https://thedentalcommute.com/resource/${record.id}`,
+    ...(f.URL ? { sameAs: [f.URL] } : {}),
+    ...(image ? { image } : {}),
+  };
+  if (host) ld[type === 'SoftwareApplication' ? 'publisher' : 'author'] = { '@type': type === 'Book' || type === 'PodcastSeries' ? 'Person' : 'Organization', name: host };
+  if (type === 'PodcastSeries' && f['RSS Feed URL']) ld.webFeed = f['RSS Feed URL'];
+  if (type === 'SoftwareApplication') ld.applicationCategory = 'BusinessApplication';
+  return ld;
+}
+
 export default function ResourcePage({ record, related, ytData, bookData, ogImage, autoImage, initialEpisodes = [], episodeTotal = 0 }) {
   const f = record.fields;
   const { user, profile } = useAuth();
@@ -362,16 +392,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
         <meta name="twitter:image" content={ogImage || 'https://thedentalcommute.com/og-image.jpg'} />
         <link rel="canonical" href={`https://thedentalcommute.com/resource/${record.id}`} />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Review",
-          "name": f.Name,
-          "description": description,
-          "url": f.URL,
-          "reviewRating": score ? { "@type": "Rating", "ratingValue": score, "bestRating": "100" } : undefined,
-          "author": { "@type": "Organization", "name": "The Dental Commute" },
-          "itemReviewed": { "@type": "Thing", "name": f.Name, "url": f.URL }
-        })}} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(resourceJsonLd(record, description, ogImage)).replace(/</g, '\\u003c') }} />
       </Head>
 
       <div style={{ background: '#f5f2eb', backgroundImage: 'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize: '22px 22px', minHeight: '100vh', fontFamily: FONT }}>
