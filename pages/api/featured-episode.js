@@ -37,6 +37,16 @@ function stripHtml(str) {
     .replace(/\s+/g, ' ').trim();
 }
 
+// Cut at a sentence or word boundary so the card never ends mid-word.
+function clip(text, max) {
+  if (!text || text.length <= max) return text || '';
+  const head = text.slice(0, max);
+  const sentence = head.lastIndexOf('. ');
+  if (sentence > max * 0.6) return head.slice(0, sentence + 1);
+  const space = head.lastIndexOf(' ');
+  return `${head.slice(0, space > 0 ? space : max).trimEnd()}…`;
+}
+
 function commuteLength(secs) {
   if (secs == null) return true;            // unknown duration: allow
   return secs >= MIN_SEC && secs <= MAX_SEC;
@@ -72,7 +82,7 @@ function shape(ep, show) {
   return {
     id:               ep.id,
     title:            ep.title || 'New episode',
-    description:      stripHtml(ep.description).slice(0, 220),
+    description:      clip(stripHtml(ep.description), 460),
     audio_url:        ep.audio_url,
     image:            ep.image || show.image || null,
     guid:             ep.guid || ep.audio_url,
