@@ -161,6 +161,13 @@ export default function PrivacyPolicy() {
           <P>The Dental Commute is intended for adults. You must be at least 18 to create an account.</P>
         </Section>
 
+        <Section title="If the Site Changes Hands">
+          <P>
+            If The Dental Commute is merged with or transferred to another organization, your information may be transferred as part of that change.
+            We will update this policy and tell you if the way we handle your information changes.
+          </P>
+        </Section>
+
         <Section title="Changes to This Policy">
           <P>
             We may update this policy from time to time and will post the new version here with a revised date.
