@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable, DISCOVER_DEFAULT_COUNTS, DISCOVER_KINDS, PERSONAL_DEFAULT_COUNTS, PERSONAL_KINDS } from '../../lib/home-layout';
 import { VOICE_TYPES, VOICE_STATUSES } from '../../lib/voice';
 import { defaultIntroText } from '../../lib/briefing-script';
@@ -3449,6 +3449,29 @@ function BriefingsTab() {
     const r = await fetch('/api/admin/briefings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action }) });
     const d = await r.json(); if (d.error) setError(d.error); else load();
   }
+  // Hybrid format: prepare a drafted weekly here (licence check per paper, own-words
+  // summaries, final script) so the summaries can be read before anything renders.
+  // Loops until the endpoint says it is done (each call does ~40 s of work).
+  const [preparing, setPreparing] = useState({});   // briefing id → progress text
+  const [scriptOpen, setScriptOpen] = useState({}); // briefing id → full briefing (script shown)
+  async function prepareBriefing(id) {
+    setPreparing(x => ({ ...x, [id]: 'Preparing…' })); setError('');
+    try {
+      let r;
+      do {
+        const res = await fetch('/api/briefings/prepare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ briefing_id: id }) });
+        r = await res.json(); if (r.error) throw new Error(r.error);
+        setPreparing(x => ({ ...x, [id]: r.done ? 'Done' : `${r.remaining} paper${r.remaining === 1 ? '' : 's'} to go…` }));
+      } while (!r.done);
+      await load(); await showScript(id);
+    } catch (e) { setError(e.message); }
+    finally { setPreparing(x => { const y = { ...x }; delete y[id]; return y; }); }
+  }
+  async function showScript(id) {
+    if (scriptOpen[id]) { setScriptOpen(x => { const y = { ...x }; delete y[id]; return y; }); return; }
+    const r = await fetch(`/api/admin/briefings?id=${id}`); const d = await r.json();
+    if (d.error) setError(d.error); else setScriptOpen(x => ({ ...x, [id]: d.briefing }));
+  }
   async function harvestNow() {
     setBusy(true); setRunResult(null); setError('');
     try { const r = await fetch('/api/cron/journals-harvest?run=1'); const d = await r.json(); if (d.error) setError(d.error); else setRunResult(d); await load(); }
@@ -3502,7 +3525,7 @@ function BriefingsTab() {
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Journal Briefings</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
         A weekly AI-narrated podcast per specialty (<strong>Endodontics This Week</strong>, <strong>Orthodontics This Week</strong>, …) that reads the week&rsquo;s new papers from the top three journals.
-        Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Sunday night the script is drafted; Monday morning it is rendered and published, automatically.
+        Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Monday morning the script is drafted, each paper is prepared (licence check; an own-words summary for all-rights-reserved papers, checked against the abstract; open-access abstracts read as published), then rendered and published, automatically.
         <strong> Nothing here needs approval</strong> — this tab is for watching it run, switching shows on, fixing a spoken name, and seeing what it costs.
       </p>
 
@@ -3554,19 +3577,39 @@ function BriefingsTab() {
               {(status?.briefings || []).map(b => {
                 const show = clusters.find(c => c.key === b.cluster)?.show || b.cluster;
                 const col = { published: GREEN, failed: '#c0392b', draft: '#b45309', rendered: '#b45309', skipped: '#999', unpublished: '#999' }[b.status] || '#555';
+                const full = scriptOpen[b.id];
+                const speakerName = sp => (sp === 'reader' ? 'Adrian' : 'Grace');
+                const kindNote = { summary: 'our summary', quote: "authors' words", abstract: 'abstract, as published', short_version: "authors' words", headline_slot: 'in brief' };
                 return (
-                  <tr key={b.id} style={{ borderTop: `1px solid ${BORDER}` }}>
+                  <React.Fragment key={b.id}>
+                  {full && (
+                    <tr style={{ borderTop: `1px solid ${BORDER}`, background: '#fafaf7' }}>
+                      <td colSpan={7} style={{ padding: '10px 12px' }}>
+                        <div style={{ fontSize: 11, color: '#777', marginBottom: 6 }}>Script — {Array.isArray(full.script) ? full.script.length : 0} segments{full.checks?.prepared ? '' : ' (not prepared yet: summaries are written when you press Prepare or when the Monday job runs)'}. Read-only here; Re-draft to start over.</div>
+                        {(Array.isArray(full.script) ? full.script : []).map((sg, i) => (
+                          <div key={i} style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 8, padding: '4px 0', borderTop: i ? '1px solid #eee' : 'none', fontSize: 12, lineHeight: 1.45 }}>
+                            <div style={{ color: sg.speaker === 'reader' ? '#1d4ed8' : '#111', fontWeight: 600 }}>{speakerName(sg.speaker)}<div style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>{kindNote[sg.kind] || sg.kind}</div></div>
+                            <div style={{ color: '#222' }}>{sg.text}</div>
+                          </div>
+                        ))}
+                      </td>
+                    </tr>
+                  )}
+                  <tr style={{ borderTop: `1px solid ${BORDER}` }}>
                     <td style={{ padding: '6px 6px 6px 0', whiteSpace: 'nowrap' }}>{b.week_of}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{show}{b.kind === 'trailer' ? ' · trailer' : ''}</td>
-                    <td style={{ padding: '6px', color: '#111' }}>{b.episode_id ? <a href={`/episode/${b.episode_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#111' }}>{b.title}</a> : (b.title || '—')}{b.error && <div style={{ fontSize: 11, color: '#c0392b' }}>{b.error}</div>}</td>
+                    <td style={{ padding: '6px', color: '#111' }}>{b.episode_id ? <a href={`/episode/${b.episode_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#111' }}>{b.title}</a> : (b.title || '—')}{b.error && <div style={{ fontSize: 11, color: '#c0392b' }}>{b.error}</div>}{b.checks?.modes && <div style={{ fontSize: 11, color: '#777' }} title={b.checks.quote_only?.length ? b.checks.quote_only.map(q => `#${q.id}: ${q.why}`).join('\n') : ''}>{Object.entries(b.checks.modes).map(([k, v]) => `${v} ${({ hybrid: 'summarised', verbatim: 'abstract in full', verbatim_nd: 'abstract in full (ND)', quote_only: 'title + conclusion only' })[k] || k}`).join(' · ')}{b.checks.llm_cents ? ` · summaries ${money(b.checks.llm_cents)}` : ''}</div>}</td>
                     <td style={{ padding: '6px', color: col, fontWeight: 600 }}>{b.status}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{b.duration_seconds ? `${Math.round(b.duration_seconds / 60)} min` : '—'}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }} title={b.cost_breakdown ? JSON.stringify(b.cost_breakdown) : ''}>{b.status === 'published' || b.status === 'rendered' ? money(b.cost_cents) : '—'}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                       {b.status === 'published' && <button onClick={() => briefingAction(b.id, 'unpublish')} style={{ fontSize: 11, padding: '3px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: '#c0392b' }}>Unpublish</button>}
                       {['draft', 'failed', 'skipped', 'unpublished'].includes(b.status) && <button onClick={() => briefingAction(b.id, 'redraft')} style={{ fontSize: 11, padding: '3px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>Re-draft</button>}
+                      {b.kind === 'weekly' && ['draft', 'failed'].includes(b.status) && <button onClick={() => prepareBriefing(b.id)} disabled={!!preparing[b.id]} title="Check each paper's licence, write the own-words summaries and build the final script — without rendering anything" style={{ fontSize: 11, padding: '3px 8px', marginLeft: 4, border: `1px solid ${GREEN}`, color: GREEN, borderRadius: 4, background: '#fff', cursor: preparing[b.id] ? 'default' : 'pointer', fontFamily: FONT, fontWeight: 600 }}>{preparing[b.id] || (b.checks?.prepared ? 'Re-prepare' : 'Prepare')}</button>}
+                      {b.status !== 'skipped' && <button onClick={() => showScript(b.id)} style={{ fontSize: 11, padding: '3px 8px', marginLeft: 4, border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{scriptOpen[b.id] ? 'Hide script' : 'Script'}</button>}
                     </td>
                   </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>

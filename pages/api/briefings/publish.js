@@ -25,7 +25,7 @@ export async function ensureShowResource(db, cluster) {
     Name: c.show,
     Type: 'Podcast',
     Status: 'Published',
-    Description: `A weekly, AI-narrated reading of the week's new research in ${c.label.toLowerCase()} from ${c.journals.map(j => j.name).join(', ')}. Abstracts are read exactly as published; narration is synthetic and disclosed in every episode. Made by The Dental Commute.`,
+    Description: `A weekly, AI-narrated briefing on the week's new research in ${c.label.toLowerCase()} from ${c.journals.map(j => j.name).join(', ')}. Each paper is summarised in our own words with the authors' conclusion quoted; open-access abstracts are read as published. Narration is synthetic and disclosed in every episode. Independently produced by The Dental Commute; not affiliated with any journal or publisher.`,
     URL: `${SITE}/journals/${c.key}`,
     'RSS Feed URL': `${SITE}/api/podcast/${c.key}.xml`,
     'Host or Author': 'The Dental Commute',
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     const resourceId = await ensureShowResource(db, b.cluster);
     const ids = [...(b.article_ids || []), ...(b.headline_ids || [])];
     let arts = [];
-    if (ids.length) { const { data } = await db.from('articles').select('id, title, authors, url, journal_abbr, journal_name').in('id', ids); arts = data || []; }
+    if (ids.length) { const { data } = await db.from('articles').select('id, title, authors, url, journal_abbr, journal_name, read_mode, oa_license').in('id', ids); arts = data || []; }
     const byId = Object.fromEntries(arts.map(a => [a.id, a]));
     const fullReads = (b.article_ids || []).map(i => byId[i]).filter(Boolean);
     const headlines = (b.headline_ids || []).map(i => byId[i]).filter(Boolean);
@@ -101,11 +101,16 @@ export default async function handler(req, res) {
 
     const cents = Number(body.cost_cents || 0);
     const cached = body.cost_breakdown && body.cost_breakdown.cached_segments;
+    const llm = Number((body.cost_breakdown && body.cost_breakdown.llm_cents) || 0);
+    const modeCount = {};
+    for (const a of fullReads) modeCount[a.read_mode || 'hybrid'] = (modeCount[a.read_mode || 'hybrid'] || 0) + 1;
+    const modeWords = { hybrid: 'summarised', verbatim: 'abstract read in full', verbatim_nd: 'abstract read in full', quote_only: 'title + conclusion only' };
+    const modesLine = fullReads.length ? ` (${Object.entries(modeCount).map(([k, v]) => `${v} ${modeWords[k] || k}`).join(', ')})` : '';
     await sendOwnerAlert({
       subject: `Published: ${c.show} · ${Math.round(duration / 60)} min · $${(cents / 100).toFixed(2)}`,
       text: [
         `${title}`, '',
-        `${fullReads.length} paper${fullReads.length === 1 ? '' : 's'} read in full${headlines.length ? `, ${headlines.length} in brief` : ''} · ${Math.round(duration / 60)} min · cost $${(cents / 100).toFixed(2)}${cached ? ` (${cached} cached segments saved $${((body.cost_breakdown.saved_cents || 0) / 100).toFixed(2)})` : ''}`,
+        `${fullReads.length} paper${fullReads.length === 1 ? '' : 's'} in depth${modesLine}${headlines.length ? `, ${headlines.length} in brief` : ''} · ${Math.round(duration / 60)} min · cost $${(cents / 100).toFixed(2)}${llm ? ` (summaries $${(llm / 100).toFixed(2)})` : ''}${cached ? ` (${cached} cached segments saved $${((body.cost_breakdown.saved_cents || 0) / 100).toFixed(2)})` : ''}`,
         '', `Listen: ${SITE}/episode/${ep.id}`, `Admin: ${ADMIN_URL}`,
       ].join('\n'),
     });

@@ -64,3 +64,14 @@ test('publication types rank and exclude as designed', () => {
   assert.equal(isExcludedPubType(['Journal Article', 'Published Erratum']), true);
   assert.equal(isExcludedPubType(['Journal Article']), false);
 });
+
+test('minimal mode strips links and identifiers but rewords nothing (ND-licensed abstracts)', () => {
+  const src = 'Success was 92% (p < 0.05; 95% CI 81–91), n = 120. Registered at https://clinicaltrials.gov NCT01234567. Mean 3.2 mm.';
+  const full = cleanForSpeech(src).text;
+  const min = cleanForSpeech(src, { minimal: true }).text;
+  assert.ok(!/https?:|NCT0123/.test(min), 'links and registry ids are still removed');
+  assert.ok(/p < 0\.05/.test(min), 'statistics are left as written');
+  assert.ok(/3\.2 mm/.test(min), 'units are left as written');
+  assert.ok(/p less than point oh five/.test(full), 'normal mode still rewrites');
+  assert.equal(cleanForSpeech('periapical lesion', { minimal: true, pronunciations: [{ from: 'periapical', to: 'perry-apical' }] }).text, 'perry-apical lesion');
+});
