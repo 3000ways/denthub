@@ -99,7 +99,9 @@ async function renderPiece(dir, { text, voice, model, speed }, idx) {
     if (res.ok) {
       await writeFile(file, Buffer.from(await res.arrayBuffer()));
       await db.from('audio_cache').update({ hits: (hit.hits || 0) + 1, last_used_at: new Date().toISOString() }).eq('text_hash', hash);
-      return { file, seconds: Number(hit.duration_seconds), chars: hit.chars, cached: true, cents: Number(hit.cost_cents) };
+      // Re-measure: a piece first rendered by the admin preview (no ffprobe on Vercel) stored an estimate.
+      const seconds = await ffprobeDuration(file).catch(() => Number(hit.duration_seconds));
+      return { file, seconds, chars: hit.chars, cached: true, cents: Number(hit.cost_cents) };
     }
   }
   const buf = await soniox({ text, voice, model, speed });
