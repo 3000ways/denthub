@@ -1,6 +1,6 @@
 # Journal Briefings — build plan
 
-**Status:** approved to build (2026-11-08). First shows: *Endodontics This Week* and *Orthodontics This Week*.
+**Status:** building. Week 1 shipped 2026-11-08 (PR #101); all 14 clusters harvesting nightly. First shows: *Endodontics This Week* and *Orthodontics This Week*.
 
 **What it is, in one paragraph.** Every Monday, The Dental Commute publishes a short podcast per specialty that reads the week's new papers from that specialty's top three journals. A host voice (Grace) welcomes, lists the headlines, hands off to a reader voice (Adrian) for each abstract, gives a one-line "short version" from the paper's own conclusions, and closes. Everything Adrian reads is the published abstract, verbatim. The episode plays on the site with a *Next paper* button and on Apple, Spotify and every podcast app through our own RSS feed. The narration is synthetic and says so.
 
@@ -13,7 +13,9 @@
 | Name | **"Endodontics This Week"**, "Orthodontics This Week", … one show per specialty. Publisher line: *The Dental Commute*. Grace's opener: "Welcome to Endodontics This Week, from The Dental Commute." |
 | Cadence | Every Monday, early morning Eastern. Journals publish online continuously (PubMed data: JOE 4–5 papers/week, three-journal endo cluster ~8.5/week), so weekly is right. |
 | Sources | Top three journals per specialty (table below). Everything comes from PubMed, by the date PubMed received the article, not the issue date. Letters, editorials, comments and errata are excluded by publication type. |
-| Length cap | **Eight papers read in full** per briefing, ranked by study type. Anything beyond eight is named in the headlines and rolled into the following Monday. No paper is dropped. |
+| Length cap | **Eight abstracts read in full** per briefing (≈29 min at normal speed; 23 min at 1.25×). Every remaining paper of the week gets a 30-second slot: title, journal and one-line short version. Nothing rolls to the next week. |
+| Ordering (weekly) | Mechanical and explainable: study design tier (systematic reviews and meta-analyses → trials → other clinical studies → narrative/scoping reviews → lab and other research → case reports), then journal (society journal first), with a variety rule so no eight studies of one kind run back to back. **No AI relevance judge** for the weekly: predicting influence on publication day is guesswork; measured influence is the job of the specials below. |
+| Specials (retrospective) | Inside each specialty feed, a few times a year: **Best of [year]** (ranked by NIH iCite Relative Citation Ratio, with journal/society award winners featured), a quarterly **Trending** (Altmetric attention + early citations), and a **Classics** series (most-cited papers of all time per topic). Selection is by published metrics, shown on the page with source and date pulled. See "Specials" below. |
 | Empty weeks | If nothing new, no episode. Never publish a "nothing this week" episode. |
 | First episode | **A trailer, not a briefing.** Episode 0 of every show is Grace alone, about ninety seconds: what the show is, which three journals it reads, that it comes out every Monday, that abstracts are read verbatim and narration is synthetic, how to skip to the next paper, and where the links live. Marked `itunes:episodeType = trailer` so Apple and Spotify show it as the show's preview. Rendered once when a show is switched on. |
 | Voices | Soniox `tts-rt-v2`. **Grace** hosts, **Adrian** reads. Normal speed at render; listeners use the player's 1×–2× control. (Voice test: claude.ai artifact "Journal Briefing Voice Test".) |
@@ -119,9 +121,44 @@ A journal shared by several clusters (OOOO, J Oral Pathol Med) routes each paper
 
 **Week 3 — surfaces and feed.** Home row, briefing page, Journals hub, player chapter buttons, RSS feed, artwork, Apple and Spotify submission for endo; orthodontics turned on. *Done when:* "Endodontics This Week" is listed in Apple Podcasts.
 
-**Week 4 — scale.** Remaining clusters switched on two per week (Andrei listens to the first episode of each as it goes out, not before); analytics events; cost dashboard checked against the Soniox console.
+**Week 4 — scale + metrics.** All clusters already harvest (Andrei switched every specialty on 2026-11-08); shows go live two per week as their trailers render, with Andrei listening to each first episode as it goes out. Analytics events; cost dashboard checked against the Soniox console. The `paper_metrics` job and the three-year backfill start here so metrics accumulate before the first special.
+
+**Phase 5 — specials.** First *Classics* episodes (evergreen back catalogue) as soon as the metrics backfill lands; first *Trending* at the end of the first full quarter; first *Best of* in January.
 
 ---
+
+## Specials — the papers that mattered (retrospective, metric-driven)
+
+The weekly briefing is the news; the specials are the verdict. Influence is measured, not guessed, so these episodes run on a lag and say so.
+
+**Sources (all free)**
+
+- **NIH iCite** — citation counts and the *Relative Citation Ratio* (field-normalized: an endo paper is compared with endo papers) for every PubMed article; monthly updates; free API. The primary ranking metric for *Best of [year]*.
+- **OpenAlex / Semantic Scholar** — citation counts by DOI; Semantic Scholar's *highly influential citations* (citing work that builds on the paper, not just lists it). Secondary metric and cross-check.
+- **Altmetric** — early attention (news, social, policy) within months of publication; drives *Trending*.
+- **Journal and society awards** — annual best-paper and research prizes. No API: a hand-curated `paper_awards` list in the admin (paper, award, year, source URL). Award winners are always featured in the year's special.
+
+**Episode kinds** (all `briefings.kind` values; same render pipeline as the weekly)
+
+| Kind | When | Selection | Length |
+|---|---|---|---|
+| `best_of` | Each January, covering the year before last at first (citations need time), e.g. Jan 2027: *Best of 2025* | Top papers by RCR among the cluster's journals that year; award winners first | 8 full abstracts + headlines, ≈30–35 min |
+| `trending` | Quarterly | Highest Altmetric + early-citation momentum among papers 3–12 months old | 6 full abstracts, ≈25 min |
+| `classics` | Monthly until the back catalogue is built, then occasional | Most-cited papers of all time per topic within the cluster (e.g. outcomes of primary root canal treatment), 5 per episode | ≈25 min; evergreen |
+
+Grace states the metric in the hand-off: "Published in 2024, cited 61 times since, ranked third of every J-O-E paper that year by relative citation ratio."
+
+**Data and jobs**
+
+- `paper_metrics` — `article_id`, `source` (icite / openalex / s2 / altmetric), `citations`, `rcr`, `influential_citations`, `altmetric_score`, `pulled_at`. One row per source per paper, refreshed monthly by `/api/cron/paper-metrics` (time-boxed, oldest first). The harvest backfills the past three years of each active journal once, so *Best of* and *Classics* have a population to rank.
+- `paper_awards` — admin-maintained: `article_id` or DOI, `award`, `year`, `body`, `source_url`.
+- Specials are drafted by the same template as the weekly with one extra Grace line per paper giving the metric and rank; rendered and published by the same Monday job on their scheduled dates.
+
+**Honesty rules for specials**
+
+- Every ranked list shows the metric, the source and the date it was pulled, on the page and in the show notes.
+- "Best" is always qualified in the audio: "most cited", "highest relative citation ratio", "award-winning". Never an unqualified superlative.
+- A paper later retracted is removed from specials and the page is annotated.
 
 ## Costs — calculated per episode and displayed
 
