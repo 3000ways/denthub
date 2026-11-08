@@ -26,7 +26,7 @@ function BookMini({ record }) {
         onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
         <div style={{ position:'relative', width:'100%', aspectRatio:'2 / 3', background:'#f5f2eb', overflow:'hidden' }}>
           {!imgErr
-            ? <img src={coverSrc} alt={f.Name} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+            ? <img loading="lazy" src={coverSrc} alt={f.Name} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
             : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ fontSize:32, color:'#ccc' }}>📚</span></div>
           }
           <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:'#6B48C2', padding:'3px 7px', borderRadius:3 }}>Book</div>

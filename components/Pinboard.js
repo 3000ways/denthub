@@ -88,7 +88,7 @@ function PinCard({ pin, item, isMobile, isOwn, onUnpin }) {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
         {item.image && !imageFailed
-          ? <img src={item.image} alt={item.name} onError={() => setImageFailed(true)}
+          ? <img loading="lazy" src={item.image} alt={item.name} onError={() => setImageFailed(true)}
               style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'contain', background: '#fff', border: '1px solid #eee' }} />
           : <div style={{ width: 52, height: 52, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: GREEN }}>{item.initial}</div>
         }
@@ -165,7 +165,7 @@ export function Pinboard({ resources = [], isMobile = false }) {
       if (!r) return null;
       const f = r.fields;
       const domain = getDomain(f.URL);
-      return { pin: p, item: { href: `/resource/${r.id}`, name: f.Name, typeLabel: f.Type, image: f['Image URL'] || (domain ? `/api/airtable?logo=${domain}` : null), initial: (f.Name || '?')[0] } };
+      return { pin: p, item: { href: `/resource/${r.id}`, name: f.Name, typeLabel: f.Type, image: f['Image URL'] || f['Auto Image URL'] || (domain ? `/api/airtable?logo=${domain}` : null), initial: (f.Name || '?')[0] } };
     })
     .filter(Boolean)
     .slice(0, SLOTS);

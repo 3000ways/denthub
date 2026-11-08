@@ -24,7 +24,7 @@ export default function TermsOfService() {
         </div>
 
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Terms of Service</h1>
-        <p style={{ fontSize: 14, color: '#888', marginBottom: 48 }}>Last updated: June 14, 2026</p>
+        <p style={{ fontSize: 14, color: '#888', marginBottom: 48 }}>Last updated: November 8, 2026</p>
 
         <section style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>1. Acceptance of Terms</h2>
@@ -48,7 +48,8 @@ export default function TermsOfService() {
           <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
             You are responsible for maintaining the security of your account and for all activity that
             occurs under it. You may sign in using your Google account; authentication is handled by
-            Google and governed by their terms. You may delete your account at any time by contacting us.
+            Google and governed by their terms. You can permanently delete your account and its data at any time from your{' '}
+            <Link href="/profile" style={{ color: GREEN }}>Profile page</Link>.
           </p>
         </section>
 

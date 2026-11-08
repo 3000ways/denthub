@@ -518,7 +518,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                         onMouseEnter={e => { e.currentTarget.style.borderColor = GREEN; e.currentTarget.style.boxShadow = '0 2px 8px rgba(15,110,86,0.1)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.boxShadow = 'none'; }}>
                         <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
-                          <img src={v.thumbnail} alt={v.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <img loading="lazy" src={v.thumbnail} alt={v.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <span style={{ color: '#fff', fontSize: 14, marginLeft: 3 }}>▶</span>
@@ -542,7 +542,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
             <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: isMobile ? '18px 14px' : '28px 32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
               <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
                 {bookData.cover && (
-                  <img src={bookData.cover} alt={f.Name}
+                  <img loading="lazy" src={bookData.cover} alt={f.Name}
                     style={{ width: 110, borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', flexShrink: 0 }} />
                 )}
                 <div style={{ flex: 1 }}>

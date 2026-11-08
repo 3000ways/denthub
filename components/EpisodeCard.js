@@ -74,7 +74,7 @@ export function EpisodeCard({ ep, isNew, isFeatured, onSignInRequired }) {
       {/* Artwork / play button */}
       <div onClick={handlePlay} style={{ position: 'relative', flexShrink: 0, cursor: 'pointer' }}>
         {ep.image
-          ? <img src={ep.image} alt={ep.title} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
+          ? <img loading="lazy" src={ep.image} alt={ep.title} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
           : <div style={{ width: 44, height: 44, borderRadius: 6, background: '#f0ede8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ccc' }}>🎙</div>
         }
         <div style={{ position: 'absolute', inset: 0, borderRadius: 6, background: 'rgba(0,0,0,0.32)',
