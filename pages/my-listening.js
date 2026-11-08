@@ -20,6 +20,12 @@ function fmt(secs) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+// Under a minute reads as "Just started", not "0m of 45m".
+function inProgressLabel(position, duration) {
+  if (!position || position < 60) return 'Just started';
+  return duration ? `${fmt(position)} of ${fmt(duration)} listened` : `${fmt(position)} listened`;
+}
+
 function formatDate(iso) {
   if (!iso) return null;
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -217,7 +223,7 @@ export default function MyListening() {
                       style={{ width: 56, height: 56, borderRadius: 6, overflow: 'hidden',
                         background: '#f0ede8', flexShrink: 0, cursor: 'pointer', position: 'relative' }}>
                       {ep.image ? (
-                        <img src={ep.image} alt={ep.title}
+                        <img loading="lazy" src={ep.image} alt={ep.title}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center',
@@ -261,7 +267,7 @@ export default function MyListening() {
                           </span>
                         ) : (
                           <span style={{ fontSize: 11, color: '#aaa' }}>
-                            {fmt(row.position_seconds)} of {fmt(row.duration_seconds || ep.duration_seconds)} listened
+                            {inProgressLabel(row.position_seconds, row.duration_seconds || ep.duration_seconds)}
                           </span>
                         )}
                         <button onClick={() => handlePlay(ep)}

@@ -9,6 +9,23 @@ export default async function handler(req, res) {
   if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
   const db = getSupabaseAdmin();
   try {
+    if (req.method === 'PATCH' && req.body && req.body.cluster && typeof req.body.intro_script === 'string') {
+      // The introduction episode's script, written with Andrei. One paragraph per spoken segment.
+      const text = req.body.intro_script.trim().slice(0, 6000);
+      const { error } = await db.from('briefing_shows').upsert({ cluster: req.body.cluster, intro_script: text || null, intro_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'cluster' });
+      if (error) throw new Error(error.message);
+      return res.status(200).json({ ok: true });
+    }
+    if (req.method === 'PATCH' && req.body && req.body.cluster && typeof req.body.launched === 'boolean') {
+      // Launch gate. Launching requires a saved introduction.
+      if (req.body.launched) {
+        const { data } = await db.from('briefing_shows').select('intro_script').eq('cluster', req.body.cluster).maybeSingle();
+        if (!data || !data.intro_script) return res.status(400).json({ error: 'Write and save the introduction first.' });
+      }
+      const { error } = await db.from('briefing_shows').upsert({ cluster: req.body.cluster, launched: req.body.launched, launched_at: req.body.launched ? new Date().toISOString() : null, updated_at: new Date().toISOString() }, { onConflict: 'cluster' });
+      if (error) throw new Error(error.message);
+      return res.status(200).json({ ok: true });
+    }
     if (req.method === 'PATCH' && req.body && typeof req.body.paused === 'boolean' && req.body.cluster) {
       // Kill switch for a show: no new episodes publish while paused (drafting and rendering skip it).
       const { error } = await db.from('briefing_shows').upsert({ cluster: req.body.cluster, paused: req.body.paused, updated_at: new Date().toISOString() }, { onConflict: 'cluster' });

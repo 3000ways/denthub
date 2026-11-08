@@ -7,6 +7,7 @@
 import { supabase } from '../../lib/supabase';
 import { listPublishedResources } from '../../lib/resources-db';
 import { setCdnCache } from '../../lib/cdn-cache';
+import { cleanEpisodeDescription } from '../../lib/clean-description';
 
 const PER_FEED  = 3;   // most recent items to pull from each followed show
 const MAX_IDS   = 60;  // safety cap on how many shows we'll fan out to
@@ -48,7 +49,7 @@ function parsePodcastItems(xml, meta, limit) {
       image:      getAttr(item, 'itunes:image', 'href') || showArt,
       date:       fmtDate(parsedDate),
       sortDate:   parsedDate ? parsedDate.getTime() : 0,
-      description: stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '').slice(0, 200),
+      description: cleanEpisodeDescription(stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '')).slice(0, 200),
     };
   });
 }

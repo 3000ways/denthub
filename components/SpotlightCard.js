@@ -60,7 +60,7 @@ export function SpotlightCard({ item, compact = false }) {
         onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
         <div style={{ position:'relative', width:'100%', paddingBottom:'56.25%', background:'#f0ede8', overflow:'hidden', flexShrink:0 }}>
           {item.image && !imgErr
-            ? <img src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+            ? <img loading="lazy" src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
             : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}><span style={{ fontSize:28, color:'#ccc' }}>▶</span></div>
           }
         </div>
@@ -84,7 +84,7 @@ export function SpotlightCard({ item, compact = false }) {
       {/* Artwork — clicking plays */}
       <div onClick={handlePodcastPlay} style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden', cursor:'pointer', flexShrink:0 }}>
         {item.image && !imgErr
-          ? <img src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+          ? <img loading="lazy" src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
           : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}><span style={{ fontSize:28, color:'#ccc' }}>🎙</span></div>
         }
         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',

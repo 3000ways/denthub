@@ -12,6 +12,10 @@ import { listPublishedResources } from '../../lib/resources-db';
 import { setCdnCache } from '../../lib/cdn-cache';
 import { formatMinutes } from '../../lib/specialties';
 
+// Listed in the directory, but its episodes aren't about dentistry, so they
+// don't belong under "What's New in Dentistry". (BiggerPockets Real Estate.)
+const NOT_DENTISTRY_SHOWS = new Set(['recbdE0byA3vAeU9F']);
+
 const DISPLAY_COUNT = 12; // how many of each type to feed the "What's New" carousels
 
 // ─── Resource fetch (Supabase) ───────────────────────────────────────────────
@@ -114,7 +118,7 @@ async function latestPodcastEpisodes(podcastMeta) {
   const out = [];
   for (const e of data || []) {
     const meta = byId.get(e.show_resource_id); // only live (Published) podcasts
-    if (!meta || seenShows.has(e.show_resource_id)) continue;
+    if (!meta || seenShows.has(e.show_resource_id) || NOT_DENTISTRY_SHOWS.has(e.show_resource_id)) continue;
     seenShows.add(e.show_resource_id);
     const d = e.published_at ? new Date(e.published_at) : null;
     out.push({

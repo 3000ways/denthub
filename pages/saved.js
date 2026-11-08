@@ -45,7 +45,7 @@ function Logo({ name, images, size = 40 }) {
       </div>
     );
   }
-  return <img {...imgProps} alt={name} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
+  return <img loading="lazy" {...imgProps} alt={name} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
 }
 
 export default function SavedPage() {

@@ -5,6 +5,8 @@ const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN  = '#0F6E56';
 const BORDER = '#e8e8e8';
+import { firstSentence } from '../lib/clean-description';
+
 const MUTED  = '#6f6f6a';
 
 const TOP_N = 10;
@@ -13,8 +15,8 @@ const TOP_N = 10;
 function oneLine(text) {
   const t = (text || '').replace(/\s+/g, ' ').trim();
   if (!t) return '';
-  const firstSentence = t.split(/(?<=[.!?])\s/)[0] || t;
-  return firstSentence.length > 110 ? `${firstSentence.slice(0, 107).trimEnd()}…` : firstSentence;
+  const first = firstSentence(t);
+  return first.length > 110 ? `${first.slice(0, 107).trimEnd()}…` : first;
 }
 
 // "The Index": the ranking is the product's whole premise, so it is the second

@@ -48,7 +48,7 @@ function ResourceCard({ record, artworkUrl, onSignInRequired }) {
           background: isFavicon ? '#fff' : '#f5f2eb', overflow: 'hidden',
           borderBottom: `1px solid ${BORDER}` }}>
           {src ? (
-            <img {...imgProps} alt={f.Name}
+            <img loading="lazy" {...imgProps} alt={f.Name}
               style={{ width: '100%', height: '100%',
                 objectFit: isFavicon ? 'contain' : 'cover',
                 padding: isFavicon ? 16 : 0 }} />

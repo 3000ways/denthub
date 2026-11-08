@@ -89,7 +89,7 @@ function PinCard({ pin, item, isMobile, isOwn, onUnpin }) {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
         {src
-          ? <img {...imgProps} alt={item.name}
+          ? <img loading="lazy" {...imgProps} alt={item.name}
               style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'contain', background: '#fff', border: '1px solid #eee' }} />
           : <div style={{ width: 52, height: 52, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: GREEN }}>{item.initial}</div>
         }
