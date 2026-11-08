@@ -3401,6 +3401,192 @@ function VoiceVotesTab() {
 }
 
 // ══════════════════════════════════════════
+//  JOURNAL BRIEFINGS — "Endodontics This Week" and siblings
+// ══════════════════════════════════════════
+// Week 1 of the build: harvest status per journal, this week's papers per
+// show, journal switches + spoken names, pronunciation dictionary, and the
+// cost panel (fills in once episodes render). Plan: docs/journal-briefings-build-plan.md
+function BriefingsTab() {
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [runResult, setRunResult] = useState(null);
+  const [pron, setPron] = useState([]);
+  const [newTerm, setNewTerm] = useState({ term: '', spoken_as: '' });
+  const [editing, setEditing] = useState({}); // journal id → spoken name draft
+
+  async function load() {
+    setError('');
+    try {
+      const [s, p] = await Promise.all([fetch('/api/cron/journals-harvest').then(r => r.json()), fetch('/api/admin/journals').then(r => r.json())]);
+      if (s.error) setError(s.error); else setStatus(s);
+      if (!p.error) setPron(p.pronunciations || []);
+    } catch (e) { setError(e.message); }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function harvestNow() {
+    setBusy(true); setRunResult(null); setError('');
+    try { const r = await fetch('/api/cron/journals-harvest?run=1'); const d = await r.json(); if (d.error) setError(d.error); else setRunResult(d); await load(); }
+    catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
+  async function patchJournal(body) {
+    const r = await fetch('/api/admin/journals', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json(); if (d.error) setError(d.error); else load();
+  }
+  async function addPron() {
+    if (!newTerm.term || !newTerm.spoken_as) return;
+    const r = await fetch('/api/admin/journals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pronunciation: newTerm }) });
+    const d = await r.json(); if (d.error) setError(d.error); else { setNewTerm({ term: '', spoken_as: '' }); load(); }
+  }
+  async function removePron(term) {
+    const r = await fetch(`/api/admin/journals?term=${encodeURIComponent(term)}`, { method: 'DELETE' });
+    const d = await r.json(); if (d.error) setError(d.error); else load();
+  }
+
+  function ago(iso) {
+    if (!iso) return 'never';
+    const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60); if (hrs < 24) return `${hrs} h ago`;
+    return `${Math.floor(hrs / 24)} d ago`;
+  }
+  const money = c => `$${(Number(c || 0) / 100).toFixed(2)}`;
+  const tierLabel = { 1: 'Review / meta-analysis', 2: 'Trial', 3: 'Clinical study', 4: 'Research', 5: 'Case report' };
+
+  const clusters = status?.clusters || [];
+  const journalsBy = {};
+  for (const j of status?.journals || []) (journalsBy[j.cluster] = journalsBy[j.cluster] || []).push(j);
+  const recentBy = {};
+  for (const a of status?.recent || []) for (const c of a.clusters || []) (recentBy[c] = recentBy[c] || []).push(a);
+
+  // Cost panel: month-to-date and last month from rendered briefings.
+  const now = new Date(); const ym = d => `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
+  const thisMonth = ym(now), lastMonth = ym(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)));
+  const costs = { thisMonth: 0, lastMonth: 0, episodes: 0, minutes: 0 };
+  for (const b of status?.briefings || []) {
+    if (!b.published_at) continue;
+    const k = ym(new Date(b.published_at));
+    if (k === thisMonth) { costs.thisMonth += Number(b.cost_cents || 0); costs.episodes++; costs.minutes += (b.duration_seconds || 0) / 60; }
+    if (k === lastMonth) costs.lastMonth += Number(b.cost_cents || 0);
+  }
+  const dayOfMonth = now.getUTCDate(); const daysInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+  const projected = dayOfMonth > 0 ? costs.thisMonth / dayOfMonth * daysInMonth : 0;
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Journal Briefings</h2>
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
+        A weekly AI-narrated podcast per specialty (<strong>Endodontics This Week</strong>, <strong>Orthodontics This Week</strong>, …) that reads the week&rsquo;s new papers from the top three journals.
+        Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Sunday night the script is drafted; Monday morning it is rendered and published, automatically.
+        <strong> Nothing here needs approval</strong> — this tab is for watching it run, switching shows on, fixing a spoken name, and seeing what it costs.
+      </p>
+
+      {error && <div style={{ padding: '10px 14px', background: '#fdf2f2', color: '#c0392b', borderRadius: 6, fontSize: 13, marginBottom: 14 }}>{error}</div>}
+
+      {/* Cost panel */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
+        {[
+          ['Spend this month', money(costs.thisMonth), `${costs.episodes} episode${costs.episodes === 1 ? '' : 's'} · ${Math.round(costs.minutes)} min`],
+          ['Projected month', money(projected), 'ceiling $50 → publishing pauses'],
+          ['Last month', money(costs.lastMonth), ''],
+          ['Papers in archive', String(status?.totals?.articles ?? '…'), `${status?.totals?.openAccess ?? '…'} with a free full-text copy`],
+        ].map(([k, v, sub]) => (
+          <div key={k} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px' }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#999', fontWeight: 600, marginBottom: 4 }}>{k}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#111' }}>{v}</div>
+            {sub && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>{sub}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11.5, color: '#777', marginBottom: 20, lineHeight: 1.6 }}>
+        Cost is computed per episode from Soniox&rsquo;s published token prices (input text $4 per million tokens at ≈0.3 tokens per character; output audio $21.50 per million tokens at ≈30,000 tokens per hour) plus the script-drafting model&rsquo;s usage, and recorded on each briefing with a full breakdown. Cached segments count as saved.
+      </div>
+
+      {/* Harvest */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+        <button onClick={harvestNow} disabled={busy} style={{ padding: '8px 16px', background: busy ? '#aaa' : GREEN, color: '#fff', border: 'none', borderRadius: 5, fontSize: 13, fontWeight: 600, cursor: busy ? 'default' : 'pointer', fontFamily: FONT }}>
+          {busy ? 'Harvesting…' : 'Harvest now'}
+        </button>
+        <span style={{ fontSize: 12, color: '#888' }}>Runs nightly on its own. Manual runs are safe to repeat (nothing is duplicated).</span>
+        {runResult && <span style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>Done: {runResult.journals} journals · {runResult.inserted} new papers · {runResult.excluded} non-papers skipped · {runResult.oaChecked} open-access checks{runResult.errors?.length ? ` · ${runResult.errors.length} errors` : ''}</span>}
+      </div>
+
+      {/* Per show */}
+      {clusters.map(c => {
+        const js = journalsBy[c.key] || [];
+        const on = js.some(j => j.active);
+        const papers = (recentBy[c.key] || []).slice().sort((a, b) => a.rank_tier - b.rank_tier || (b.received_at || '').localeCompare(a.received_at || ''));
+        return (
+          <div key={c.key} style={{ border: `1px solid ${on ? GREEN : BORDER}`, borderRadius: 8, padding: '12px 14px', marginBottom: 12, opacity: on ? 1 : 0.75 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{c.show}</div>
+              <span style={{ fontSize: 11, color: '#888' }}>{c.label}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: on ? GREEN : '#999', fontWeight: 600 }}>{on ? 'ON — harvesting weekly' : 'OFF'}</span>
+              <button onClick={() => patchJournal({ cluster: c.key, active: !on })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{on ? 'Switch off' : 'Switch on'}</button>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: papers.length ? 10 : 0 }}>
+              <thead><tr style={{ color: '#999', textAlign: 'left' }}>
+                <th style={{ padding: '4px 6px 4px 0', fontWeight: 600 }}>Journal</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Spoken as</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Last 7 days</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Total</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Last harvest</th>
+              </tr></thead>
+              <tbody>
+                {js.map(j => (
+                  <tr key={j.id} style={{ borderTop: `1px solid ${BORDER}` }}>
+                    <td style={{ padding: '6px 6px 6px 0', color: '#111' }}>{j.name} <span style={{ color: '#aaa' }}>({j.pubmed_abbr})</span></td>
+                    <td style={{ padding: '6px' }}>
+                      <input value={editing[j.id] ?? j.spoken_name} onChange={e => setEditing(x => ({ ...x, [j.id]: e.target.value }))}
+                        onBlur={() => { const v = editing[j.id]; if (v != null && v !== j.spoken_name) patchJournal({ id: j.id, spoken_name: v }); }}
+                        style={{ ...inp(), padding: '4px 8px', fontSize: 12, width: 220 }} />
+                    </td>
+                    <td style={{ padding: '6px', fontWeight: 600, color: j.last7 ? '#111' : '#bbb' }}>{j.last7}</td>
+                    <td style={{ padding: '6px', color: '#555' }}>{j.article_count}</td>
+                    <td style={{ padding: '6px', color: j.last_status === 'error' ? '#c0392b' : '#777' }} title={j.last_error || ''}>{ago(j.last_harvested_at)}{j.last_status === 'error' ? ' · error' : ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {papers.length > 0 && (
+              <details>
+                <summary style={{ fontSize: 12, color: GREEN, cursor: 'pointer', fontWeight: 600 }}>{papers.length} new paper{papers.length === 1 ? '' : 's'} this week — what Monday&rsquo;s briefing would read</summary>
+                <ol style={{ margin: '8px 0 0', paddingLeft: 20, fontSize: 12, color: '#333', lineHeight: 1.5 }}>
+                  {papers.map((a, i) => (
+                    <li key={a.id} style={{ marginBottom: 4, opacity: i < 8 ? 1 : 0.6 }}>
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: '#111', textDecoration: 'none', fontWeight: 500 }}>{a.title}</a>
+                      <span style={{ color: '#888' }}> · {a.journal_abbr} · {tierLabel[a.rank_tier]}{a.oa_status === 'open' || a.oa_status === 'manuscript' ? ' · open access' : ''}{i >= 8 ? ' · headline only' : ''}</span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Pronunciations */}
+      <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px', marginTop: 18 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 4 }}>Pronunciation dictionary</div>
+        <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>When a voice mangles a term, add it here with how it should be said. Applied to every script before rendering.</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          <input placeholder="term, e.g. periapical" value={newTerm.term} onChange={e => setNewTerm(x => ({ ...x, term: e.target.value }))} style={{ ...inp(), width: 200 }} />
+          <input placeholder="say it as, e.g. perry-apical" value={newTerm.spoken_as} onChange={e => setNewTerm(x => ({ ...x, spoken_as: e.target.value }))} style={{ ...inp(), width: 240 }} />
+          <button onClick={addPron} style={{ padding: '6px 14px', background: GREEN, color: '#fff', border: 'none', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: FONT }}>Add</button>
+        </div>
+        {pron.length === 0 ? <div style={{ fontSize: 12, color: '#bbb' }}>Empty so far.</div> : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {pron.map(p => (
+              <span key={p.term} style={{ fontSize: 12, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '3px 10px', display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                <span>{p.term} → <strong>{p.spoken_as}</strong></span>
+                <button onClick={() => removePron(p.term)} aria-label={`Remove ${p.term}`} style={{ border: 'none', background: 'none', color: '#aaa', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
 //  TAB GROUPS
 // ══════════════════════════════════════════
 // Each group becomes a labeled section in the top bar. Add new tabs by dropping
@@ -3426,6 +3612,7 @@ const TAB_GROUPS = [
       { label: 'Score Resources',  Component: ScoringTab },
       { label: 'Harvest Episodes', Component: EpisodeArchive },
       { label: 'Tag Episodes',     Component: EpisodeTaggingTab },
+      { label: 'Briefings',        Component: BriefingsTab },
     ],
   },
   {
