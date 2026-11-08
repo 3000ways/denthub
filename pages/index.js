@@ -28,6 +28,8 @@ import { SpecialtyPicker } from '../components/SpecialtyPicker';
 import { TopIndex } from '../components/TopIndex';
 import { useSpecialtyPick } from '../lib/use-specialty-pick';
 import { findPick } from '../lib/specialties';
+import { CommuteFilter } from '../components/CommuteFilter';
+import { track } from '../lib/analytics';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -663,8 +665,9 @@ export default function Home({ initialResources }) {
   // "I'm a…" pick (hero chips). Stored in the browser; seeded from the profile
   // for signed-in dentists. Scopes the featured episode, the episode search and
   // the Discover feed — it is NOT the ranked-list Specialty filter below.
-  const [pickKey, setPickKey] = useSpecialtyPick(profile?.specialty);
+  const [pickKey, setPickKeyRaw] = useSpecialtyPick(profile?.specialty);
   const pick = findPick(pickKey);
+  function setPickKey(next) { setPickKeyRaw(next); track('specialty_pick', { specialty: next || 'cleared' }); }
 
   // "Today's commute": the playable episode in the hero (see /api/featured-episode).
   const [featured, setFeatured] = useState(null);
@@ -678,7 +681,7 @@ export default function Home({ initialResources }) {
       .finally(() => { if (active) setFeaturedLoaded(true); });
     return () => { active = false; };
   }, [pickKey]);
-  const featuredPlayback = useFeaturedPlayback(featured && featured.episode);
+  const featuredPlayback = useFeaturedPlayback(featured && featured.episode, featured && featured.pick);
 
   const [submitOpen, setSubmitOpen] = useState(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('submit') === '1');
   const [submitUrl, setSubmitUrl] = useState('');
@@ -837,6 +840,7 @@ export default function Home({ initialResources }) {
     setSearch(t);
     setExpandedId(null);
     searchEpisodes(t, opts);
+    track('search', { search_term: t, scoped: !!(pick && !(opts && opts.all)), specialty: pick ? pick.key : undefined });
   }
   function clearSearch() {
     setEpisodeQuery('');
@@ -1255,8 +1259,14 @@ export default function Home({ initialResources }) {
             Rendered outside the admin-composed layout so it always sits here. */}
         {!anyFilterActive && !isDemo && resources.length > 0 && (
           <TopIndex resources={homeResources} categories={VISIBLE_CATEGORIES} isMobile={isMobile}
-            onSeeAll={label => { setActiveCategory(label); setExpandedId(null); }}
+            onSeeAll={label => { setActiveCategory(label); setExpandedId(null); track('index_see_all', { tab: label }); }}
             renderLogo={(r, size) => <Logo url={r.fields.URL} name={r.fields.Name} size={size} imageUrl={ytStats[r.id]?.avatar || podStats[r.id]?.showArt || bookStats[r.id]?.cover || r.fields['Image URL'] || r.fields['Auto Image URL']} />} />
+        )}
+
+        {/* Fits your commute — 15 / 30 / 45 min episodes from the best shows.
+            The brand hook; also outside the admin layout, right under The Index. */}
+        {!anyFilterActive && !isDemo && resources.length > 0 && (
+          <CommuteFilter isMobile={isMobile} pick={pick} />
         )}
 
         {/* ── Filter / results mode ───────────────────────────────────────
