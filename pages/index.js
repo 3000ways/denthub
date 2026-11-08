@@ -1440,7 +1440,7 @@ export default function Home({ initialResources }) {
               <div style={{ padding: TOP_ZONE_PAD }}>
               <TopIndex resources={homeResources} categories={VISIBLE_CATEGORIES} isMobile={isMobile}
             onSeeAll={label => { setActiveCategory(label); setExpandedId(null); track('index_see_all', { tab: label }); }}
-            renderLogo={(r, size) => <Logo name={r.fields.Name} size={size} images={resourceImages(r.fields, { before: [ytStats[r.id]?.avatar, podStats[r.id]?.showArt, bookStats[r.id]?.cover] })} />} />
+            renderLogo={(r, size) => <Logo name={r.fields.Name} size={size} images={resourceImages(r.fields, { before: [ytStats[r.id]?.avatar, podStats[r.id]?.showArt], after: [bookStats[r.id]?.cover] })} />} />
               </div>
             )}
 
@@ -1477,7 +1477,7 @@ export default function Home({ initialResources }) {
                   const yt   = f.Type === 'YouTube' ? (ytStats[r.id]  || null) : null;
                   const pod  = f.Type === 'Podcast'  ? (podStats[r.id] || null) : null;
                   const book = f.Type === 'Book'     ? (bookStats[r.id]|| null) : null;
-                  const logoImages = resourceImages(f, { before: [yt?.avatar, pod?.showArt, book?.cover] });
+                  const logoImages = resourceImages(f, { before: [yt?.avatar, pod?.showArt], after: [book?.cover] });
                   return (
                     <div key={r.id} style={{ borderBottom:`0.5px solid ${BORDER}` }}>
                       <div onClick={() => setExpandedId(isOpen ? null : r.id)}
@@ -1643,7 +1643,7 @@ export default function Home({ initialResources }) {
                   const yt   = f.Type === 'YouTube' ? (ytStats[r.id]  || null) : null;
                   const pod  = f.Type === 'Podcast'  ? (podStats[r.id] || null) : null;
                   const book = f.Type === 'Book'     ? (bookStats[r.id]|| null) : null;
-                  const logoImages2 = resourceImages(f, { before: [yt?.avatar, pod?.showArt, book?.cover] });
+                  const logoImages2 = resourceImages(f, { before: [yt?.avatar, pod?.showArt], after: [book?.cover] });
                   return (
                     <div key={r.id}
                       onClick={() => router.push(`/resource/${r.id}`)}
