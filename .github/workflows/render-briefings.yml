@@ -1,0 +1,43 @@
+name: Render briefings
+
+# Journal Briefings — the Monday render job. Drafts this week's scripts via
+# the site, renders each episode with Soniox (cached), stitches with ffmpeg,
+# uploads, and publishes through the site. Fully automatic; also runnable by
+# hand from the Actions tab (e.g. to retry a failed week).
+#
+# Secrets (repo → Settings → Secrets and variables → Actions):
+#   SONIOX_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'   # Mondays 10:00 UTC = 05:00 Eastern (06:00 EDT)
+  workflow_dispatch:
+    inputs:
+      retry_failed:
+        description: 'Also re-render briefings marked failed'
+        type: boolean
+        default: false
+
+concurrency:
+  group: render-briefings
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: ffmpeg -version | head -1
+      - name: Render and publish
+        env:
+          SONIOX_API_KEY: ${{ secrets.SONIOX_API_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          RETRY_FAILED: ${{ inputs.retry_failed && '1' || '0' }}
+        run: node scripts/render-briefings.mjs
