@@ -3436,6 +3436,13 @@ function BriefingsTab() {
     } catch (e) { setError(e.message); }
     finally { setPreviewing(x => { const y = { ...x }; delete y[cluster]; return y; }); }
   }
+  // Distribution: directory links per show.
+  const [distDraft, setDistDraft] = useState({});   // cluster → { apple_url, spotify_url }
+  async function saveDist(cluster) {
+    const d = distDraft[cluster] || {};
+    await patchJournal({ cluster, ...(d.apple_url !== undefined ? { apple_url: d.apple_url } : {}), ...(d.spotify_url !== undefined ? { spotify_url: d.spotify_url } : {}) });
+    setDistDraft(x => { const y = { ...x }; delete y[cluster]; return y; });
+  }
   async function saveIntro(cluster) {
     const text = introDraft[cluster];
     if (typeof text !== 'string') return;
@@ -3710,6 +3717,47 @@ function BriefingsTab() {
                       </div>
                     </div>
                   )}
+                </div>
+              );
+            })()}
+            {/* Distribution: feed, artwork, Apple / Spotify links, submission checklist */}
+            {on && (() => {
+              const sh = status?.shows?.[c.key] || {};
+              const feed = `https://thedentalcommute.com/api/podcast/${c.key}.xml`;
+              const d = distDraft[c.key] || {};
+              const apple = d.apple_url ?? sh.apple_url ?? '';
+              const spotify = d.spotify_url ?? sh.spotify_url ?? '';
+              const dirty = distDraft[c.key] && ((d.apple_url ?? sh.apple_url ?? '') !== (sh.apple_url || '') || (d.spotify_url ?? sh.spotify_url ?? '') !== (sh.spotify_url || ''));
+              const inp = { fontSize: 12, padding: '6px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, fontFamily: FONT, width: '100%' };
+              return (
+                <div style={{ border: `1px dashed ${BORDER}`, borderRadius: 6, padding: '10px 12px', marginBottom: 10, display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <img src={`/podcast/${c.key}.png`} alt="" style={{ width: 72, height: 72, borderRadius: 6, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 260, fontSize: 12 }}>
+                    <div style={{ fontWeight: 700, color: '#111', marginBottom: 6 }}>Distribution</div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                      <input readOnly value={feed} onFocus={e => e.target.select()} style={{ ...inp, color: '#444', background: '#fafaf7' }} />
+                      <button onClick={() => navigator.clipboard?.writeText(feed)} style={{ fontSize: 11, padding: '6px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>Copy</button>
+                      <a href={feed} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: GREEN }}>Open</a>
+                      <a href={`https://podba.se/validate/?url=${encodeURIComponent(feed)}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: GREEN, whiteSpace: 'nowrap' }}>Validate ↗</a>
+                      <a href={`/journals/${c.key}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: GREEN, whiteSpace: 'nowrap' }}>Show page ↗</a>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                      <input placeholder="Apple Podcasts link (once approved)" value={apple} onChange={e => setDistDraft(x => ({ ...x, [c.key]: { ...(x[c.key] || {}), apple_url: e.target.value } }))} style={inp} />
+                      <input placeholder="Spotify link (once approved)" value={spotify} onChange={e => setDistDraft(x => ({ ...x, [c.key]: { ...(x[c.key] || {}), spotify_url: e.target.value } }))} style={inp} />
+                      <button onClick={() => saveDist(c.key)} disabled={!dirty} style={{ fontSize: 11, padding: '6px 12px', border: 'none', borderRadius: 4, background: dirty ? GREEN : '#ccc', color: '#fff', cursor: dirty ? 'pointer' : 'default', fontFamily: FONT, fontWeight: 600 }}>Save</button>
+                    </div>
+                    <details style={{ color: '#555' }}>
+                      <summary style={{ cursor: 'pointer', color: GREEN, fontWeight: 600 }}>How to get listed on Apple Podcasts and Spotify</summary>
+                      <ol style={{ margin: '6px 0 0', paddingLeft: 18, lineHeight: 1.6 }}>
+                        <li>Publish the introduction first: directories need at least one episode in the feed (the trailer counts).</li>
+                        <li>Check the feed with <strong>Validate</strong> above. It should show no errors (artwork 3000×3000, owner email, categories, episode enclosures).</li>
+                        <li><strong>Apple:</strong> podcastsconnect.apple.com → sign in with the Apple ID you want to own the show → “+” → New show → “Add a show with an RSS feed” → paste the feed address. Apple emails a verification code to <em>hello@thedentalcommute.com</em>. Review usually takes 1–5 days.</li>
+                        <li><strong>Spotify:</strong> creators.spotify.com → Get started → “I have a podcast” → paste the feed address → verify with the code sent to hello@. Usually live within hours.</li>
+                        <li>Paste the public links above and press Save. They appear on the show and episode pages immediately.</li>
+                        <li>Later, optional: Amazon Music / Audible (music.amazon.com/podcasts/submit) and Pocket Casts / Overcast pick the feed up from Apple automatically.</li>
+                      </ol>
+                    </details>
+                  </div>
                 </div>
               );
             })()}

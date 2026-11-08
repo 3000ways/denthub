@@ -122,6 +122,8 @@ A journal shared by several clusters (OOOO, J Oral Pathol Med) routes each paper
 
 ## Phases
 
+> **Status 2026-11-08:** weeks 1–3 shipped (harvest → draft → prepare → render → review → publish; feeds, artwork, hub, episode pages, home row, player chapters, admin distribution panel). Remaining: Apple/Spotify submission (manual, checklist in the admin), the metrics job and retrospective specials.
+
 **Week 1 — data.** Migration; `lib/journals.js` (the cluster table above); harvest cron; Unpaywall lookup; admin harvest-status panel. *Done when:* all 40 journals harvest nightly and the last eight weeks are backfilled.
 
 **Week 2 — the first episode.** Script template and draft cron; render workflow in GitHub Actions; audio cache; R2 bucket and domain; manual trigger from the admin; the first *Endodontics This Week* rendered end to end and reviewed by Andrei. *Done when:* an episode plays in the site player with working chapters.
