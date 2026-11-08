@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildWeeklyScript, buildTrailerScript, shortVersion, spokenAuthors, spokenDate, chaptersFrom, sonioxCostCents, estimateSeconds, readModeFor, licenceLabel, licenceUrl, showNotes } from '../lib/briefing-script.js';
+import { buildWeeklyScript, buildTrailerScript, shortVersion, spokenAuthors, spokenDate, chaptersFrom, sonioxCostCents, estimateSeconds, readModeFor, licenceLabel, licenceUrl, showNotes, spokenTitle, studyKind } from '../lib/briefing-script.js';
 
 const article = (id, title, journal, concl) => ({
   id, title, journal_abbr: journal, authors: ['Mohammad A Sabeti', 'Ashley Wang', 'Third Author'],
@@ -41,18 +41,23 @@ test('weekly script, hybrid format: all-rights-reserved papers get our summary +
   assert.ok(!seg.some(s => s.kind === 'abstract'), 'no verbatim abstract segments');
   assert.ok(!seg.some(s => /Fourteen studies were included/.test(s.text)), 'abstract wording never spoken');
   const handoffs = seg.filter(s => s.kind === 'handoff');
-  assert.match(handoffs[0].text, /^First up: Root Resection Outcomes, from the J-O-E, by Sabeti and colleagues\. Adrian, take it away\.$/);
-  assert.match(handoffs[1].text, /^And finally: Generative AI in Endodontics/);
+  assert.match(handoffs[0].text, /^First up/);
+  assert.match(handoffs[0].text, /Root Resection Outcomes/);
+  assert.match(handoffs[0].text, /the J-O-E/);
+  assert.match(handoffs[0].text, /Sabeti and colleagues/);
+  assert.match(handoffs[0].text, /Adrian, take it away\.$/);
+  assert.match(handoffs[1].text, /^And finally/);
+  assert.match(handoffs[1].text, /Generative AI in Endodontics/);
   const summaries = seg.filter(s => s.kind === 'summary');
   assert.equal(summaries.length, 1);
   assert.equal(summaries[0].speaker, 'reader');
   assert.equal(summaries[0].text, a1.summary);
   const quotes = seg.filter(s => s.kind === 'quote');
-  assert.equal(quotes[0].text, "In the authors' own words: No significant difference was found.");
+  assert.match(quotes[0].text, /(In the authors' own words|Their conclusion, word for word|Here's how the authors put it|Straight from the paper|The authors' bottom line, verbatim): No significant difference was found\.$/);
   assert.equal(quotes[1].text, 'The authors conclude: Performance depends on task type.');   // quote_only fallback
   const slots = seg.filter(s => s.kind === 'headline_slot');
   assert.equal(slots.length, 2);
-  assert.match(slots[1].text, /A Third Paper, from the European Endo Journal\. The authors conclude: Heating improved dissolution\./);
+  assert.match(slots[1].text, /A Third Paper, from the European Endo Journal\. (The authors conclude|In their words|Their conclusion): Heating improved dissolution\./);
   assert.equal(seg[seg.length - 1].kind, 'close');
   assert.match(seg[seg.length - 1].text, /Safe drive\.$/);
   assert.ok(seg.every(s => !/https?:/.test(s.text)), 'no links in any spoken line');
@@ -63,13 +68,14 @@ test('weekly script, verbatim mode: open-access abstracts are read as published,
   const a2 = { ...article(2, 'ND Paper', 'J Endod', 'Performance depends on task type.'), read_mode: 'verbatim_nd', oa_license: 'cc-by-nc-nd' };
   const seg = buildWeeklyScript({ show: 'Endodontics This Week', label: 'endodontics', weekOf: '2026-11-09', fullReads: [a1, a2], headlines: [], spokenName: abbr => ({ 'J Endod': 'the J-O-E', 'Int Endod J': 'the I-E-J' }[abbr]) });
   const handoffs = seg.filter(s => s.kind === 'handoff');
-  assert.match(handoffs[0].text, /open access under a Creative Commons licence, so Adrian reads the abstract as published/);
+  assert.match(handoffs[0].text, /open access/i);
+  assert.match(handoffs[0].text, /abstract/);
   const abstracts = seg.filter(s => s.kind === 'abstract');
   assert.ok(abstracts.some(s => s.text === 'Fourteen studies were included (n = 1,236).'), 'abstract text is verbatim');
   assert.ok(abstracts.filter(s => s.article_id === 1).every(s => !s.nd));
   assert.ok(abstracts.filter(s => s.article_id === 2).every(s => s.nd === true), 'ND abstract segments carry the nd flag');
   const svs = seg.filter(s => s.kind === 'short_version');
-  assert.equal(svs[0].text, 'The short version: No significant difference was found.');
+  assert.match(svs[0].text, /(The short version|Boiled down, in their words|In one line, from the authors): No significant difference was found\.$/);
   assert.match(seg[0].text, /2 new papers from the I-E-J and the J-O-E, in about \d+ minutes/);   // all in depth → no "covered in depth" clause
 });
 
@@ -121,4 +127,27 @@ test('cost formula matches the published prices', () => {
   // 1 hour of audio from ~40,000 chars: 12,000 input tokens ($0.048) + 30,000 output tokens ($0.645)
   const cents = sonioxCostCents({ chars: 40000, audioSeconds: 3600 });
   assert.ok(Math.abs(cents - 69.3) < 0.5, `got ${cents}`);
+});
+
+test('spoken titles drop the subtitle; study kind is said in words', () => {
+  assert.equal(spokenTitle('Prevalence of Radix Entomolaris in Permanent Mandibular First Molars Among the Saudi Population: A Systematic Review and Meta-Analysis'), 'Prevalence of Radix Entomolaris in Permanent Mandibular First Molars Among the Saudi Population');
+  assert.equal(spokenTitle('Generative AI in Endodontics: A Scoping Review of Applications, Performance, and Limitations'), 'Generative AI in Endodontics');
+  assert.equal(spokenTitle('Short: Title'), 'Short: Title', 'a short head is not a title on its own');
+  assert.equal(spokenTitle('Adhesion of Bioactive Glass Nanoparticle-Modified Biodentine (An In Vitro Study)'), 'Adhesion of Bioactive Glass Nanoparticle-Modified Biodentine');
+  assert.equal(studyKind({ title: 'X: A Systematic Review and Meta-Analysis', pub_types: ['Journal Article', 'Review'] }), 'systematic review and meta-analysis');
+  assert.equal(studyKind({ title: 'Outcomes: A Prospective Clinical Study' }), 'prospective clinical study');
+  assert.equal(studyKind({ title: 'Something', pub_types: ['Randomized Controlled Trial'] }), 'randomised trial');
+  assert.equal(studyKind({ title: 'Adhesion of Glass', pub_types: ['Journal Article'] }), '');
+});
+
+test('phrasing rotates: consecutive papers never share a quote lead, and the same week always builds the same script', () => {
+  const papers = Array.from({ length: 6 }, (_, i) => ({ ...article(i + 1, `Paper ${i + 1}`, 'J Endod', `Conclusion ${i + 1}.`), read_mode: 'hybrid', summary: `Summary ${i + 1}.` }));
+  const build = () => buildWeeklyScript({ show: 'S', label: 'endodontics', weekOf: '2026-11-16', fullReads: papers, headlines: [], spokenName: () => 'the J-O-E' });
+  const quotes = build().filter(s => s.kind === 'quote').map(s => s.text.replace(/ Conclusion \d\.$/, ''));
+  for (let i = 1; i < quotes.length; i++) assert.notEqual(quotes[i], quotes[i - 1], `quote leads ${i - 1} and ${i} repeat: ${quotes[i]}`);
+  const handoffs = build().filter(s => s.kind === 'handoff').map(s => s.text);
+  assert.ok(new Set(handoffs.map(h => h.replace(/Paper \d/, 'P').replace(/^(First up|Next|Moving on|Next up|Also this week|And finally)/, 'L'))).size > 1, 'hand-off patterns vary');
+  assert.deepEqual(build(), build(), 'deterministic for the same week');
+  assert.notDeepEqual(build().map(s => s.text), buildWeeklyScript({ show: 'S', label: 'endodontics', weekOf: '2026-11-23', fullReads: papers, headlines: [], spokenName: () => 'the J-O-E' }).map(s => s.text), 'varies between weeks');
+  assert.ok(build().every(s => !/—/.test(s.text)), 'no em-dashes spoken');
 });

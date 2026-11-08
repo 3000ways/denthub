@@ -38,6 +38,62 @@ export async function ensureShowResource(db, cluster) {
   return rec.id;
 }
 
+// Make a rendered episode public: the show's resource row, the episode row the
+// player/search/home read, paper statuses, the alert. Used on publish and by
+// the admin's Publish button on a reviewed episode.
+export async function finalizePublish(db, b, c, r) {
+  const resourceId = await ensureShowResource(db, b.cluster);
+  const ids = [...(b.article_ids || []), ...(b.headline_ids || [])];
+  let arts = [];
+  if (ids.length) { const { data } = await db.from('articles').select('id, title, authors, url, journal_abbr, journal_name, read_mode, oa_license').in('id', ids); arts = data || []; }
+  const byId = Object.fromEntries(arts.map(a => [a.id, a]));
+  const fullReads = (b.article_ids || []).map(i => byId[i]).filter(Boolean);
+  const headlines = (b.headline_ids || []).map(i => byId[i]).filter(Boolean);
+  const notes = showNotes({ show: c.show, weekOf: b.week_of, fullReads, headlines, kind: b.kind });
+  const pick = findPick(c.pick);
+  const title = b.kind === 'trailer' ? `Trailer: what ${c.show} is` : (b.title || `Week of ${b.week_of}`);
+  const duration = Math.round(Number(r.duration_seconds || 0));
+
+  const guid = `tdc:briefing:${b.id}`;
+  const { data: ep, error: epErr } = await db.from('episodes').upsert({
+    guid, show_resource_id: resourceId, show_name: c.show, title,
+    description: notes.slice(0, 4000), audio_url: r.audio_url, image: null,
+    published_at: new Date().toISOString(), duration_seconds: duration,
+    quiz_tags: pick ? [pick.tag] : null, quiz_tagged_at: pick ? new Date().toISOString() : null,
+  }, { onConflict: 'show_resource_id,guid' }).select('id').single();
+  if (epErr) throw new Error(`episode upsert: ${epErr.message}`);
+  await db.from('episodes').update({ link: `${SITE}/episode/${ep.id}` }).eq('id', ep.id);
+
+  const now = new Date().toISOString();
+  await db.from('briefings').update({
+    status: 'published', audio_url: r.audio_url, duration_seconds: duration,
+    chapters: Array.isArray(r.chapters) ? r.chapters : [],
+    cost_cents: Number(r.cost_cents || 0), cost_breakdown: r.cost_breakdown || {},
+    checks: r.checks || b.checks, episode_id: ep.id, error: null,
+    rendered_at: r.rendered_at || now, published_at: now, updated_at: now,
+  }).eq('id', b.id);
+  if (b.article_ids?.length) await db.from('articles').update({ status: 'read', updated_at: now }).in('id', b.article_ids);
+  if (b.headline_ids?.length) await db.from('articles').update({ status: 'headline_only', updated_at: now }).in('id', b.headline_ids);
+  await db.from('briefing_shows').update({ last_published_at: now, updated_at: now }).eq('cluster', b.cluster);
+
+  const cents = Number(r.cost_cents || 0);
+  const cached = r.cost_breakdown && r.cost_breakdown.cached_segments;
+  const llm = Number((r.cost_breakdown && r.cost_breakdown.llm_cents) || 0);
+  const modeCount = {};
+  for (const a of fullReads) modeCount[a.read_mode || 'hybrid'] = (modeCount[a.read_mode || 'hybrid'] || 0) + 1;
+  const modeWords = { hybrid: 'summarised', verbatim: 'abstract read in full', verbatim_nd: 'abstract read in full', quote_only: 'title + conclusion only' };
+  const modesLine = fullReads.length ? ` (${Object.entries(modeCount).map(([k, v]) => `${v} ${modeWords[k] || k}`).join(', ')})` : '';
+  await sendOwnerAlert({
+    subject: `Published: ${c.show} · ${Math.round(duration / 60)} min · $${(cents / 100).toFixed(2)}`,
+    text: [
+      `${title}`, '',
+      `${fullReads.length} paper${fullReads.length === 1 ? '' : 's'} in depth${modesLine}${headlines.length ? `, ${headlines.length} in brief` : ''} · ${Math.round(duration / 60)} min · cost $${(cents / 100).toFixed(2)}${llm ? ` (summaries $${(llm / 100).toFixed(2)})` : ''}${cached ? ` (${cached} cached segments saved $${((r.cost_breakdown.saved_cents || 0) / 100).toFixed(2)})` : ''}`,
+      '', `Listen: ${SITE}/episode/${ep.id}`, `Admin: ${ADMIN_URL}`,
+    ].join('\n'),
+  });
+  return { episode_id: ep.id, resource_id: resourceId, link: `${SITE}/episode/${ep.id}` };
+}
+
 export default async function handler(req, res) {
   if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -64,57 +120,28 @@ export default async function handler(req, res) {
     const audioUrl = String(body.audio_url || '');
     const duration = Math.round(Number(body.duration_seconds || 0));
     if (!audioUrl.startsWith('https://') || !duration) return res.status(400).json({ error: 'audio_url and duration_seconds required' });
-
-    const resourceId = await ensureShowResource(db, b.cluster);
-    const ids = [...(b.article_ids || []), ...(b.headline_ids || [])];
-    let arts = [];
-    if (ids.length) { const { data } = await db.from('articles').select('id, title, authors, url, journal_abbr, journal_name, read_mode, oa_license').in('id', ids); arts = data || []; }
-    const byId = Object.fromEntries(arts.map(a => [a.id, a]));
-    const fullReads = (b.article_ids || []).map(i => byId[i]).filter(Boolean);
-    const headlines = (b.headline_ids || []).map(i => byId[i]).filter(Boolean);
-    const notes = showNotes({ show: c.show, weekOf: b.week_of, fullReads, headlines, kind: b.kind });
-    const pick = findPick(c.pick);
-    const title = b.kind === 'trailer' ? `Trailer: what ${c.show} is` : (b.title || `Week of ${b.week_of}`);
-
-    // Episode row: upsert on (show, guid) so a re-publish updates in place.
-    const guid = `tdc:briefing:${b.id}`;
-    const { data: ep, error: epErr } = await db.from('episodes').upsert({
-      guid, show_resource_id: resourceId, show_name: c.show, title,
-      description: notes.slice(0, 4000), audio_url: audioUrl, image: null,
-      published_at: new Date().toISOString(), duration_seconds: duration,
-      quiz_tags: pick ? [pick.tag] : null, quiz_tagged_at: pick ? new Date().toISOString() : null,
-    }, { onConflict: 'show_resource_id,guid' }).select('id').single();
-    if (epErr) throw new Error(`episode upsert: ${epErr.message}`);
-    await db.from('episodes').update({ link: `${SITE}/episode/${ep.id}` }).eq('id', ep.id);
-
-    const now = new Date().toISOString();
-    await db.from('briefings').update({
-      status: 'published', audio_url: audioUrl, duration_seconds: duration,
+    const rendered = {
+      audio_url: audioUrl, duration_seconds: duration,
       chapters: Array.isArray(body.chapters) ? body.chapters : [],
       cost_cents: Number(body.cost_cents || 0), cost_breakdown: body.cost_breakdown || {},
-      checks: body.checks || b.checks, episode_id: ep.id, error: null,
-      rendered_at: body.rendered_at || now, published_at: now, updated_at: now,
-    }).eq('id', id);
-    if (b.article_ids?.length) await db.from('articles').update({ status: 'read', updated_at: now }).in('id', b.article_ids);
-    if (b.headline_ids?.length) await db.from('articles').update({ status: 'headline_only', updated_at: now }).in('id', b.headline_ids);
-    await db.from('briefing_shows').update({ last_published_at: now, updated_at: now }).eq('cluster', b.cluster);
+      checks: body.checks || b.checks, rendered_at: body.rendered_at || new Date().toISOString(),
+    };
 
-    const cents = Number(body.cost_cents || 0);
-    const cached = body.cost_breakdown && body.cost_breakdown.cached_segments;
-    const llm = Number((body.cost_breakdown && body.cost_breakdown.llm_cents) || 0);
-    const modeCount = {};
-    for (const a of fullReads) modeCount[a.read_mode || 'hybrid'] = (modeCount[a.read_mode || 'hybrid'] || 0) + 1;
-    const modeWords = { hybrid: 'summarised', verbatim: 'abstract read in full', verbatim_nd: 'abstract read in full', quote_only: 'title + conclusion only' };
-    const modesLine = fullReads.length ? ` (${Object.entries(modeCount).map(([k, v]) => `${v} ${modeWords[k] || k}`).join(', ')})` : '';
-    await sendOwnerAlert({
-      subject: `Published: ${c.show} · ${Math.round(duration / 60)} min · $${(cents / 100).toFixed(2)}`,
-      text: [
-        `${title}`, '',
-        `${fullReads.length} paper${fullReads.length === 1 ? '' : 's'} in depth${modesLine}${headlines.length ? `, ${headlines.length} in brief` : ''} · ${Math.round(duration / 60)} min · cost $${(cents / 100).toFixed(2)}${llm ? ` (summaries $${(llm / 100).toFixed(2)})` : ''}${cached ? ` (${cached} cached segments saved $${((body.cost_breakdown.saved_cents || 0) / 100).toFixed(2)})` : ''}`,
-        '', `Listen: ${SITE}/episode/${ep.id}`, `Admin: ${ADMIN_URL}`,
-      ].join('\n'),
-    });
-    return res.status(200).json({ ok: true, status: 'published', episode_id: ep.id, resource_id: resourceId, link: `${SITE}/episode/${ep.id}` });
+    // Review before publishing (per show, default on): keep the rendered episode
+    // for Andrei to hear in the admin; nothing reaches the player or the feed
+    // until he presses Publish there.
+    const { data: show } = await db.from('briefing_shows').select('review_required').eq('cluster', b.cluster).maybeSingle();
+    if (show && show.review_required && !body.force) {
+      await db.from('briefings').update({ ...rendered, status: 'rendered', error: null, updated_at: new Date().toISOString() }).eq('id', id);
+      await sendOwnerAlert({
+        subject: `Ready for review: ${c.show} (${b.kind === 'trailer' ? 'introduction' : `week of ${b.week_of}`}) · ${Math.round(duration / 60)} min · $${(rendered.cost_cents / 100).toFixed(2)}`,
+        text: [`${b.title || c.show}`, '', `The episode is rendered and waiting for you. Nothing is published yet.`, '', `Listen and press Publish in the admin (TDC Podcast tab): ${ADMIN_URL}`, '', `Switch off "Review before publishing" on the show when you want Mondays to publish on their own.`].join('\n'),
+      });
+      return res.status(200).json({ ok: true, status: 'rendered', link: ADMIN_URL });
+    }
+
+    const out = await finalizePublish(db, b, c, rendered);
+    return res.status(200).json({ ok: true, status: 'published', ...out });
   } catch (err) {
     console.error('[briefings/publish] error:', err.message);
     return res.status(500).json({ error: String(err.message || err) });

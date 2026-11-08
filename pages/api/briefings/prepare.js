@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
     const ids = [...(b.article_ids || []), ...(b.headline_ids || [])];
     const { data: rows, error: aErr } = await db.from('articles')
-      .select('id, pmid, doi, title, authors, abstract, journal_abbr, journal_name, url, oa_status, oa_license, oa_host_type, oa_checked_at, read_mode, summary, summary_meta')
+      .select('id, pmid, doi, title, authors, abstract, journal_abbr, journal_name, url, pub_types, oa_status, oa_license, oa_host_type, oa_checked_at, read_mode, summary, summary_meta')
       .in('id', ids.length ? ids : [-1]);
     if (aErr) throw new Error(aErr.message);
     const byId = Object.fromEntries((rows || []).map(a => [a.id, a]));

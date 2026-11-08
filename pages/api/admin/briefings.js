@@ -4,6 +4,8 @@
 
 import { getSupabaseAdmin } from '../../../lib/supabase-admin';
 import { isAdminAuthenticated } from '../../../lib/admin-auth';
+import { finalizePublish } from '../briefings/publish';
+import { findCluster } from '../../../lib/journals';
 
 export default async function handler(req, res) {
   if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -19,9 +21,16 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { id, action } = req.body || {};
       if (!id || !action) return res.status(400).json({ error: 'id and action required' });
-      const { data: b, error } = await db.from('briefings').select('id, status, episode_id, article_ids, headline_ids').eq('id', id).single();
+      const { data: b, error } = await db.from('briefings').select('*').eq('id', id).single();
       if (error || !b) return res.status(404).json({ error: 'not found' });
       const now = new Date().toISOString();
+      if (action === 'publish') {
+        // A reviewed episode (status rendered) goes live: same path as an automatic publish.
+        if (b.status !== 'rendered' || !b.audio_url) return res.status(400).json({ error: 'Only a rendered episode can be published' });
+        const c = findCluster(b.cluster) || { show: b.cluster, label: b.cluster, pick: null };
+        const out = await finalizePublish(db, b, c, { audio_url: b.audio_url, duration_seconds: b.duration_seconds, chapters: b.chapters, cost_cents: b.cost_cents, cost_breakdown: b.cost_breakdown, checks: b.checks, rendered_at: b.rendered_at });
+        return res.status(200).json({ ok: true, ...out });
+      }
       if (action === 'unpublish') {
         if (b.episode_id) await db.from('episodes').delete().eq('id', b.episode_id);
         await db.from('briefings').update({ status: 'unpublished', episode_id: null, updated_at: now }).eq('id', id);
