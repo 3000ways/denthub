@@ -47,7 +47,7 @@ function Logo({ url, name, imageUrl, size = 40 }) {
       </div>
     );
   }
-  return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
+  return <img loading="lazy" src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
 }
 
 export default function SavedPage() {

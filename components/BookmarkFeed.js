@@ -59,7 +59,7 @@ function FeedCard({ item }) {
         onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
         <div style={{ position:'relative', width:'100%', paddingBottom:'56.25%', background:'#f0ede8', overflow:'hidden' }}>
           {item.image && !imgErr ? (
-            <img src={item.image} alt={item.title} onError={() => setImgErr(true)}
+            <img loading="lazy" src={item.image} alt={item.title} onError={() => setImgErr(true)}
               style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
           ) : (
             <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}>
@@ -88,7 +88,7 @@ function FeedCard({ item }) {
       {/* Square artwork — clicking plays */}
       <div onClick={handlePodcastPlay} style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden', cursor:'pointer' }}>
         {item.image && !imgErr ? (
-          <img src={item.image} alt={item.title} onError={() => setImgErr(true)}
+          <img loading="lazy" src={item.image} alt={item.title} onError={() => setImgErr(true)}
             style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
         ) : (
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}>

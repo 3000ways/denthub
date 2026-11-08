@@ -59,7 +59,7 @@ function RecentCard({ ep }) {
       {/* Square artwork — clicking plays */}
       <div onClick={handlePlay} style={{ position:'relative', width:'100%', paddingBottom:'100%', background:'#f0ede8', overflow:'hidden', cursor:'pointer' }}>
         {ep.image && !imgErr
-          ? <img src={ep.image} alt={ep.title} onError={() => setImgErr(true)}
+          ? <img loading="lazy" src={ep.image} alt={ep.title} onError={() => setImgErr(true)}
               style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
           : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}>
               <span style={{ fontSize:28, color:'#ccc' }}>🎙</span>

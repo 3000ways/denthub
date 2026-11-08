@@ -122,6 +122,8 @@ export default function About() {
                 { value: resources.length > 0 ? resources.length.toLocaleString() : '—', label:'total resources' },
                 { value: byType('Podcast') || '—', label:'podcasts' },
                 { value: byType('YouTube') || '—', label:'YouTube channels' },
+                { value: byType('Book') || '—', label:'books' },
+                { value: resources.length > 0 ? (resources.length - byType('Podcast') - byType('YouTube') - byType('Book')).toLocaleString() : '—', label:'courses, coaching & more' },
               ].map(({ value, label }) => (
                 <div key={label}>
                   <div style={{ fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, lineHeight:1 }}>{value}</div>

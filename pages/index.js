@@ -129,10 +129,10 @@ function Logo({ url, name, size, imageUrl }) {
 
   if (err) return fallback;
   if (imageUrl) {
-    return <img src={imageUrl} alt={name} onError={() => setErr(true)} style={{ width:sz*0.72, height:sz, borderRadius:4, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />;
+    return <img loading="lazy" src={imageUrl} alt={name} onError={() => setErr(true)} style={{ width:sz*0.72, height:sz, borderRadius:4, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />;
   }
   if (!domain) return fallback;
-  return <img src={`/api/airtable?logo=${domain}`} alt={name} onError={() => setErr(true)} style={{ width:sz, height:sz, borderRadius:radius, border:`0.5px solid ${BORDER}`, objectFit:'contain', background:'#fafafa', flexShrink:0 }} />;
+  return <img loading="lazy" src={`/api/airtable?logo=${domain}`} alt={name} onError={() => setErr(true)} style={{ width:sz, height:sz, borderRadius:radius, border:`0.5px solid ${BORDER}`, objectFit:'contain', background:'#fafafa', flexShrink:0 }} />;
 }
 
 function VoteButtons({ resourceId }) {
@@ -431,7 +431,7 @@ function ExpandedEpisodeRow({ ep, showName, showResourceId, showArt, isFirst }) 
       onMouseEnter={e => { e.currentTarget.style.borderColor = GREEN; }}
       onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = BORDER; }}>
       {ep.image && (
-        <img src={ep.image} alt={ep.title} style={{ width:42, height:42, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
+        <img loading="lazy" src={ep.image} alt={ep.title} style={{ width:42, height:42, borderRadius:5, objectFit:'cover', flexShrink:0 }} />
       )}
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:12, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3 }}>{ep.title}</div>
@@ -476,7 +476,7 @@ function EpisodeCard({ ep }) {
         style={{ width:64, height:64, borderRadius:6, overflow:'hidden', background:'#f0ede8', flexShrink:0,
           cursor:'pointer', position:'relative' }}>
         {ep.image && !imgErr ? (
-          <img src={ep.image} alt={ep.title} onError={() => setImgErr(true)}
+          <img loading="lazy" src={ep.image} alt={ep.title} onError={() => setImgErr(true)}
             style={{ width:'100%', height:'100%', objectFit:'cover' }} />
         ) : (
           <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:'#ccc' }}>🎙</div>
@@ -532,12 +532,16 @@ function EpisodeCard({ ep }) {
             style={{ fontSize:11, color:GREEN, fontWeight:500, background:'none', border:'none', cursor:'pointer', padding:0 }}>
             {isActive && isPlaying ? 'Pause' : isActive ? 'Resume' : 'Play ▶'}
           </button>
-          {ep.url && (
+          {ep.url ? (
             <a href={ep.url} target="_blank" rel="noopener noreferrer"
               style={{ fontSize:11, color:MUTED, textDecoration:'none' }}>
               Open →
             </a>
-          )}
+          ) : ep.id ? (
+            <Link href={`/episode/${ep.id}`} style={{ fontSize:11, color:MUTED, textDecoration:'none' }}>
+              Open →
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
@@ -684,7 +688,12 @@ export default function Home({ initialResources }) {
   }, [pickKey]);
   const featuredPlayback = useFeaturedPlayback(featured && featured.episode, featured && featured.pick);
 
-  const [submitOpen, setSubmitOpen] = useState(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('submit') === '1');
+  const [submitOpen, setSubmitOpen] = useState(false);
+  // Read ?submit=1 after the first paint: the server can't see the URL's query
+  // on this static page, so reading it during render made the two disagree.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('submit') === '1') setSubmitOpen(true);
+  }, []);
   const [submitUrl, setSubmitUrl] = useState('');
   const [submitState, setSubmitState] = useState('idle'); // idle | loading | success | error
   const [submitError, setSubmitError] = useState('');
@@ -951,7 +960,7 @@ export default function Home({ initialResources }) {
   // The single search field. A plain render function (not a component) so the
   // input keeps focus across re-renders; used in the hero and in filter mode.
   function renderSearchField({ inHero }) {
-    const n = episodeCount ? episodeCount.toLocaleString() : '37,000';
+    const n = episodeCount ? episodeCount.toLocaleString() : '40,000';
     return (
       <form role="search" onSubmit={e => { e.preventDefault(); submitSearch(episodeQuery); }}
         style={{ display:'flex', alignItems:'center', gap:10, background:'#fff', border:`1px solid #d9d5c9`, borderRadius:12, padding:'0 6px 0 14px', height: inHero ? 50 : 48, boxShadow:'0 1px 4px rgba(0,0,0,0.06)', maxWidth: inHero ? 560 : 'none' }}>
@@ -959,8 +968,8 @@ export default function Home({ initialResources }) {
           <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
         </svg>
         <input aria-label="Search episodes, shows and books" value={episodeQuery} onChange={e => setEpisodeQuery(e.target.value)}
-          placeholder={isMobile ? `Search ${n} episodes…` : `Search ${n} episodes… try "tax strategies" or "hiring an associate"`}
-          style={{ border:'none', background:'transparent', fontSize:15, color:'#111', outline:'none', flex:1, minWidth:0, height:44, fontFamily:FONT_BODY }} />
+          placeholder={isMobile ? `Search ${n} episodes…` : `Search ${n} episodes… try "tax strategies"`}
+          style={{ border:'none', background:'transparent', fontSize:16, color:'#111', outline:'none', flex:1, minWidth:0, height:44, fontFamily:FONT_BODY }} />
         {(episodeQuery || search) && (
           <button type="button" onClick={clearSearch} aria-label="Clear search"
             style={{ border:'none', background:'none', cursor:'pointer', color:MUTED, fontSize:20, padding:'0 4px', lineHeight:1 }}>×</button>
@@ -1522,7 +1531,7 @@ export default function Home({ initialResources }) {
                                 {yt.recentVideos.map((v, idx) => (
                                   <a key={idx} href={v.url} target="_blank" rel="noopener noreferrer"
                                     style={{ display:'block', borderRadius:7, overflow:'hidden', position:'relative', textDecoration:'none' }}>
-                                    <img src={v.thumbnail} alt={v.title}
+                                    <img loading="lazy" src={v.thumbnail} alt={v.title}
                                       style={{ width:'100%', display:'block', borderRadius:7, aspectRatio:'16/9', objectFit:'cover' }} />
                                     <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
                                       <div style={{ width:32, height:32, background:'rgba(0,0,0,0.65)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -1560,7 +1569,7 @@ export default function Home({ initialResources }) {
                           <div style={{ display:'flex', gap:32, flexDirection: isMobile ? 'column' : 'row' }}>
                             <div style={{ flex:1 }}>
                               {book?.cover && (
-                                <img src={book.cover} alt={f.Name}
+                                <img loading="lazy" src={book.cover} alt={f.Name}
                                   style={{ float:'right', width:80, borderRadius:4, boxShadow:'0 4px 16px rgba(0,0,0,0.15)', marginLeft:16, marginBottom:8 }} />
                               )}
                               {(book?.description || f.Description) && (

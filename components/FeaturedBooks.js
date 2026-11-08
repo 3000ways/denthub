@@ -24,7 +24,7 @@ function BookCard({ record, isMobile }) {
         {/* Cover image area — 2:3 (book-shaped) so portrait covers aren't cropped top/bottom */}
         <div style={{ position:'relative', width:'100%', aspectRatio:'2 / 3', background:'#f5f2eb', overflow:'hidden' }}>
           {!imgErr ? (
-            <img
+            <img loading="lazy"
               src={coverSrc}
               alt={f.Name}
               onError={() => setImgErr(true)}

@@ -1,4 +1,5 @@
 import { getPublishedResource } from '../../lib/resources-db';
+import { cleanEpisodeDescription } from '../../lib/clean-description';
 
 function getTag(xml, tag) {
   const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
@@ -37,7 +38,7 @@ function parseFeed(xml) {
     const audioUrl        = getAttr(item, 'enclosure', 'url');
     const link            = getTag(item, 'link');
     const episodeArt      = getAttr(item, 'itunes:image', 'href') || showArt;
-    const description     = stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || '');
+    const description     = cleanEpisodeDescription(stripHtml(getTag(item, 'description') || getTag(item, 'itunes:summary') || ''));
     const guid            = stripHtml(getTag(item, 'guid')) || audioUrl;
     const durationRaw     = getTag(item, 'itunes:duration');
     const durationSeconds = parseDuration(durationRaw);
