@@ -1,7 +1,8 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useEscapeKey } from '../lib/use-escape-key';
 import { useAuth } from '../lib/auth-context';
 import { listPublishedResources } from '../lib/resources-db';
 import { useBookmarks } from '../lib/bookmarks-context';
@@ -688,6 +689,8 @@ export default function Home({ initialResources }) {
   const [submitState, setSubmitState] = useState('idle'); // idle | loading | success | error
   const [submitError, setSubmitError] = useState('');
   const [submitResult, setSubmitResult] = useState(null);
+  useEscapeKey(submitOpen, () => setSubmitOpen(false));
+  useEscapeKey(showUserMenu, () => setShowUserMenu(false));
 
   useEffect(() => {
     if (document.querySelector('script[data-turnstile]')) return;
@@ -807,8 +810,12 @@ export default function Home({ initialResources }) {
   function selectSpecialty(s) { setActiveSpecialty(prev => prev === s ? null : s); setExpandedId(null); }
   function selectTopic(t) { setActiveTopic(prev => prev === t ? null : t); setExpandedId(null); }
 
+  const searchSeq = useRef(0); // only the newest search may show its results
+  const lastSearchKey = useRef(''); // what the URL last asked us to search
+
   async function searchEpisodes(q, { all = false } = {}) {
     if (!q || q.trim().length < 2) return;
+    const seq = ++searchSeq.current;
     setEpisodeLoading(true);
     setEpisodeSearched(true);
     setEpisodes([]);
@@ -827,9 +834,20 @@ export default function Home({ initialResources }) {
         const legacy = await fetch(`/api/episodes-search?q=${encodeURIComponent(q)}&max=20`);
         results = (await legacy.json()).episodes || [];
       }
-      setEpisodes(results);
-    } catch { setEpisodes([]); }
-    finally { setEpisodeLoading(false); }
+      if (seq === searchSeq.current) setEpisodes(results);
+    } catch { if (seq === searchSeq.current) setEpisodes([]); }
+    finally { if (seq === searchSeq.current) setEpisodeLoading(false); }
+  }
+
+  // The address bar holds the search (?q=, plus &all=1 for "Search all episodes"),
+  // so results can be shared and Back returns to the previous screen.
+  function setSearchInUrl(q, all) {
+    const { q: _q, all: _all, submit: _submit, ...query } = router.query;
+    if (q) {
+      query.q = q;
+      if (all) query.all = '1';
+    }
+    router.push({ pathname: router.pathname, query }, undefined, { shallow: true, scroll: false });
   }
 
   // One search box, two result sets: episodes (archive full-text) and matching
@@ -837,18 +855,47 @@ export default function Home({ initialResources }) {
   function submitSearch(q, opts) {
     const t = (q || '').trim();
     if (t.length < 2) return;
-    setSearch(t);
-    setExpandedId(null);
-    searchEpisodes(t, opts);
-    track('search', { search_term: t, scoped: !!(pick && !(opts && opts.all)), specialty: pick ? pick.key : undefined });
+    const all = !!opts?.all;
+    if (t === router.query.q && all === (router.query.all === '1')) return; // already showing this
+    setSearchInUrl(t, all);
+    track('search', { search_term: t, scoped: !!(pick && !all), specialty: pick ? pick.key : undefined });
   }
-  function clearSearch() {
+  function resetSearch() {
+    searchSeq.current += 1; // ignore any search still on its way back
     setEpisodeQuery('');
     setSearch('');
     setEpisodes([]);
+    setEpisodeLoading(false);
     setEpisodeSearched(false);
     setSearchAll(false);
   }
+  function clearSearch() {
+    if (router.query.q) setSearchInUrl('');
+    else resetSearch();
+  }
+
+  // Runs the search the address bar describes: on a shared link, after a new
+  // search, and on Back/Forward. The specialty is part of the key because a
+  // signed-in visitor's specialty arrives just after the page loads.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = typeof router.query.q === 'string' ? router.query.q.trim() : '';
+    if (q.length < 2) {
+      if (lastSearchKey.current) {
+        lastSearchKey.current = '';
+        resetSearch();
+      }
+      return;
+    }
+    const all = router.query.all === '1';
+    const key = JSON.stringify([q, all, all ? '' : pick?.tag || '']);
+    if (key === lastSearchKey.current) return;
+    lastSearchKey.current = key;
+    setEpisodeQuery(q);
+    setSearch(q);
+    setExpandedId(null);
+    searchEpisodes(q, { all });
+  }, [router.isReady, router.query.q, router.query.all, pick?.tag]);
 
   const displayResources = resources.length > 0 ? resources : DEMO_RESOURCES;
   const isDemo = resources.length === 0 && !loading;
@@ -1305,7 +1352,7 @@ export default function Home({ initialResources }) {
               <div style={{ padding:'36px 0', textAlign:'center', color:MUTED, fontSize:14 }}>
                 No episodes found for "{search || episodeQuery}"{pick && !searchAll ? ` in ${pick.label.toLowerCase()} episodes` : ''}.
                 {pick && !searchAll && (
-                  <button onClick={() => searchEpisodes(search || episodeQuery, { all: true })}
+                  <button onClick={() => submitSearch(search || episodeQuery, { all: true })}
                     style={{ marginLeft:8, fontSize:13, color:GREEN, fontWeight:600, background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:FONT_BODY }}>
                     Search all episodes →
                   </button>
@@ -1320,7 +1367,7 @@ export default function Home({ initialResources }) {
                 <div style={{ fontSize:12, color:MUTED, marginBottom:18, display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                   <span>Results for <span style={{ color:'#111', fontWeight:500 }}>"{search || episodeQuery}"</span>{pick && !searchAll ? ` in ${pick.label.toLowerCase()} episodes` : ' across all podcasts'}</span>
                   {pick && !searchAll && (
-                    <button onClick={() => searchEpisodes(search || episodeQuery, { all: true })}
+                    <button onClick={() => submitSearch(search || episodeQuery, { all: true })}
                       style={{ fontSize:12, color:GREEN, fontWeight:600, background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:FONT_BODY }}>
                       Search all episodes →
                     </button>
@@ -1638,7 +1685,7 @@ export default function Home({ initialResources }) {
             </div>
           )}
 
-          {anyFilterActive && ranked.length === 0 && (
+          {anyFilterActive && ranked.length === 0 && !episodeLoading && episodes.length === 0 && (
             <div style={{ padding:'80px 0', textAlign:'center' }}>
               <div style={{ fontSize:15, color:MUTED, marginBottom:12 }}>Nothing here yet.</div>
               <button onClick={openSubmitModal}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../lib/auth-context';
 import { useBookmarks } from '../lib/bookmarks-context';
+import { useEscapeKey } from '../lib/use-escape-key';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -12,6 +13,7 @@ export default function SiteNav() {
   const { count: bookmarkCount } = useBookmarks();
   const [showMenu, setShowMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(null);
+  useEscapeKey(showMenu, () => setShowMenu(false));
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);

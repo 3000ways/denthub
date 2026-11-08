@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth-context';
 import { QUESTION_KEYS, MAX_PICKS, fetchQuizOptions } from '../lib/onboarding';
+import { useEscapeKey } from '../lib/use-escape-key';
 
 const FONT = "'Inter', sans-serif";
 const GREEN = '#2D6A4F';
 const BORDER = '#e5e7eb';
 
 function Overlay({ onClose, children }) {
+  useEscapeKey(true, onClose);
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 32, width: '100%', maxWidth: 460, fontFamily: FONT }}>
