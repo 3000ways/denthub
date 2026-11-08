@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const ids = [...new Set((briefings || []).flatMap(b => [...(b.article_ids || []), ...(b.headline_ids || [])]))];
     let articles = {};
     if (ids.length) {
-      const { data } = await db.from('articles').select('id, title, authors, url, journal_abbr, journal_name').in('id', ids);
+      const { data } = await db.from('articles').select('id, title, authors, url, journal_abbr, journal_name, read_mode, oa_license').in('id', ids);
       for (const a of data || []) articles[a.id] = a;
     }
     const [{ data: pron }, { data: shows }] = await Promise.all([

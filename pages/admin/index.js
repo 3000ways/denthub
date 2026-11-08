@@ -3502,7 +3502,7 @@ function BriefingsTab() {
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Journal Briefings</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
         A weekly AI-narrated podcast per specialty (<strong>Endodontics This Week</strong>, <strong>Orthodontics This Week</strong>, …) that reads the week&rsquo;s new papers from the top three journals.
-        Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Sunday night the script is drafted; Monday morning it is rendered and published, automatically.
+        Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Monday morning the script is drafted, each paper is prepared (licence check; an own-words summary for all-rights-reserved papers, checked against the abstract; open-access abstracts read as published), then rendered and published, automatically.
         <strong> Nothing here needs approval</strong> — this tab is for watching it run, switching shows on, fixing a spoken name, and seeing what it costs.
       </p>
 
@@ -3558,7 +3558,7 @@ function BriefingsTab() {
                   <tr key={b.id} style={{ borderTop: `1px solid ${BORDER}` }}>
                     <td style={{ padding: '6px 6px 6px 0', whiteSpace: 'nowrap' }}>{b.week_of}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{show}{b.kind === 'trailer' ? ' · trailer' : ''}</td>
-                    <td style={{ padding: '6px', color: '#111' }}>{b.episode_id ? <a href={`/episode/${b.episode_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#111' }}>{b.title}</a> : (b.title || '—')}{b.error && <div style={{ fontSize: 11, color: '#c0392b' }}>{b.error}</div>}</td>
+                    <td style={{ padding: '6px', color: '#111' }}>{b.episode_id ? <a href={`/episode/${b.episode_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#111' }}>{b.title}</a> : (b.title || '—')}{b.error && <div style={{ fontSize: 11, color: '#c0392b' }}>{b.error}</div>}{b.checks?.modes && <div style={{ fontSize: 11, color: '#777' }} title={b.checks.quote_only?.length ? b.checks.quote_only.map(q => `#${q.id}: ${q.why}`).join('\n') : ''}>{Object.entries(b.checks.modes).map(([k, v]) => `${v} ${({ hybrid: 'summarised', verbatim: 'abstract in full', verbatim_nd: 'abstract in full (ND)', quote_only: 'title + conclusion only' })[k] || k}`).join(' · ')}{b.checks.llm_cents ? ` · summaries ${money(b.checks.llm_cents)}` : ''}</div>}</td>
                     <td style={{ padding: '6px', color: col, fontWeight: 600 }}>{b.status}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{b.duration_seconds ? `${Math.round(b.duration_seconds / 60)} min` : '—'}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }} title={b.cost_breakdown ? JSON.stringify(b.cost_breakdown) : ''}>{b.status === 'published' || b.status === 'rendered' ? money(b.cost_cents) : '—'}</td>

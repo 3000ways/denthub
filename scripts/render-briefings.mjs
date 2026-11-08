@@ -4,6 +4,9 @@
 //
 //   1. ask the site to draft this week's scripts (idempotent),
 //   2. fetch every drafted briefing,
+//   2b. for each weekly: ask the site to prepare it — licence check per paper,
+//       own-words summaries for all-rights-reserved papers (the hybrid format),
+//       final script — looping until the site says it is done,
 //   3. for each: clean every segment for the ear, render it with Soniox
 //      (cached by text+voice so a shared abstract is paid for once), stitch
 //      with ffmpeg, measure chapters, compute the cost, upload the MP3,
@@ -118,7 +121,8 @@ async function renderBriefing(b, ctx) {
     b.script.forEach((seg, si) => {
       let text = seg.text || '';
       if (seg.kind === 'abstract' && seg.label) text = `${sectionHeading(seg.label)} ${text}`;
-      const cleaned = cleanForSpeech(text, { pronunciations: ctx.pronunciations });
+      // ND-licensed abstracts: strip-only cleaning (no rewording of statistics).
+      const cleaned = cleanForSpeech(text, { pronunciations: ctx.pronunciations, minimal: !!seg.nd });
       if (cleaned.removed.length) removedLog.push({ segment: si, removed: cleaned.removed.map(r => r.rule) });
       if (/https?:\/\/|www\./i.test(cleaned.text)) throw new Error(`segment ${si} still contains a link after cleaning`);
       for (const p of splitPieces(cleaned.text)) if (p.trim()) pieces.push({ si, text: p, voice: ctx.voices[seg.speaker] || ctx.voices.host });
@@ -152,9 +156,11 @@ async function renderBriefing(b, ctx) {
     const fresh = results.filter(r => !r.cached), cached = results.filter(r => r.cached);
     const byVoice = {};
     for (const r of results) { const v = pieces[results.indexOf(r)].voice; byVoice[v] = byVoice[v] || { chars: 0, seconds: 0 }; byVoice[v].chars += r.chars; byVoice[v].seconds += r.seconds; }
-    const cost_cents = fresh.reduce((n, r) => n + r.cents, 0);
+    const tts_cents = fresh.reduce((n, r) => n + r.cents, 0);
     const saved_cents = cached.reduce((n, r) => n + r.cents, 0);
-    const cost_breakdown = { soniox: byVoice, segments: results.length, cached_segments: cached.length, saved_cents: Number(saved_cents.toFixed(4)), llm_cents: 0, formula: 'input $4/1M tok @0.3 tok/char + audio $21.50/1M tok @30k tok/hour' };
+    const llm_cents = Number((b.checks && b.checks.llm_cents) || 0);   // summaries written in the prepare step
+    const cost_cents = tts_cents + llm_cents;
+    const cost_breakdown = { soniox: byVoice, tts_cents: Number(tts_cents.toFixed(4)), segments: results.length, cached_segments: cached.length, saved_cents: Number(saved_cents.toFixed(4)), llm_cents: Number(llm_cents.toFixed(4)), modes: (b.checks && b.checks.modes) || {}, formula: 'Soniox: input $4/1M tok @0.3 tok/char + audio $21.50/1M tok @30k tok/hour; summaries: sonar-pro $3/1M in + $15/1M out + $0.005/request' };
 
     // 6. Upload episode + chapters JSON.
     const key = `episodes/${b.cluster}/${b.kind}-${b.week_of}-${b.id}.mp3`;
@@ -180,6 +186,24 @@ async function renderBriefing(b, ctx) {
   const ctx = { pronunciations: pending.pronunciations || [], voices: pending.voices, model: pending.model, speed: pending.speed, articles: pending.articles || {} };
   const list = (pending.briefings || []).slice(0, MAX);
   console.log(`${list.length} briefing(s) to render`);
-  for (const b of list) await renderBriefing(b, ctx);
+  for (const b of list) {
+    if (b.kind === 'weekly' && !(b.checks && b.checks.prepared)) {
+      try {
+        let r;
+        do {
+          r = await site('/api/briefings/prepare', { method: 'POST', body: JSON.stringify({ briefing_id: b.id }) });
+          console.log(`  ${b.show}: prepared ${r.processed} paper(s)${r.done ? '' : `, ${r.remaining} to go`}`);
+        } while (!r.done);
+        b.script = r.script; b.checks = r.checks;
+        const m = r.checks && r.checks.modes ? Object.entries(r.checks.modes).map(([k, v]) => `${v} ${k}`).join(', ') : '';
+        console.log(`  ${b.show}: ready (${m}; summaries $${(((r.checks || {}).llm_cents || 0) / 100).toFixed(2)})`);
+      } catch (e) {
+        console.error(`✗ ${b.show} (${b.kind}, ${b.week_of}): prepare failed: ${e.message}`);
+        await site('/api/briefings/publish', { method: 'POST', body: JSON.stringify({ briefing_id: b.id, status: 'failed', error: `prepare: ${e.message}`, checks: { ok: false } }) }).catch(err => console.error('could not record failure:', err.message));
+        continue;
+      }
+    }
+    await renderBriefing(b, ctx);
+  }
   console.log('done');
 })().catch(e => { console.error(e); process.exit(1); });
