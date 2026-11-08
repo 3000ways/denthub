@@ -21,11 +21,21 @@ export default async function handler(req, res) {
 
   let episodes = 0;
   try {
-    const { count } = await supabase.from('episodes').select('id', { count: 'exact', head: true });
-    episodes = count || 0;
+    // An exact count of the whole table runs past the database's time limit and
+    // comes back empty, so use Postgres's estimate, rounded down to the thousand.
+    const { count } = await supabase.from('episodes').select('id', { count: 'planned', head: true });
+    episodes = Math.floor((count || 0) / 1000) * 1000;
   } catch { /* leave at 0 if the count fails */ }
 
   const data = { episodes, fetchedAt: new Date().toISOString() };
+
+  // A failed count must not stick for an hour: answer it, but keep it only briefly.
+  if (!episodes) {
+    setCdnCache(res, 60, { staleSec: 0 });
+    res.setHeader('X-Cache', 'MISS');
+    return res.status(200).json(data);
+  }
+
   cache = data;
   cacheTime = Date.now();
 

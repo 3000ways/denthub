@@ -46,6 +46,7 @@ function Thumbtack() {
 function PinCard({ pin, item, isMobile, isOwn, onUnpin }) {
   const tilt = tiltFor(pin.id, isMobile);
   const [hover, setHover] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <Link
@@ -86,8 +87,8 @@ function PinCard({ pin, item, isMobile, isOwn, onUnpin }) {
         </button>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
-        {item.image
-          ? <img src={item.image} alt={item.name}
+        {item.image && !imageFailed
+          ? <img src={item.image} alt={item.name} onError={() => setImageFailed(true)}
               style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'contain', background: '#fff', border: '1px solid #eee' }} />
           : <div style={{ width: 52, height: 52, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: GREEN }}>{item.initial}</div>
         }
