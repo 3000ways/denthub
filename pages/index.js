@@ -560,7 +560,7 @@ const HOME_ABOVE_FOLD_CSS = `
 .tdc-herotext{text-align:left}
 .tdc-h1{font-size:52px;letter-spacing:-1.6px}
 .tdc-proof{font-size:17px}
-.tdc-feat-ph{min-height:330px}
+.tdc-feat-ph{min-height:390px}
 .tdc-tab{font-size:13px;padding:0 0 14px;margin-right:30px}
 .tdc-ph-whatsnew{min-height:800px}
 @media (max-width:639px){
@@ -577,7 +577,7 @@ const HOME_ABOVE_FOLD_CSS = `
   .tdc-hero-grid{grid-template-columns:minmax(0,1fr);gap:16px}
   .tdc-h1{font-size:32px;letter-spacing:-0.8px}
   .tdc-proof{font-size:14px}
-  .tdc-feat-ph{min-height:236px}
+  .tdc-feat-ph{min-height:330px}
   .tdc-tab{font-size:14px;padding:10px 0 14px;margin-right:22px}
   .tdc-ph-whatsnew{min-height:640px}
 }
@@ -1255,16 +1255,8 @@ export default function Home({ initialResources }) {
           </div>
         )}
 
-        {/* The Index — the ranking is the premise, so it is the second block.
-            Rendered outside the admin-composed layout so it always sits here. */}
-        {!anyFilterActive && !isDemo && resources.length > 0 && (
-          <TopIndex resources={homeResources} categories={VISIBLE_CATEGORIES} isMobile={isMobile}
-            onSeeAll={label => { setActiveCategory(label); setExpandedId(null); track('index_see_all', { tab: label }); }}
-            renderLogo={(r, size) => <Logo url={r.fields.URL} name={r.fields.Name} size={size} imageUrl={ytStats[r.id]?.avatar || podStats[r.id]?.showArt || bookStats[r.id]?.cover || r.fields['Image URL'] || r.fields['Auto Image URL']} />} />
-        )}
-
         {/* Fits your commute — 15 / 30 / 45 min episodes from the best shows.
-            The brand hook; also outside the admin layout, right under The Index. */}
+            The brand hook; outside the admin layout, right under the hero. */}
         {!anyFilterActive && !isDemo && resources.length > 0 && (
           <CommuteFilter isMobile={isMobile} pick={pick} />
         )}
@@ -1384,6 +1376,19 @@ export default function Home({ initialResources }) {
                 ? <div key={item.key} style={{ padding: TOP_ZONE_PAD }}>{renderHomeBlock(item.key, item.settings)}</div>
                 : <Fragment key={item.key}>{renderHomeBlock(item.key, item.settings)}</Fragment>;
             })}
+
+            {/* The Index — the ranking closes the page (owner call, 2026-11: the
+                home should open with playable episodes, Netflix-style, not a
+                list). Still outside the admin-composed layout so it always
+                renders; still server-rendered for crawlable resource links. */}
+            {!isDemo && resources.length > 0 && (
+              <div style={{ padding: TOP_ZONE_PAD }}>
+              <TopIndex resources={homeResources} categories={VISIBLE_CATEGORIES} isMobile={isMobile}
+            onSeeAll={label => { setActiveCategory(label); setExpandedId(null); track('index_see_all', { tab: label }); }}
+            renderLogo={(r, size) => <Logo url={r.fields.URL} name={r.fields.Name} size={size} imageUrl={ytStats[r.id]?.avatar || podStats[r.id]?.showArt || bookStats[r.id]?.cover || r.fields['Image URL'] || r.fields['Auto Image URL']} />} />
+              </div>
+            )}
+
 
             {/* Divider before full list */}
             <div style={{ height:1, background:BORDER, marginBottom:36 }} />

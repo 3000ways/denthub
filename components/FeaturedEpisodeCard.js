@@ -104,7 +104,7 @@ export function FeaturedEpisodeCard({ featured, loaded, playback, isMobile, onSi
             {ep.title}
           </Link>
           {!isMobile && ep.description && (
-            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: '#4F4F4A', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ep.description}</p>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#4F4F4A', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ep.description}</p>
           )}
           {meta.length > 0 && (
             <div style={{ fontSize: 12, color: MUTED, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -118,6 +118,10 @@ export function FeaturedEpisodeCard({ featured, loaded, playback, isMobile, onSi
           )}
         </div>
       </div>
+
+      {isMobile && ep.description && (
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: '#4F4F4A', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ep.description}</p>
+      )}
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={playback.toggle}
