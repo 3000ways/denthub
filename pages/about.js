@@ -95,7 +95,7 @@ export default function About() {
                 <div style={{ fontSize:16, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, marginBottom:4 }}>YODA_Bot</div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, marginBottom:12 }}>AI Curator · Scoring Engine</div>
                 <p style={{ fontSize:13, color:'#777', lineHeight:1.65, margin:0 }}>
-                  The AI behind the scores. YODA_Bot (Your Optimal Dental Advisor) evaluates each resource against publicly available signals — reviews, reach, recency, and clinical depth — to generate the composite scores you see across the directory.
+                  The AI reviewer behind part of each score. YODA_Bot (Your Optimal Dental Advisor) reads each resource's recent content and checks its creator's credentials against a fixed rubric to produce the Expert and Clinical Depth scores.
                 </p>
               </div>
 
@@ -112,7 +112,7 @@ export default function About() {
               Want to dive deep into a particular topic in dentistry? You've found a search engine that indexes {episodeCount > 0 ? `${episodeCount.toLocaleString()}+` : '38,000+'} podcast episodes and surfaces the exact moment your subject comes up — with a single click. Instead of sifting through Google results or asking colleagues for recommendations, browse by category or specialty and find what dental professionals are actually listening to, reading, and learning from.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 28px' }}>
-              Each resource carries a score generated from publicly available signals: reviews, reach, recency, and clinical relevance. The score isn't meant to declare one resource better than another. It's a starting point to help you discover what's out there and decide what's right for you.
+              Each resource carries a score built from measurable data and an AI review of its recent content. The score sets the order of our rankings, but it isn't the final word. It's a starting point to help you discover what's out there and decide what's right for you.
             </p>
 
             {/* Stats bar — live data */}
@@ -136,18 +136,18 @@ export default function About() {
             <SectionLabel>The scoring formula</SectionLabel>
 
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 16px' }}>
-              Every resource on The Dental Commute receives a composite score out of 100, calculated across five weighted dimensions. The score is generated using an AI model that evaluates each resource against publicly available information: listener reviews, download trends, citation frequency in dental education, recency of content, and clinical relevance.
+              Every resource on The Dental Commute receives a composite score out of 100, calculated across five weighted dimensions. Three come from measurable data: how recent the content is, audience size, and engagement from members of this site. The other two, Expert and Clinical Depth, come from an AI reviewer that reads the resource's recent content, looks up its creator's credentials, and applies a fixed rubric.
             </p>
             <p style={{ fontSize:15, color:'#555', lineHeight:1.75, margin:'0 0 24px' }}>
-              <strong style={{ color:'#333' }}>The score is not a ranking of quality.</strong> It is a signal, not a verdict. A podcast with a score of 72 is not objectively better than one with a score of 68. They may simply serve different audiences, specialties, or learning styles. The score is intended to give visitors a starting point, not to declare a winner.
+              <strong style={{ color:'#333' }}>The score sets the order of our rankings, but it isn't a verdict on quality.</strong> A podcast with a score of 72 is not objectively better than one with a score of 68. They may simply serve different audiences, specialties, or learning styles. The score is intended to give visitors a starting point, not to declare a winner.
             </p>
 
             {[
-              { label:'Expert Score',     weight:'25%', desc:'How often the resource is cited or recommended by educators, lecturers, and specialists in the field.' },
-              { label:'Community Score',  weight:'25%', desc:'Aggregated listener and reader sentiment drawn from reviews, ratings, and community discussions.' },
-              { label:'Popularity Score', weight:'20%', desc:'Reach and visibility: download numbers, subscriber counts, and search presence within dentistry.' },
-              { label:'Recency Score',    weight:'15%', desc:'How actively the resource is being updated. Fresh, consistent content scores higher than dormant archives.' },
-              { label:'Clinical Depth',   weight:'15%', desc:'The degree to which the content engages with evidence-based clinical material rather than lifestyle or business topics alone.' },
+              { label:'Expert Score',     weight:'25%', desc:"An AI reviewer's assessment of the creator's authority, such as credentials, academic roles, and reputation among dental professionals." },
+              { label:'Community Score',  weight:'25%', desc:'How members of this site engage with the resource: votes, comments, bookmarks, and pins. With little activity, this stays close to a neutral 50.' },
+              { label:'Popularity Score', weight:'20%', desc:'Audience size compared with resources of the same type: subscribers for YouTube channels, number of ratings for books, and back-catalog size for podcasts, an imperfect stand-in for reach.' },
+              { label:'Recency Score',    weight:'15%', desc:'How recent the content is: new episodes and videos, or publication year for books. Fresh, consistent content scores higher than dormant archives.' },
+              { label:'Clinical Depth',   weight:'15%', desc:"An AI reviewer's assessment of how evidence-based and clinically actionable the content is for practicing dentists." },
             ].map(({ label, weight, desc }) => (
               <div key={label} style={{ padding:'14px 0', borderBottom:`0.5px solid ${BORDER}` }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
@@ -160,7 +160,7 @@ export default function About() {
             ))}
 
             <p style={{ fontSize:13, color:'#aaa', lineHeight:1.6, margin:'20px 0 0', fontStyle:'italic' }}>
-              Scores are periodically recalculated as new community data becomes available. As The Dental Commute grows, community voting from verified dental professionals will carry increasing weight in the formula.
+              Data scores are recalculated weekly, and AI reviews rotate through the directory. A Community score moves further from 50 as more members engage. AI reviews can make mistakes, so if a score looks wrong, please tell us.
             </p>
           </div>
 
