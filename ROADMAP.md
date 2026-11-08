@@ -429,6 +429,11 @@ grows (episodes = 211 MB of 224 MB used today) — separate concern, unchanged b
 
 ## 🔨 Now (actively working on / next up)
 
+- **🎙️ Journal Briefings — "Endodontics This Week" (approved 2026-11-08).** A weekly
+  AI-narrated podcast per specialty that reads the week's new papers from the top three
+  journals (abstracts verbatim; Grace hosts, Adrian reads; Soniox TTS; chapters = papers;
+  own RSS feeds to Apple/Spotify). Full plan, clusters, data model, jobs, costs and rules in
+  **`docs/journal-briefings-build-plan.md`**. First shows: Endodontics, then Orthodontics.
 - **🚨 Airtable → Supabase migration** (see Big Theme above) — the active priority;
   the site's resource lists are down until Phase 2 ships.
 - **🔧 Harden & Fix — from the 2026-07-04 audits.** Four full audits found several

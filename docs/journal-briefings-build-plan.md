@@ -1,0 +1,148 @@
+# Journal Briefings — build plan
+
+**Status:** approved to build (2026-11-08). First shows: *Endodontics This Week* and *Orthodontics This Week*.
+
+**What it is, in one paragraph.** Every Monday, The Dental Commute publishes a short podcast per specialty that reads the week's new papers from that specialty's top three journals. A host voice (Grace) welcomes, lists the headlines, hands off to a reader voice (Adrian) for each abstract, gives a one-line "short version" from the paper's own conclusions, and closes. Everything Adrian reads is the published abstract, verbatim. The episode plays on the site with a *Next paper* button and on Apple, Spotify and every podcast app through our own RSS feed. The narration is synthetic and says so.
+
+---
+
+## Decisions already made
+
+| Topic | Decision |
+|---|---|
+| Name | **"Endodontics This Week"**, "Orthodontics This Week", … one show per specialty. Publisher line: *The Dental Commute*. Grace's opener: "Welcome to Endodontics This Week, from The Dental Commute." |
+| Cadence | Every Monday, early morning Eastern. Journals publish online continuously (PubMed data: JOE 4–5 papers/week, three-journal endo cluster ~8.5/week), so weekly is right. |
+| Sources | Top three journals per specialty (table below). Everything comes from PubMed, by the date PubMed received the article, not the issue date. Letters, editorials, comments and errata are excluded by publication type. |
+| Length cap | **Eight papers read in full** per briefing, ranked by study type. Anything beyond eight is named in the headlines and rolled into the following Monday. No paper is dropped. |
+| Empty weeks | If nothing new, no episode. Never publish a "nothing this week" episode. |
+| Voices | Soniox `tts-rt-v2`. **Grace** hosts, **Adrian** reads. Normal speed at render; listeners use the player's 1×–2× control. (Voice test: claude.ai artifact "Journal Briefing Voice Test".) |
+| Script | Grace's lines are the only generated text, written to a fixed template. "Short version" lines come from the paper's Conclusions. Abstracts are never paraphrased in audio. |
+| Disclosure | One sentence in every episode, spoken by Grace after the welcome, plus the show description, plus the site's existing 🤖 AI-narrated badge (our shows are set Voice Type = AI-generated, Voice Status = Confirmed, so the same gate applies to us). |
+| Skipping | Chapters per paper. *Next paper* / *Previous paper* in the site player, wired to the phone's media keys so headphone and steering-wheel buttons skip papers. Chapters also embedded in the podcast feed. |
+| Podcast feed | Abstract readings and host script only. Full readings of open-access papers stay on the site, where the licence is checked per article. |
+| Read to me (members' own subscriptions) | Separate, later phase, after legal review. Not in this plan. |
+
+### Journal clusters (checked against PubMed, 8 weeks ending 2026-11-08, non-paper types excluded)
+
+| Specialty | Journals (PubMed abbreviation) | Papers/week |
+|---|---|---|
+| Endodontics | J Endod · Int Endod J · Eur Endod J | 8.5 |
+| Orthodontics | Am J Orthod Dentofacial Orthop · Angle Orthod · Eur J Orthod | 3.1 (Angle arrives in batches) |
+| Periodontics | J Periodontol · J Clin Periodontol · Clin Oral Implants Res | 8.8 |
+| Prosthodontics | J Prosthet Dent · J Prosthodont · Int J Prosthodont | 13.6 |
+| Oral & maxillofacial surgery | J Oral Maxillofac Surg · Int J Oral Maxillofac Surg · Br J Oral Maxillofac Surg | 10.2 |
+| Pediatric dentistry | Pediatr Dent · Int J Paediatr Dent · Eur Arch Paediatr Dent | 5.9 |
+| Oral & maxillofacial radiology | Dentomaxillofac Radiol · Oral Surg Oral Med Oral Pathol Oral Radiol · Oral Radiol | 5.8 |
+| Oral & maxillofacial pathology | J Oral Pathol Med · Oral Surg Oral Med Oral Pathol Oral Radiol · Head Neck Pathol | 7.2 |
+| Oral medicine | Oral Dis · J Oral Pathol Med · Oral Surg Oral Med Oral Pathol Oral Radiol | 12.5 |
+| Orofacial pain | J Oral Facial Pain Headache · J Oral Rehabil · Cranio | 12.9 |
+| Dental anesthesiology | Anesth Prog · J Dent Anesth Pain Med · Paediatr Anaesth (dental keyword filter) | 3.9 |
+| Dental public health | Community Dent Oral Epidemiol · J Public Health Dent · Community Dent Health | 5.8 |
+| General dentistry | J Am Dent Assoc · J Dent Res · J Dent (needs a tighter relevance filter; J Dent alone is 13/week) | 20.5 |
+| Implant dentistry (topic, not a specialty) | Clin Oral Implants Res · Int J Oral Maxillofac Implants · Clin Implant Dent Relat Res | 5.5 |
+
+A journal shared by several clusters (OOOO, J Oral Pathol Med) routes each paper to one briefing by topic tag, so nothing is read twice.
+
+---
+
+## How it works (plain English)
+
+1. **Every night**, a job asks PubMed for anything new in the 40-odd journals above, keeps real papers, stores title, authors, abstract (by section), publication type, DOI and link, and asks Unpaywall whether a free legal full-text copy exists.
+2. **Sunday night**, for each specialty, the job gathers the week's papers, ranks them (systematic reviews and meta-analyses, then randomized trials, then other clinical studies, then lab studies, then case reports), takes the top eight, and writes Grace's script from the template. The script is saved as a draft.
+3. **Monday early morning**, the audio is rendered: each script segment and each abstract section goes to Soniox (cached by text + voice, so an abstract that appears in two clusters is paid for once), the pieces are joined, chapter times are measured, and the MP3 is uploaded to storage.
+4. **Publish**: an episode row is created in the existing `episodes` archive under the specialty's show, the podcast RSS feed updates, the home-page "Journal Briefings" row shows it, and Andrei gets the usual owner alert with a link. For the first month, step 4 waits for Andrei to press *Publish* in the admin after listening.
+
+---
+
+## Architecture
+
+### Data (Supabase, new migration `0025_journal_briefings.sql`)
+
+- `journals` — one row per journal: `pubmed_abbr`, display name, society, homepage, `cluster` (specialty key), `active`.
+- `articles` — one row per paper: `pmid` (unique), `doi`, `journal_id`, `title`, `authors` (text[]), `abstract` (jsonb: `[{label, text}]`), `pub_types` (text[]), `received_at` (PubMed edat), `published_at`, `url`, `oa_status` (`none` / `open` / `manuscript`), `oa_url`, `oa_license`, `cluster`, `rank_tier` (1–5 from pub type), `briefing_id` (null until used), `status` (`new` / `scheduled` / `read` / `headline_only`).
+- `briefings` — one row per episode: `cluster`, `week_of` (Monday date), `status` (`draft` / `rendered` / `approved` / `published` / `skipped`), `script` (jsonb segments: `{speaker, text, article_id?, kind}`), `article_ids` (ordered), `headline_ids`, `audio_url`, `duration_seconds`, `chapters` (jsonb: `[{title, start, article_id}]`), `episode_id` → `episodes.id`, `rendered_at`, `published_at`, `cost_cents`.
+- `audio_cache` — `text_hash` (sha256 of voice + speed + text) → `audio_url`, `duration_seconds`, `bytes`. Avoids re-rendering shared abstracts and makes re-publishing a corrected script cheap.
+- **Shows reuse the existing tables.** Each specialty show is a `resources` row (Type Podcast, Status Published, `voice_type = AI-generated`, `voice_status = Confirmed`, `source = tdc_original`) with its own RSS Feed URL pointing at our feed. Each briefing is an `episodes` row (`show_resource_id` = that show), which is what makes the player, Save, progress, My Listening, search, the specialty picker and "Fits your commute" work with no new plumbing. The harvester skips `tdc_original` shows (we write those rows ourselves).
+
+### Jobs
+
+| Job | Where it runs | When | Why there |
+|---|---|---|---|
+| **Harvest articles** | Vercel cron `/api/cron/journals-harvest` | Daily 03:10 ET | Small, fast, fits the 60 s cap. PubMed E-utilities with an NCBI API key (10 requests/s). Unpaywall by DOI (needs a contact email param: `hello@thedentalcommute.com`). |
+| **Draft scripts** | Vercel cron `/api/cron/journals-draft` | Sunday 22:00 ET | One LLM call per cluster (Claude API, `claude-sonnet-5-5`) with a strict template and the papers' titles, authors, journals and Conclusions. Output is checked: every "short version" must quote or closely paraphrase the Conclusions; anything else is rejected and re-run. |
+| **Render + publish** | **GitHub Actions** workflow `render-briefings.yml` | Monday 05:00 ET, and on demand | Rendering a 25-minute episode is ~40 Soniox calls and several minutes of wall time, beyond Vercel's limit. Actions has `ffmpeg`, no time pressure, free minutes, and secrets storage. It calls our admin API to read drafts and write results. |
+| **Feed** | Vercel route `/api/podcast/[cluster].xml` | On request, CDN-cached 15 min | Generated from `briefings` + `episodes`; iTunes namespace, chapters via Podcasting 2.0 `<podcast:chapters>` JSON. |
+
+### Storage and delivery
+
+- **Audio:** Cloudflare R2 bucket, public via `audio.thedentalcommute.com` (Cloudflare already holds the DNS). Zero egress cost matters once a show has subscribers. Supabase Storage is the fallback if R2 setup stalls.
+- **Chapters:** JSON file beside each MP3 plus the `chapters` column, so our player and podcast apps read the same timestamps.
+
+### Site surfaces
+
+- **Home:** "Journal Briefings" row under *Fits your commute*: newest briefing per show (ordered by the visitor's "I'm a…" pick), then latest single-abstract readings. Mock-up: claude.ai Design canvas "Journal Briefings".
+- **Briefing page** `/briefing/[id]`: player with chapters, the paper list with access status (Open access full read / Abstract / link to publisher), Grace's script, the disclosure.
+- **Journals hub** `/journals`: the shows, this week's briefing per show, every article with status and filters, subscribe buttons (Apple, Spotify, RSS).
+- **Player** (`PlayerBar`, `player-context`): *Next paper* / *Previous paper* when the current episode has chapters; MediaSession `nexttrack` / `previoustrack` handlers; chapter title shown under the episode title. Speed control already exists.
+- **Admin tab "Briefings":** queue by week and cluster, script editor, per-segment re-render, listen, *Approve and publish*, *Skip this week*, cost and duration per episode, PubMed harvest status per journal.
+- **Analytics:** `briefing_play`, `briefing_next_paper`, `briefing_complete`, `briefing_subscribe_click` via `lib/analytics.js`.
+
+### Podcast distribution
+
+- One feed per show. Artwork 3000×3000 per show in the site's green/cream system with the specialty name large. Category: Health & Fitness › Medicine; secondary Science. `explicit = false`. Author and owner: The Dental Commute, `hello@thedentalcommute.com`.
+- Submit each feed to Apple Podcasts Connect, Spotify for Creators, YouTube Music and Amazon once the first episode is live. Apple review takes days, so submit endo in week 3.
+- Show description carries the disclosure and a line inviting listeners to the site for links and full readings.
+
+---
+
+## Phases
+
+**Week 1 — data.** Migration; `lib/journals.js` (the cluster table above); harvest cron; Unpaywall lookup; admin harvest-status panel. *Done when:* all 40 journals harvest nightly and the last eight weeks are backfilled.
+
+**Week 2 — the first episode.** Script template and draft cron; render workflow in GitHub Actions; audio cache; R2 bucket and domain; manual trigger from the admin; the first *Endodontics This Week* rendered end to end and reviewed by Andrei. *Done when:* an episode plays in the site player with working chapters.
+
+**Week 3 — surfaces and feed.** Home row, briefing page, Journals hub, player chapter buttons, RSS feed, artwork, Apple and Spotify submission for endo; orthodontics turned on. *Done when:* "Endodontics This Week" is listed in Apple Podcasts.
+
+**Week 4 — scale.** Remaining clusters switched on two per week with a listen before each goes live; analytics events; the "review before publish" step relaxed to automatic once four consecutive endo episodes have needed no edits.
+
+---
+
+## Costs (estimates)
+
+| Item | Per episode | Per week, all 14 shows |
+|---|---|---|
+| Soniox TTS (~$0.70/hour of audio; endo ≈ 25 min) | ≈ $0.30 | ≈ $4 |
+| LLM script draft | < $0.05 | < $1 |
+| R2 storage (≈ 25 MB/episode, no egress charge) | negligible | ≈ $0.02/month growth |
+| PubMed, Unpaywall, GitHub Actions | free | free |
+
+Rounded, the entire programme runs for well under $25 a month.
+
+---
+
+## Keys and accounts needed (Vercel env + GitHub Actions secrets; never in the repo)
+
+- `SONIOX_API_KEY` (exists, via rootOS account)
+- `NCBI_API_KEY` (free, from an NCBI account; raises PubMed rate limits)
+- `UNPAYWALL_EMAIL` = `hello@thedentalcommute.com`
+- `ANTHROPIC_API_KEY` (script drafts)
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`
+- Existing: `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`
+
+---
+
+## Rules that protect us
+
+1. **Abstracts verbatim, always attributed.** Every paper is named with journal, authors and a link to the publisher page by DOI. No full text in the podcast feed.
+2. **Nothing invented.** Grace's "short version" is drawn from the paper's Conclusions and checked automatically; the template forbids clinical advice.
+3. **Disclosure in the audio, the feed and the page.** Same badge as every other AI-narrated show on the site; the "Hide AI-narrated podcasts" toggle hides ours too. That consistency is the point.
+4. **Publisher opt-out.** A standing policy on the Journals hub: a publisher that objects gets its journal removed within a week, and the contact is `hello@thedentalcommute.com`.
+5. **Review period.** Andrei listens before publish for the first month of each show.
+
+---
+
+## Open items
+
+- Artwork direction for the show covers (one template, specialty name as the variable).
+- Whether general dentistry launches with a relevance filter or waits until the specialties are stable.
+- Whether a cluster with a quiet week should borrow its best headline-only papers from the previous roll-over, or simply run short. Current call: run short.
