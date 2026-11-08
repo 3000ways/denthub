@@ -5,6 +5,7 @@ import { usePlayer } from '../lib/player-context';
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN  = '#0F6E56';
 const BORDER = '#e8e8e8';
+const MUTED  = '#6f6f6a';
 
 // Vertical episode/video card (square artwork on top, text below). Used in the
 // "What's New in Dentistry" spotlight and in the home-page discovery carousels.
@@ -12,8 +13,9 @@ const BORDER = '#e8e8e8';
 //
 // `item` shape: { type:'podcast'|'video', show, resourceId, title, url, image,
 //                 date, description, guid }
-export function SpotlightCard({ item }) {
+export function SpotlightCard({ item, compact = false }) {
   const [imgErr, setImgErr] = useState(false);
+  const shortDate = item.date ? String(item.date).replace(/,\s*\d{4}$/, '') : null;
   const isVideo = item.type === 'video';
   const accentColor = isVideo ? '#e52d27' : GREEN;
   const { play, pause, resume, isPlaying, currentEpisode } = usePlayer();
@@ -29,6 +31,7 @@ export function SpotlightCard({ item }) {
       title:            item.title,
       image:            item.image,
       guid:             item.guid || item.url,
+      duration_seconds: item.durationSeconds || null,
     };
     try {
       const res = await fetch('/api/upsert-episode', {
@@ -40,6 +43,7 @@ export function SpotlightCard({ item }) {
           title:            epData.title,
           audio_url:        epData.audio_url,
           image:            epData.image,
+          duration_seconds: epData.duration_seconds,
         }),
       });
       if (res.ok) { const { id } = await res.json(); epData = { ...epData, id }; }
@@ -59,14 +63,13 @@ export function SpotlightCard({ item }) {
             ? <img src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
             : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}><span style={{ fontSize:28, color:'#ccc' }}>▶</span></div>
           }
-          <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:accentColor, padding:'3px 7px', borderRadius:3 }}>Video</div>
         </div>
         <div style={{ padding:'10px 10px 12px', flex:1 }}>
           <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.show}</div>
           <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
             display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</div>
-          {item.description && <div style={{ fontSize:12, color:'#999', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>{item.description}</div>}
-          <div style={{ fontSize:11, color:'#ccc' }}>{item.date}</div>
+          {!compact && item.description && <div style={{ fontSize:12, color:'#5f5f5a', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>{item.description}</div>}
+          <div style={{ fontSize:11, color:MUTED, marginTop:'auto' }}>{shortDate}</div>
         </div>
       </a>
     );
@@ -84,7 +87,6 @@ export function SpotlightCard({ item }) {
           ? <img src={item.image} alt={item.title} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
           : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#eceae4' }}><span style={{ fontSize:28, color:'#ccc' }}>🎙</span></div>
         }
-        <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:GREEN, padding:'3px 7px', borderRadius:3 }}>Podcast</div>
         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
           background: isActive ? 'rgba(15,110,86,0.35)' : 'rgba(0,0,0,0.25)',
           opacity: isActive ? 1 : 0, transition:'opacity 0.15s' }}
@@ -102,10 +104,14 @@ export function SpotlightCard({ item }) {
         <div style={{ fontSize:11, color:accentColor, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:5 }}>{item.show}</div>
         <div style={{ fontSize:14, fontWeight:600, color: isActive ? GREEN : '#111', lineHeight:1.3, marginBottom:6, fontFamily:FONT_DISPLAY,
           display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</div>
-        {item.description && <div style={{ fontSize:12, color:'#999', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>{item.description}</div>}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'auto' }}>
-          <div style={{ fontSize:11, color:'#ccc' }}>{item.date}</div>
-          <div style={{ fontSize:10, color: isActive ? GREEN : '#aaa', fontWeight:600 }}>
+        {!compact && item.description && <div style={{ fontSize:12, color:'#5f5f5a', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:8 }}>{item.description}</div>}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'auto', gap:8 }}>
+          <div style={{ fontSize:11, color:MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            {item.duration && <span style={{ color:'#111', fontWeight:600 }}>{item.duration}</span>}
+            {item.duration && item.date && <span> · </span>}
+            {shortDate}
+          </div>
+          <div style={{ fontSize:10, color: isActive ? GREEN : MUTED, fontWeight:600, flexShrink:0 }}>
             {isActive && isPlaying ? '▶ Playing' : isActive ? 'Paused' : '▶ Play'}
           </div>
         </div>

@@ -10,7 +10,9 @@ const GREEN  = '#0F6E56';
 // carousels (goal-heavy), with a sign-in teaser woven in. Data comes from
 // /api/home-feed (cacheable, rotates daily). Renders nothing until rows arrive,
 // so there's never an empty shell.
-export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = [], counts = null, ready = true }) {
+// `pin` — the visitor's "I'm a…" pick ({ tag, kind }); its row is fetched
+// regardless of the daily rotation and shown first.
+export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = [], counts = null, ready = true, pin = null }) {
   const [rows, setRows] = useState([]);
   const { isHiddenShow } = useAiVoiceExclusion();
 
@@ -18,6 +20,7 @@ export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = []
   // feed as query params so it applies live AND in draft preview.
   const hiddenKey = JSON.stringify(hidden || []);
   const countsKey = JSON.stringify(counts || {});
+  const pinKey = pin && pin.tag ? `${pin.kind || 'interest'}:${pin.tag}` : '';
 
   useEffect(() => {
     // Wait until the admin layout (and thus the curation) is known, so we fetch
@@ -29,13 +32,14 @@ export function DiscoverFeed({ isMobile, signedIn, onSignInRequired, hidden = []
     if (h.length) params.set('hidden', hiddenKey);
     const c = JSON.parse(countsKey);
     ['goal', 'interest', 'career'].forEach(k => { if (c[k] !== undefined && c[k] !== null) params.set(k, String(c[k])); });
+    if (pinKey) { const [kind, ...rest] = pinKey.split(':'); params.set('pin', rest.join(':')); params.set('pinKind', kind); }
     const qs = params.toString();
     fetch(`/api/home-feed${qs ? `?${qs}` : ''}`)
       .then(r => r.json())
       .then(data => { if (active) setRows(data.rows || []); })
       .catch(() => {});
     return () => { active = false; };
-  }, [hiddenKey, countsKey, ready]);
+  }, [hiddenKey, countsKey, ready, pinKey]);
 
   // Drop episodes from confirmed AI-voice shows when the visitor has opted out,
   // then drop any row left too thin to be worth a carousel.

@@ -23,6 +23,11 @@ import { BooksForYou } from '../components/BooksForYou';
 import { CEHoursBadge } from '../components/CEHoursBadge';
 import { DEFAULT_LAYOUT, resolveLayout, blockHeading } from '../lib/home-layout';
 import { recommendEpisodes } from '../lib/onboarding';
+import { FeaturedEpisodeCard, useFeaturedPlayback } from '../components/FeaturedEpisodeCard';
+import { SpecialtyPicker } from '../components/SpecialtyPicker';
+import { TopIndex } from '../components/TopIndex';
+import { useSpecialtyPick } from '../lib/use-specialty-pick';
+import { findPick } from '../lib/specialties';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -65,6 +70,9 @@ const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
 const GREEN = '#0F6E56';
 const GREEN_LIGHT = '#E8F5F0';
 const BORDER = '#e8e8e8';
+// Small labels/eyebrows. The old #bbb/#999 greys failed the 4.5:1 contrast
+// standard for small text on the cream background; this passes.
+const MUTED = '#6f6f6a';
 
 const DEMO_RESOURCES = [
   { id:'d1', fields:{ Name:'Dental Intel Podcast', Type:'Podcast', URL:'https://dentalintel.com', Description:'Practice analytics and growth strategies for modern dental practices. Hosted by industry leaders covering everything from patient experience to profitability.', 'Host or Author':'Brandon Shird', 'Final Score':94, 'Expert Score':92, 'Community Score':95, 'Popularity Score':93, 'Recency Score':90, 'Clinical Depth Score':96, createdAt:'2025-06-01' }},
@@ -170,7 +178,7 @@ function VoteButtons({ resourceId }) {
         style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'none', borderRight:`1px solid ${BORDER}`, background: vote === 'up' ? GREEN_LIGHT : '#fff', color: vote === 'up' ? GREEN : '#888', cursor:'pointer', fontSize:12, fontWeight: vote === 'up' ? 600 : 400, fontFamily:FONT_BODY, transition:'all 0.15s' }}>
         <span style={{ fontSize:14 }}>↑</span> {counts.up > 0 ? counts.up : ''}
       </button>
-      <div style={{ padding:'6px 10px', fontSize:12, color:'#bbb', background:'#fafafa', minWidth:28, textAlign:'center' }}>
+      <div style={{ padding:'6px 10px', fontSize:12, color:MUTED, background:'#fafafa', minWidth:28, textAlign:'center' }}>
         {net > 0 ? `+${net}` : net === 0 ? '0' : net}
       </div>
       <button onClick={() => handleVote('down')}
@@ -201,7 +209,7 @@ function ScoreBadge({ score, fields }) {
           <div style={{ fontSize:11, fontWeight:600, color:'#111', marginBottom:10, paddingBottom:8, borderBottom:'0.5px solid #f0f0f0', letterSpacing:0.3, textTransform:'uppercase' }}>Score breakdown</div>
           {breakdown.map(b => (
             <div key={b.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-              <div><span style={{ fontSize:11, color:'#555' }}>{b.label}</span><span style={{ fontSize:10, color:'#bbb', marginLeft:4 }}>{b.weight}</span></div>
+              <div><span style={{ fontSize:11, color:'#555' }}>{b.label}</span><span style={{ fontSize:10, color:MUTED, marginLeft:4 }}>{b.weight}</span></div>
               <span style={{ fontSize:11, fontWeight:500, color: b.value != null ? GREEN : '#ccc' }}>{b.value ?? '—'}</span>
             </div>
           ))}
@@ -230,7 +238,7 @@ function TrendingCard({ r, rank }) {
       </div>
       <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
       <div style={{ fontSize:14, fontWeight:600, color:'#111', lineHeight:1.25, marginBottom:8, fontFamily:FONT_DISPLAY }}>{f.Name}</div>
-      <div style={{ fontSize:11, color:'#aaa', marginBottom:10 }}>{f['Host or Author']}</div>
+      <div style={{ fontSize:11, color:MUTED, marginBottom:10 }}>{f['Host or Author']}</div>
       <ScoreBadge score={((s) => s % 1 === 0 ? s.toString() : s.toFixed(1))(f['Final Score']||0)} fields={f} />
     </div>
   );
@@ -279,7 +287,7 @@ function EditorsPick({ picks, onOpen, onSignInRequired }) {
     <div style={{ marginBottom:52 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:4, paddingBottom:14, borderBottom:'2px solid #111' }}>
         <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>Editor&rsquo;s Pick{picks.length > 1 ? 's' : ''}</div>
-        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Hand-picked by Andrei</div>
+        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:MUTED, fontWeight:600 }}>Hand-picked by Andrei</div>
       </div>
       <div>
         {picks.map(r => (
@@ -295,7 +303,7 @@ function EssentialsSection({ items, isMobile, onOpen, onSignInRequired, heading 
     <div style={{ marginBottom:52 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'2px solid #111' }}>
         <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{heading || 'The Essentials'}</div>
-        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600 }}>Start here</div>
+        <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:MUTED, fontWeight:600 }}>Start here</div>
       </div>
       <div style={{ borderTop:`1px solid ${BORDER}` }}>
         {items.map((r, i) => {
@@ -314,7 +322,7 @@ function EssentialsSection({ items, isMobile, onOpen, onSignInRequired, heading 
               <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:600, color:'#111', marginBottom:3, fontFamily:FONT_DISPLAY, letterSpacing:-0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
-                <div style={{ fontSize:11, color:'#bbb', display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ fontSize:11, color:MUTED, display:'flex', alignItems:'center', gap:6 }}>
                   <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{f.Type}</span>
                   {f['Host or Author'] && <><span>&middot;</span><span>{f['Host or Author']}</span></>}
                 </div>
@@ -363,9 +371,9 @@ function RecommendedForYou({ episodes, profile, isMobile, heading }) {
       <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:6, paddingBottom:14, borderBottom:'2px solid #111', flexWrap:'wrap' }}>
         <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{heading || 'Recommended for You'}</div>
         <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:GREEN, fontWeight:600 }}>Personalized</div>
-        <Link href="/profile" style={{ marginLeft:'auto', fontSize:12, color:'#aaa', textDecoration:'none', fontWeight:500 }}>Edit interests →</Link>
+        <Link href="/profile" style={{ marginLeft:'auto', fontSize:12, color:MUTED, textDecoration:'none', fontWeight:500 }}>Edit interests →</Link>
       </div>
-      <div style={{ fontSize:12, color:'#999', marginBottom:16 }}>{because}</div>
+      <div style={{ fontSize:12, color:MUTED, marginBottom:16 }}>{because}</div>
       <div style={{ display:'grid', gridTemplateColumns:`repeat(${isMobile ? 2 : 4}, 1fr)`, gap: isMobile ? 8 : 12 }}>
         {cards.map((item, i) => <SpotlightCard key={item.guid || i} item={item} />)}
       </div>
@@ -428,7 +436,7 @@ function ExpandedEpisodeRow({ ep, showName, showResourceId, showArt, isFirst }) 
           <div style={{ fontSize:11, color:'#777', marginTop:2, lineHeight:1.4,
             overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' }}>{ep.description}</div>
         )}
-        <div style={{ fontSize:11, color:'#aaa', marginTop:2, display:'flex', gap:8, alignItems:'center' }}>
+        <div style={{ fontSize:11, color:MUTED, marginTop:2, display:'flex', gap:8, alignItems:'center' }}>
           {isFirst && <span style={{ color:GREEN, fontWeight:600 }}>New</span>}
           {ep.date && <span>{ep.date}</span>}
           {isActive && isPlaying && <span style={{ color:GREEN, fontWeight:600 }}>▶ Playing</span>}
@@ -498,14 +506,14 @@ function EpisodeCard({ ep }) {
           </div>
         )}
         {ep.description && (
-          <div style={{ fontSize:12, color:'#999', lineHeight:1.5, marginBottom:6,
+          <div style={{ fontSize:12, color:MUTED, lineHeight:1.5, marginBottom:6,
             overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
             {ep.description}
           </div>
         )}
         <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
-          {ep.date && <span style={{ fontSize:11, color:'#bbb' }}>{ep.date}</span>}
-          {mins && <span style={{ fontSize:11, color:'#bbb' }}>· {mins}</span>}
+          {ep.date && <span style={{ fontSize:11, color:MUTED }}>{ep.date}</span>}
+          {mins && <span style={{ fontSize:11, color:MUTED }}>· {mins}</span>}
           {isListened && (
             <span style={{ fontSize:10, color:GREEN, fontWeight:600, letterSpacing:'0.05em',
               background:'#E8F5F0', borderRadius:4, padding:'2px 6px' }}>
@@ -523,7 +531,7 @@ function EpisodeCard({ ep }) {
           </button>
           {ep.url && (
             <a href={ep.url} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize:11, color:'#bbb', textDecoration:'none' }}>
+              style={{ fontSize:11, color:MUTED, textDecoration:'none' }}>
               Open →
             </a>
           )}
@@ -542,13 +550,15 @@ const HOME_ABOVE_FOLD_CSS = `
 .tdc-nav-in{padding:0 36px}
 .tdc-navlogo{overflow:hidden;height:44px}
 .tdc-navlinks{gap:20px}
-.tdc-submit{padding:7px 18px}
 .tdc-main{padding:0 36px 100px}
 .tdc-topzone{padding:0}
-.tdc-hero{min-height:460px;padding-top:16px}
-.tdc-herotext{margin-left:44%;text-align:right}
-.tdc-eyebrow{margin-top:32px}
-.tdc-h1{font-size:54px;letter-spacing:-2.2px}
+.tdc-hero{padding:40px 0 34px;margin-bottom:44px;border-bottom:1px solid #e3e0d6}
+.tdc-dots{background-image:radial-gradient(rgba(140,130,90,0.30) 1px, transparent 1.2px);background-size:22px 22px}
+.tdc-hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:start}
+.tdc-herotext{text-align:left}
+.tdc-h1{font-size:52px;letter-spacing:-1.6px}
+.tdc-proof{font-size:17px}
+.tdc-feat-ph{min-height:330px}
 .tdc-tab{font-size:13px;padding:0 0 14px;margin-right:30px}
 .tdc-ph-whatsnew{min-height:800px}
 @media (max-width:639px){
@@ -556,54 +566,20 @@ const HOME_ABOVE_FOLD_CSS = `
   .tdc-desk{display:none}
   .tdc-nav{position:relative}
   .tdc-nav-in{padding:0 16px}
-  .tdc-navlogo{overflow:visible;height:auto;position:absolute;top:3px;left:16px;z-index:101}
+  .tdc-navlogo{overflow:visible;height:auto}
   .tdc-navlinks{gap:12px}
-  .tdc-submit{padding:7px 12px}
   .tdc-main{padding:0 7px 60px}
-  .tdc-main.tdc-filtering{padding-top:84px}
+  .tdc-main.tdc-filtering{padding-top:12px}
   .tdc-topzone{padding:0 9px}
-  .tdc-hero{min-height:auto;padding-top:84px}
-  .tdc-herotext{margin-left:0;text-align:left}
-  .tdc-eyebrow{margin-top:0}
-  .tdc-h1{font-size:32px;letter-spacing:-1px}
+  .tdc-hero{padding:18px 0 20px;margin-bottom:28px}
+  .tdc-hero-grid{grid-template-columns:minmax(0,1fr);gap:16px}
+  .tdc-h1{font-size:32px;letter-spacing:-0.8px}
+  .tdc-proof{font-size:14px}
+  .tdc-feat-ph{min-height:236px}
   .tdc-tab{font-size:14px;padding:10px 0 14px;margin-right:22px}
   .tdc-ph-whatsnew{min-height:640px}
 }
 `;
-
-// "The Index": top-ranked resources per type as crawlable links. Columns flow
-// via CSS grid (no isMobile), so the server HTML is final — no layout jump.
-const INDEX_GROUPS = [['Podcast', 'Podcasts'], ['YouTube', 'YouTube channels'], ['Book', 'Books']];
-function HomeIndex({ resources }) {
-  const groups = INDEX_GROUPS
-    .map(([type, label]) => ({ label, items: resources.filter(r => r.fields?.Type === type && r.fields?.['Final Score'] != null).slice(0, 10) }))
-    .filter(g => g.items.length);
-  if (!groups.length) return null;
-  return (
-    <section aria-labelledby="tdc-index-h" style={{ maxWidth:1140, margin:'0 auto', padding:'8px 16px 48px', boxSizing:'border-box' }}>
-      <div style={{ borderTop:'2px solid #111', paddingTop:14, marginBottom:22, display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap' }}>
-        <h2 id="tdc-index-h" style={{ margin:0, fontSize:22, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>The Index</h2>
-        <span style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'#999', fontWeight:600 }}>Top ranked this week</span>
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:'8px 40px' }}>
-        {groups.map(g => (
-          <div key={g.label}>
-            <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:GREEN, fontWeight:700, marginBottom:8 }}>{g.label}</div>
-            <ol style={{ listStyle:'none', margin:0, padding:0 }}>
-              {g.items.map((r, i) => (
-                <li key={r.id} style={{ display:'flex', alignItems:'baseline', gap:10, padding:'7px 0', borderBottom:`1px solid ${BORDER}` }}>
-                  <span style={{ fontSize:11, color:'#bbb', minWidth:16, textAlign:'right', fontWeight:500 }}>{i + 1}</span>
-                  <Link href={`/resource/${r.id}`} style={{ flex:1, minWidth:0, fontSize:14, color:'#111', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.fields.Name}</Link>
-                  <span style={{ fontSize:12, color:GREEN, fontWeight:600, fontFamily:FONT_DISPLAY }}>{Math.round(r.fields['Final Score'])}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 // Cached at build time and refreshed at most once every 5 minutes (ISR).
 // Resources come from Supabase (Airtable-shaped records, same prop shape).
@@ -677,12 +653,32 @@ export default function Home({ initialResources }) {
   const [ytStats, setYtStats] = useState({});
   const [podStats, setPodStats] = useState({});
   const [bookStats, setBookStats] = useState({});
-  const [episodeMode, setEpisodeMode] = useState(true);
   const [episodeQuery, setEpisodeQuery] = useState('');
   const [episodes, setEpisodes] = useState([]);
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [episodeSearched, setEpisodeSearched] = useState(false);
   const [episodeCount, setEpisodeCount] = useState(0);
+  const [searchAll, setSearchAll] = useState(false); // ignore the specialty scope for one search
+
+  // "I'm a…" pick (hero chips). Stored in the browser; seeded from the profile
+  // for signed-in dentists. Scopes the featured episode, the episode search and
+  // the Discover feed — it is NOT the ranked-list Specialty filter below.
+  const [pickKey, setPickKey] = useSpecialtyPick(profile?.specialty);
+  const pick = findPick(pickKey);
+
+  // "Today's commute": the playable episode in the hero (see /api/featured-episode).
+  const [featured, setFeatured] = useState(null);
+  const [featuredLoaded, setFeaturedLoaded] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const qs = pickKey ? `?specialty=${encodeURIComponent(pickKey)}` : '';
+    fetch(`/api/featured-episode${qs}`).then(r => r.json())
+      .then(d => { if (active) setFeatured(d && d.episode ? d : null); })
+      .catch(() => { if (active) setFeatured(null); })
+      .finally(() => { if (active) setFeaturedLoaded(true); });
+    return () => { active = false; };
+  }, [pickKey]);
+  const featuredPlayback = useFeaturedPlayback(featured && featured.episode);
 
   const [submitOpen, setSubmitOpen] = useState(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('submit') === '1');
   const [submitUrl, setSubmitUrl] = useState('');
@@ -808,14 +804,18 @@ export default function Home({ initialResources }) {
   function selectSpecialty(s) { setActiveSpecialty(prev => prev === s ? null : s); setExpandedId(null); }
   function selectTopic(t) { setActiveTopic(prev => prev === t ? null : t); setExpandedId(null); }
 
-  async function searchEpisodes(q) {
+  async function searchEpisodes(q, { all = false } = {}) {
     if (!q || q.trim().length < 2) return;
     setEpisodeLoading(true);
     setEpisodeSearched(true);
     setEpisodes([]);
+    setSearchAll(all);
     try {
       // Search our own Supabase episode archive first (instant, full back-catalog).
-      const res = await fetch(`/api/episode-search?q=${encodeURIComponent(q)}&max=20`);
+      // The "I'm a…" pick scopes results to that specialty's episodes unless the
+      // visitor asked for everything.
+      const scope = !all && pick ? `&tag=${encodeURIComponent(pick.tag)}` : '';
+      const res = await fetch(`/api/episode-search?q=${encodeURIComponent(q)}&max=20${scope}`);
       const data = await res.json();
       let results = data.episodes || [];
       // Graceful fallback to the legacy live search if the archive has nothing
@@ -829,6 +829,23 @@ export default function Home({ initialResources }) {
     finally { setEpisodeLoading(false); }
   }
 
+  // One search box, two result sets: episodes (archive full-text) and matching
+  // shows/books (the ranked list, via the `search` filter). Submit-driven.
+  function submitSearch(q, opts) {
+    const t = (q || '').trim();
+    if (t.length < 2) return;
+    setSearch(t);
+    setExpandedId(null);
+    searchEpisodes(t, opts);
+  }
+  function clearSearch() {
+    setEpisodeQuery('');
+    setSearch('');
+    setEpisodes([]);
+    setEpisodeSearched(false);
+    setSearchAll(false);
+  }
+
   const displayResources = resources.length > 0 ? resources : DEMO_RESOURCES;
   const isDemo = resources.length === 0 && !loading;
 
@@ -838,7 +855,7 @@ export default function Home({ initialResources }) {
 
   const filtered = homeResources.filter(r => {
     const f = r.fields;
-    const catTypes = activeCategory ? CATEGORIES.find(c => c.label === activeCategory)?.types : null;
+    const catTypes = activeCategory && activeCategory !== 'All' ? CATEGORIES.find(c => c.label === activeCategory)?.types : null;
     const matchCat = !catTypes || catTypes.some(t => (f.Type||'') === t);
     const matchSpecialty = !activeSpecialty || (Array.isArray(f.Specialty) ? f.Specialty.some(s => (s.name||s) === activeSpecialty) : (f.Specialty||'') === activeSpecialty);
     const matchTopic = !activeTopic || (Array.isArray(f.Topic) ? f.Topic.includes(activeTopic) : (f.Topic||'') === activeTopic);
@@ -873,6 +890,37 @@ export default function Home({ initialResources }) {
   // sit above whats_new, e.g. The Essentials for logged-out visitors).
   const whatsNewIdx = effectiveLayout.findIndex(item => item.key === 'whats_new');
   const TOP_ZONE_PAD = isMobile ? '0 9px' : 0; // brings 7px baseline up to 16px
+
+  // Proof line under the headline (real resources only, never the demo rows).
+  const countType = t => resources.filter(r => r.fields?.Type === t).length;
+  const podcastCount = countType('Podcast');
+  const ytCount = countType('YouTube');
+  const bookCount = countType('Book');
+
+  // The single search field. A plain render function (not a component) so the
+  // input keeps focus across re-renders; used in the hero and in filter mode.
+  function renderSearchField({ inHero }) {
+    const n = episodeCount ? episodeCount.toLocaleString() : '37,000';
+    return (
+      <form role="search" onSubmit={e => { e.preventDefault(); submitSearch(episodeQuery); }}
+        style={{ display:'flex', alignItems:'center', gap:10, background:'#fff', border:`1px solid #d9d5c9`, borderRadius:12, padding:'0 6px 0 14px', height: inHero ? 50 : 48, boxShadow:'0 1px 4px rgba(0,0,0,0.06)', maxWidth: inHero ? 560 : 'none' }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+        </svg>
+        <input aria-label="Search episodes, shows and books" value={episodeQuery} onChange={e => setEpisodeQuery(e.target.value)}
+          placeholder={isMobile ? `Search ${n} episodes…` : `Search ${n} episodes… try "tax strategies" or "hiring an associate"`}
+          style={{ border:'none', background:'transparent', fontSize:15, color:'#111', outline:'none', flex:1, minWidth:0, height:44, fontFamily:FONT_BODY }} />
+        {(episodeQuery || search) && (
+          <button type="button" onClick={clearSearch} aria-label="Clear search"
+            style={{ border:'none', background:'none', cursor:'pointer', color:MUTED, fontSize:20, padding:'0 4px', lineHeight:1 }}>×</button>
+        )}
+        <button type="submit"
+          style={{ height:38, padding:'0 16px', borderRadius:8, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:700, fontSize:13, whiteSpace:'nowrap' }}>
+          Search
+        </button>
+      </form>
+    );
+  }
 
   const sorted = [...homeResources].sort((a,b) => (b.fields['Final Score']||0)-(a.fields['Final Score']||0));
   const trending = sorted.slice(0,4);
@@ -944,7 +992,7 @@ export default function Home({ initialResources }) {
           <div style={{ marginBottom:52, background:'rgba(255,255,255,0.55)', borderRadius:12, padding: isMobile ? '16px 10px 6px' : '28px 28px 10px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
             <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, paddingBottom:14, borderBottom:`2px solid #111` }}>
               <div style={{ fontSize:17, fontWeight:700, color:'#111', fontFamily:FONT_DISPLAY, letterSpacing:-0.4 }}>{blockHeading('whats_new', settings)}</div>
-              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
+              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:MUTED, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
                 <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#e53e3e', animation:'livePulse 1.4s ease-in-out infinite' }} />
                 Live from the feeds
                 <style>{`@keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }`}</style>
@@ -954,19 +1002,19 @@ export default function Home({ initialResources }) {
             {spotlight.podcasts.length > 0 && (
               <div style={{ marginBottom:8 }}>
                 <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:12 }}>Latest Podcast Episodes</div>
-                <Carousel items={spotlight.podcasts} isMobile={isMobile} />
+                <Carousel items={spotlight.podcasts} isMobile={isMobile} renderItem={item => <SpotlightCard item={item} compact />} />
               </div>
             )}
             {spotlight.videos.length > 0 && (
               <div>
                 <div style={{ fontSize:12, letterSpacing:'0.10em', textTransform:'uppercase', color:'#e52d27', fontWeight:600, marginBottom:12 }}>Latest Videos</div>
-                <Carousel items={spotlight.videos} isMobile={isMobile} />
+                <Carousel items={spotlight.videos} isMobile={isMobile} renderItem={item => <SpotlightCard item={item} compact />} />
               </div>
             )}
           </div>
         ) : null;
       case 'discover':
-        return <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} hidden={settings.hidden || []} counts={settings.counts || null} ready={homeLayoutLoaded} />;
+        return <DiscoverFeed isMobile={isMobile} signedIn={!!user} onSignInRequired={() => setShowSignIn(true)} hidden={settings.hidden || []} counts={settings.counts || null} ready={homeLayoutLoaded} pin={pick ? { tag: pick.tag, kind: pick.kind } : null} />;
       case 'pinboard':
         return <Pinboard resources={resources} isMobile={isMobile} />;
       case 'featured':
@@ -989,7 +1037,7 @@ export default function Home({ initialResources }) {
       case 'new_this_week':
         return recentlyAdded.length > 0 ? (
           <div style={{ marginBottom:48 }}>
-            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:18 }}>{blockHeading('new_this_week', settings)}</div>
+            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:MUTED, fontWeight:600, marginBottom:18 }}>{blockHeading('new_this_week', settings)}</div>
             <div style={{ borderTop:`1px solid ${BORDER}` }}>
               {recentlyAdded.map(r => (
                 <div key={r.id} onClick={() => router.push(`/resource/${r.id}`)}
@@ -999,7 +1047,7 @@ export default function Home({ initialResources }) {
                   <Logo url={r.fields.URL} name={r.fields.Name} size={36} imageUrl={r.fields['Image URL']} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:14, fontWeight:500, color:'#111', marginBottom:2 }}>{r.fields.Name}<NewBadge /></div>
-                    <div style={{ fontSize:11, color:'#bbb' }}>
+                    <div style={{ fontSize:11, color:MUTED }}>
                       <span style={{ color:GREEN, fontWeight:500, fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>{r.fields.Type}</span>
                       {r.fields['Host or Author'] ? <span> · {r.fields['Host or Author']}</span> : ''}
                     </div>
@@ -1062,7 +1110,7 @@ export default function Home({ initialResources }) {
         }
       })}} />
     </Head>
-    <div style={{ background:'#f5f2eb', backgroundImage:'radial-gradient(#c2b89a 1px, transparent 1px)', backgroundSize:'22px 22px', minHeight:'100vh', fontFamily:FONT_BODY }}>
+    <div style={{ background:'#f5f2eb', minHeight:'100vh', fontFamily:FONT_BODY }}>
 
       {/* Draft-preview banner — only when an admin opens ?preview=draft from the
           Home Layout composer. Signals this is an unpublished preview, not live. */}
@@ -1085,17 +1133,19 @@ export default function Home({ initialResources }) {
       <div className="tdc-nav" style={{ top:0, zIndex:100, background:'rgba(245,242,235,0.97)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', borderBottom:`1px solid ${BORDER}`, overflow:'visible' }}>
         <div style={{ height:3, background:GREEN }} />
         <div className="tdc-nav-in" style={{ maxWidth:1140, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', height:56, position:'relative', overflow:'visible' }}>
-          {/* Nav logo — breaks out downward on mobile, wide crop on desktop */}
-          <a href="/" className="tdc-navlogo" style={{ display:'flex', alignItems:'flex-start', textDecoration:'none', flexShrink:0 }}>
-            <span className="tdc-mob"><img src="/logo.png" alt="The Dental Commute" style={{ height:135, width:'auto' }} /></span>
+          {/* Nav logo — round mark + wordmark on mobile, wide crop on desktop */}
+          <a href="/" className="tdc-navlogo" style={{ display:'flex', alignItems:'center', gap:9, textDecoration:'none', flexShrink:0, color:'#111', minWidth:0 }}>
+            <span className="tdc-mob">
+              <img src="/logo.png" alt="" style={{ height:34, width:34, borderRadius:'50%', flexShrink:0 }} />
+              <span style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:15, letterSpacing:-0.2, whiteSpace:'nowrap' }}>The Dental Commute</span>
+            </span>
             <span className="tdc-desk"><img src="/wide-logo.png" alt="The Dental Commute" style={{ height:90, width:'auto', marginTop:-23, marginBottom:-23 }} /></span>
           </a>
-          {/* Spacer on mobile so right-side links don't overlap logo */}
-          <span className="tdc-mob"><div style={{ width:135, flexShrink:0 }} /></span>
-          {/* Right-side nav links */}
+          {/* Right-side nav links. Submit is a quiet text link: the only green
+              button in the first screen should be Play. */}
           <div className="tdc-navlinks" style={{ display:'flex', alignItems:'center' }}>
-            <span className="tdc-desk"><Link href="/about" style={{ fontSize:13, color:'#777', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</Link></span>
-            <button onClick={openSubmitModal} className="tdc-submit" style={{ fontSize:12, borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:600, letterSpacing:0.3, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(15,110,86,0.25)', flexShrink:0 }}>
+            <span className="tdc-desk"><Link href="/about" style={{ fontSize:13, color:'#555', textDecoration:'none', fontFamily:FONT_BODY, fontWeight:500, flexShrink:0 }}>About</Link></span>
+            <button onClick={openSubmitModal} className="tdc-submit" style={{ fontSize:13, background:'none', color:'#555', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, whiteSpace:'nowrap', flexShrink:0, padding:0 }}>
               <span className="tdc-mob">Submit</span><span className="tdc-desk">Submit a resource</span>
             </button>
             {user && (
@@ -1162,146 +1212,130 @@ export default function Home({ initialResources }) {
         {/* Top zone — roomier 16px mobile gutters (7px baseline + 9px here) */}
         <div className="tdc-topzone">
 
-        {/* Hero — only on homepage */}
+        {/* ── Hero ─────────────────────────────────────────────────────────
+            The first screen plays, it doesn't tell: headline + one line of
+            proof, one visible search field, and a playable "Today's commute"
+            episode. Layout (two columns vs stacked) is chosen by CSS before
+            first paint (see HOME_ABOVE_FOLD_CSS), not by isMobile. */}
         {!anyFilterActive && (
-          <div className="tdc-hero" style={{ position:'relative', marginBottom:44 }}>
-            {/* Large logo — desktop only, in page flow, scrolls away */}
-            <span className="tdc-desk">
-              <a href="/" style={{ position:'absolute', top:0, left:0, zIndex:10, textDecoration:'none' }}>
-                <img src="/logo.png" alt="The Dental Commute" style={{ height:437, width:'auto' }} />
-              </a>
-            </span>
-            {/* Hero text */}
-            <div className="tdc-herotext">
-            <div className="tdc-eyebrow" style={{ fontSize:13, letterSpacing:'0.14em', textTransform:'uppercase', color:'#555', marginBottom:16, fontWeight:600 }}>The home of dental education on the go</div>
-            <h1 className="tdc-h1" style={{ fontWeight:900, color:'#111', lineHeight:1.05, margin:'0 0 20px', fontFamily:FONT_DISPLAY }}>
-              Turn every commute<br/>into a <em style={{ color:GREEN, fontStyle:'italic' }}>masterclass.</em>
-            </h1>
-            <p style={{ fontSize:17, color:'#666', lineHeight:1.7, margin:'0 0 16px', fontWeight:400 }}>
-              Discover the best podcasts, YouTube channels, books, CE courses, coaching, and communities — ranked and curated for dentists.
-            </p>
-
-            {/* CE tracking badge */}
-            <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#E8F5F0', border:'1px solid #0F6E56', borderRadius:20, padding:'5px 14px 5px 10px', marginBottom:24 }}>
-              <div style={{ width:16, height:16, background:'#0F6E56', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div className="tdc-hero tdc-dots" style={{ position:'relative' }}>
+            <div className="tdc-hero-grid">
+              <div className="tdc-herotext">
+                <div className="tdc-eyebrow" style={{ fontSize:12, letterSpacing:'0.14em', textTransform:'uppercase', color:GREEN, marginBottom:12, fontWeight:700 }}>Dental education on the go</div>
+                <h1 className="tdc-h1" style={{ fontWeight:900, color:'#111', lineHeight:1.04, margin:'0 0 14px', fontFamily:FONT_DISPLAY }}>
+                  Turn every commute<br/>into a <em style={{ color:GREEN, fontStyle:'italic', fontWeight:700 }}>masterclass.</em>
+                </h1>
+                <p className="tdc-proof" style={{ color:'#4F4F4A', lineHeight:1.55, margin:'0 0 16px', fontWeight:400, maxWidth:520 }}>
+                  <strong style={{ color:'#111', fontWeight:600 }}>{episodeCount ? episodeCount.toLocaleString() : '37,000+'} episodes</strong>
+                  {podcastCount ? ` from ${podcastCount} podcasts, ${ytCount} YouTube channels and ${bookCount} books` : ' from dental podcasts, YouTube channels and books'}, ranked and curated for dentists. Free, with CE tracking built in.
+                </p>
+                {renderSearchField({ inHero: true })}
+                <span className="tdc-desk">
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:18, flexWrap:'wrap' }}>
+                    <button onClick={featuredPlayback.toggle} disabled={!featured}
+                      style={{ height:50, padding:'0 22px', border:'none', borderRadius:10, background: featured ? GREEN : '#9fb8b0', color:'#fff', fontFamily:FONT_BODY, fontWeight:700, fontSize:15, cursor: featured ? 'pointer' : 'default', display:'flex', alignItems:'center', gap:10 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{featuredPlayback.isPlaying ? <path d="M6 5h4v14H6zM14 5h4v14h-4z"/> : <path d="M7 5v14l12-7z"/>}</svg>
+                      {featuredPlayback.isPlaying ? 'Pause' : featuredPlayback.isActive ? 'Resume' : 'Start listening'}
+                    </button>
+                    <a href="#the-index" style={{ height:50, padding:'0 20px', borderRadius:10, border:`1px solid #d9d5c9`, background:'#fff', color:'#111', fontWeight:600, fontSize:14, display:'flex', alignItems:'center', textDecoration:'none', fontFamily:FONT_BODY }}>
+                      See the rankings
+                    </a>
+                  </div>
+                </span>
               </div>
-              <span style={{ fontSize:12, fontWeight:600, color:'#0a5240', letterSpacing:'0.02em' }}>CE tracking built in</span>
+              <div className="tdc-herocard">
+                <FeaturedEpisodeCard featured={featured} loaded={featuredLoaded} playback={featuredPlayback} isMobile={isMobile} onSignInRequired={() => setShowSignIn(true)} />
+              </div>
             </div>
-
-            {/* Stat band — the scale of what we've indexed */}
-            {(() => {
-              const byType = t => resources.filter(r => r.fields?.Type === t).length;
-              const epStat = { n: episodeCount, label: 'Episodes indexed', alwaysShow: true };
-              const otherStats = [
-                { n: byType('Podcast'),   label: 'Podcasts' },
-                { n: byType('YouTube'),   label: 'YouTube channels' },
-                { n: byType('Book'),      label: 'Books' },
-                { n: resources.length,    label: 'Total resources' },
-              ].filter(s => s.n > 0);
-              if (!otherStats.length) return null;
-              const epDisplay = epStat.n === 0 ? '37,000+' : epStat.n.toLocaleString();
-              const mobileBand = (
-                <div style={{ borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding:'18px 0' }}>
-                  {/* 2x2 grid for the four secondary stats */}
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'18px 24px', marginBottom:20 }}>
-                    {otherStats.map(s => (
-                      <div key={s.label} style={{ textAlign:'center' }}>
-                        <div style={{ fontSize:24, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{s.n.toLocaleString()}</div>
-                        <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Episodes — full-width centered at bottom, same size as the rest */}
-                  <div style={{ textAlign:'center', paddingTop:16, borderTop:`1px solid ${BORDER}` }}>
-                    <div style={{ fontSize:24, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{epDisplay}</div>
-                    <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{epStat.label}</div>
-                  </div>
-                </div>
-              );
-              // Desktop: episodes first, larger, then the rest
-              const desktopBand = (
-                <div style={{ display:'flex', gap:0, borderTop:`1px solid ${BORDER}`, borderBottom:`1px solid ${BORDER}`, padding:'22px 0' }}>
-                  <div style={{ flex:1.4, paddingRight:28, borderRight:`1px solid ${BORDER}` }}>
-                    <div style={{ fontSize:34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{epDisplay}</div>
-                    <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{epStat.label}</div>
-                  </div>
-                  {otherStats.map((s, i) => (
-                    <div key={s.label} style={{ flex:1, paddingLeft:28, borderLeft: i > 0 ? `1px solid ${BORDER}` : 'none' }}>
-                      <div style={{ fontSize:34, fontWeight:700, color:GREEN, fontFamily:FONT_DISPLAY, lineHeight:1, letterSpacing:-0.8 }}>{s.n.toLocaleString()}</div>
-                      <div style={{ fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'#999', marginTop:7, fontWeight:600 }}>{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-              );
-              // Both are sent; CSS shows the right one before first paint.
-              return <><span className="tdc-mob">{mobileBand}</span><span className="tdc-desk">{desktopBand}</span></>;
-            })()}
-            </div>{/* end right-justified text wrapper */}
+            <SpecialtyPicker value={pickKey} onChange={setPickKey} style={{ marginTop: 22 }} />
           </div>
         )}
 
+        {/* The Index — the ranking is the premise, so it is the second block.
+            Rendered outside the admin-composed layout so it always sits here. */}
+        {!anyFilterActive && !isDemo && resources.length > 0 && (
+          <TopIndex resources={homeResources} categories={VISIBLE_CATEGORIES} isMobile={isMobile}
+            onSeeAll={label => { setActiveCategory(label); setExpandedId(null); }}
+            renderLogo={(r, size) => <Logo url={r.fields.URL} name={r.fields.Name} size={size} imageUrl={ytStats[r.id]?.avatar || podStats[r.id]?.showArt || bookStats[r.id]?.cover || r.fields['Image URL'] || r.fields['Auto Image URL']} />} />
+        )}
+
+        {/* ── Filter / results mode ───────────────────────────────────────
+            Reached from a search, a type tab or a chip. Shows the type tabs,
+            the same single search field, and the specialty/topic refinements. */}
+        {anyFilterActive && (<>
         {/* Category tabs */}
         <div style={{ display:'flex', gap:0, borderBottom:`1px solid ${BORDER}`, marginBottom:16, overflowX:'auto', scrollbarWidth:'none' }}>
-          {[{label:'All', key:null}, ...VISIBLE_CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
-            const isActive = activeCategory === key;
+          {[{label:'All', key:'All'}, ...VISIBLE_CATEGORIES.map(c => ({label:c.label, key:c.label}))].map(({label, key}) => {
+            const isActive = activeCategory === key || (key === 'All' && !activeCategory);
             return (
               <button key={label} onClick={() => selectCategory(key)} className="tdc-tab"
-                style={{ background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : '#aaa', fontWeight: isActive ? 700 : 400, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
+                style={{ background:'none', border:'none', borderBottom: isActive ? `3px solid ${GREEN}` : '3px solid transparent', color: isActive ? '#111' : MUTED, fontWeight: isActive ? 700 : 500, cursor:'pointer', fontFamily:FONT_BODY, whiteSpace:'nowrap', letterSpacing: isActive ? -0.1 : 0, transition:'color 0.15s' }}>
                 {label}
               </button>
             );
           })}
         </div>
 
-        {/* Search bar + mode toggle */}
-        <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12, flexWrap:'wrap' }}>
-          {!episodeMode && (
-            <div style={{ display:'flex', alignItems:'center', gap:10, border:`1px solid ${BORDER}`, borderRadius:8, padding:'13px 18px', background:'#fff', flex:1, boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${filtered.length} titles…`}
-                style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
-              {search && <button onClick={() => setSearch('')} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
-            </div>
-          )}
-          {episodeMode && (
-            <div style={{ display:'flex', gap:10, alignItems:'center', border:`1px solid ${BORDER}`, borderRadius:8, padding:'13px 18px', background:'#fff', flex:1, boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input value={episodeQuery} onChange={e => setEpisodeQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && searchEpisodes(episodeQuery)}
-                placeholder={`Search ${episodeCount ? episodeCount.toLocaleString() + ' ' : ''}episodes… try "tax strategies" or "hiring an associate"`}
-                style={{ border:'none', background:'transparent', fontSize:14, color:'#111', outline:'none', flex:1, fontFamily:FONT_BODY }} />
-              {episodeQuery && <button onClick={() => { setEpisodeQuery(''); setEpisodes([]); setEpisodeSearched(false); }} style={{ border:'none', background:'none', cursor:'pointer', color:'#bbb', fontSize:16, padding:0, lineHeight:1 }}>×</button>}
-              <button onClick={() => searchEpisodes(episodeQuery)}
-                style={{ fontSize:12, padding:'5px 14px', borderRadius:4, background:GREEN, color:'#fff', border:'none', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, whiteSpace:'nowrap' }}>
-                Search
-              </button>
-            </div>
-          )}
-          {/* Mode toggle — right of search bar always */}
-          <div style={{ display:'flex', gap:0, border:`1px solid ${BORDER}`, borderRadius:6, overflow:'hidden', background:'#fff', flexShrink:0, maxWidth:'fit-content' }}>
-            <button onClick={() => { setEpisodeMode(true); setSearch(''); }}
-              style={{ fontSize:12, padding:'10px 16px', border:'none', background: episodeMode ? GREEN : '#fff', color: episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s', display:'flex', alignItems:'center', gap:6 }}>
-              🎙 Episodes
-            </button>
-            <button onClick={() => { setEpisodeMode(false); setEpisodes([]); setEpisodeSearched(false); }}
-              style={{ fontSize:12, padding:'10px 16px', border:'none', borderLeft:`1px solid ${BORDER}`, background: !episodeMode ? GREEN : '#fff', color: !episodeMode ? '#fff' : '#999', cursor:'pointer', fontFamily:FONT_BODY, fontWeight:500, transition:'all 0.15s' }}>
-              Titles
-            </button>
-          </div>
+        {/* Search field */}
+        <div style={{ marginBottom:12 }}>
+          {renderSearchField({ inHero: false })}
         </div>
 
+        </>)}
+
+        </div>{/* end top zone — remaining sections drop to the 7px baseline */}
+
+        {/* Episode search results */}
+        {(episodeLoading || episodeSearched) && (
+          <div style={{ marginBottom:48 }}>
+            {episodeLoading && (
+              <div style={{ padding:'48px 0', textAlign:'center', color:MUTED, fontSize:14 }}>Searching episodes…</div>
+            )}
+            {!episodeLoading && episodeSearched && episodes.length === 0 && (
+              <div style={{ padding:'36px 0', textAlign:'center', color:MUTED, fontSize:14 }}>
+                No episodes found for "{search || episodeQuery}"{pick && !searchAll ? ` in ${pick.label.toLowerCase()} episodes` : ''}.
+                {pick && !searchAll && (
+                  <button onClick={() => searchEpisodes(search || episodeQuery, { all: true })}
+                    style={{ marginLeft:8, fontSize:13, color:GREEN, fontWeight:600, background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:FONT_BODY }}>
+                    Search all episodes →
+                  </button>
+                )}
+              </div>
+            )}
+            {!episodeLoading && episodes.length > 0 && (
+              <>
+                <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:MUTED, fontWeight:600, marginBottom:4 }}>
+                  {episodes.length} episodes found
+                </div>
+                <div style={{ fontSize:12, color:MUTED, marginBottom:18, display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                  <span>Results for <span style={{ color:'#111', fontWeight:500 }}>"{search || episodeQuery}"</span>{pick && !searchAll ? ` in ${pick.label.toLowerCase()} episodes` : ' across all podcasts'}</span>
+                  {pick && !searchAll && (
+                    <button onClick={() => searchEpisodes(search || episodeQuery, { all: true })}
+                      style={{ fontSize:12, color:GREEN, fontWeight:600, background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:FONT_BODY }}>
+                      Search all episodes →
+                    </button>
+                  )}
+                </div>
+                <div>
+                  {episodes.map((ep, i) => (
+                    <EpisodeCard key={ep.id || i} ep={ep} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Refinements for the ranked list (shows & books) — after the episode
+            results so a phone sees results first. */}
+        {anyFilterActive && (<>
         {/* Specialty filter pills */}
         <div style={{ display:'flex', gap:6, flexWrap:'wrap', padding:'8px 0 6px', borderBottom:`1px solid ${BORDER}`, marginBottom:0 }}>
           {SPECIALTIES.map(s => ({label:s.label, key:s.value})).map(({label, key}) => {
             const isActive = activeSpecialty === key;
             return (
               <button key={label} onClick={() => selectSpecialty(key)}
-                style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? GREEN : BORDER}`, background: isActive ? GREEN : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
+                style={{ fontSize:12, padding:'6px 12px', borderRadius:20, border:`1px solid ${isActive ? GREEN : BORDER}`, background: isActive ? GREEN : '#fff', color: isActive ? '#fff' : '#444', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
                 {label}
               </button>
             );
@@ -1314,41 +1348,13 @@ export default function Home({ initialResources }) {
             const isActive = activeTopic === key;
             return (
               <button key={label} onClick={() => selectTopic(key)}
-                style={{ fontSize:11, padding:'4px 12px', borderRadius:20, border:`1px solid ${isActive ? '#6B46C1' : BORDER}`, background: isActive ? '#6B46C1' : '#fff', color: isActive ? '#fff' : '#777', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
+                style={{ fontSize:12, padding:'6px 12px', borderRadius:20, border:`1px solid ${isActive ? '#6B46C1' : BORDER}`, background: isActive ? '#6B46C1' : '#fff', color: isActive ? '#fff' : '#444', cursor:'pointer', fontFamily:FONT_BODY, fontWeight: isActive ? 600:400, whiteSpace:'nowrap', transition:'all 0.15s' }}>
                 {label}
               </button>
             );
           })}
         </div>
-
-        </div>{/* end top zone — remaining sections drop to the 7px baseline */}
-
-        {/* Episode search results */}
-        {episodeMode && (episodeLoading || episodeSearched) && (
-          <div style={{ marginBottom:48 }}>
-            {episodeLoading && (
-              <div style={{ padding:'48px 0', textAlign:'center', color:'#bbb', fontSize:14 }}>Searching episodes…</div>
-            )}
-            {!episodeLoading && episodeSearched && episodes.length === 0 && (
-              <div style={{ padding:'48px 0', textAlign:'center', color:'#bbb', fontSize:14 }}>No episodes found for "{episodeQuery}"</div>
-            )}
-            {!episodeLoading && episodes.length > 0 && (
-              <>
-                <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', fontWeight:600, marginBottom:4 }}>
-                  {episodes.length} episodes found
-                </div>
-                <div style={{ fontSize:11, color:'#bbb', marginBottom:18 }}>
-                  Results for <span style={{ color:'#111', fontWeight:500 }}>"{episodeQuery}"</span> across all podcasts
-                </div>
-                <div>
-                  {episodes.map((ep, i) => (
-                    <EpisodeCard key={ep.id || i} ep={ep} />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        </>)}
 
         {loading && <div style={{ padding:'80px 0', textAlign:'center', color:'#ccc', fontSize:14 }}>Loading…</div>}
 
@@ -1426,14 +1432,14 @@ export default function Home({ initialResources }) {
                             {yt?.videos && <span>· {yt.videos} videos</span>}
                           </div>
                           {!isMobile && yt?.latest && (
-                            <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                            <div style={{ fontSize:11, color:MUTED, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                               <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
                               {yt.latest.title}
                               {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
                             </div>
                           )}
                           {!isMobile && pod?.latest && (
-                            <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                            <div style={{ fontSize:11, color:MUTED, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                               <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
                               {pod.latest.title}
                               {pod.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{pod.latest.date}</span>}
@@ -1449,7 +1455,7 @@ export default function Home({ initialResources }) {
                         <div style={{ padding: isMobile ? '0 0 20px 0' : '0 0 20px 38px', background:'#faf9f6' }}>
                           {yt?.recentVideos?.length > 0 && (
                             <div style={{ marginBottom:16 }}>
-                              <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Videos</div>
+                              <div style={{ fontSize:10, color:MUTED, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Videos</div>
                               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, paddingRight: isMobile ? 0 : 80 }}>
                                 {yt.recentVideos.map((v, idx) => (
                                   <a key={idx} href={v.url} target="_blank" rel="noopener noreferrer"
@@ -1474,7 +1480,7 @@ export default function Home({ initialResources }) {
                           )}
                           {pod?.episodes?.length > 0 && (
                             <div style={{ marginBottom:16 }}>
-                              <div style={{ fontSize:10, color:'#bbb', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
+                              <div style={{ fontSize:10, color:MUTED, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Recent Episodes</div>
                               <div style={{ display:'flex', flexDirection:'column', gap:6, paddingRight: isMobile ? 0 : 80 }}>
                                 {pod.episodes.map((ep, idx) => (
                                   <ExpandedEpisodeRow
@@ -1558,8 +1564,8 @@ export default function Home({ initialResources }) {
           {/* Ranked list — shown when any filter active */}
           {anyFilterActive && ranked.length > 0 && (
             <div style={{ marginBottom:44, background:'rgba(255,255,255,0.35)', borderRadius:12, padding: isMobile ? '16px 10px 16px' : '28px 28px 24px', border:`1px solid ${BORDER}`, boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
-              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bbb', marginBottom:4, fontWeight:600 }}>
-                {filtered.length} {activeCategory ? `${activeCategory}` : 'resources'}{activeSpecialty ? ` · ${activeSpecialty}` : ''}{activeTopic ? ` · ${activeTopic}` : ''} — ranked
+              <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:MUTED, marginBottom:4, fontWeight:600 }}>
+                {search ? `Shows & books matching "${search}" · ` : ''}{filtered.length} {activeCategory && activeCategory !== 'All' ? `${activeCategory}` : 'resources'}{activeSpecialty ? ` · ${activeSpecialty}` : ''}{activeTopic ? ` · ${activeTopic}` : ''} — ranked
               </div>
               <div>
                 {ranked.map((r, i) => {
@@ -1591,14 +1597,14 @@ export default function Home({ initialResources }) {
                           {yt?.videos && <span>· {yt.videos} videos</span>}
                         </div>
                         {!isMobile && yt?.latest && (
-                          <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                          <div style={{ fontSize:11, color:MUTED, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                             <span style={{ color:'#e52d27', fontWeight:600, marginRight:4 }}>▶</span>
                             {yt.latest.title}
                             {yt.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{yt.latest.date}</span>}
                           </div>
                         )}
                         {!isMobile && pod?.latest && (
-                          <div style={{ fontSize:11, color:'#aaa', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                          <div style={{ fontSize:11, color:MUTED, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                             <span style={{ color:GREEN, fontWeight:600, marginRight:4 }}>🎙</span>
                             {pod.latest.title}
                             {pod.latest.date && <span style={{ color:'#ccc', marginLeft:6 }}>{pod.latest.date}</span>}
@@ -1624,7 +1630,7 @@ export default function Home({ initialResources }) {
 
           {anyFilterActive && ranked.length === 0 && (
             <div style={{ padding:'80px 0', textAlign:'center' }}>
-              <div style={{ fontSize:15, color:'#bbb', marginBottom:12 }}>Nothing here yet.</div>
+              <div style={{ fontSize:15, color:MUTED, marginBottom:12 }}>Nothing here yet.</div>
               <button onClick={openSubmitModal}
                 style={{ fontSize:13, color:GREEN, fontWeight:500, textDecoration:'none', border:`1px solid ${GREEN}`, padding:'8px 18px', borderRadius:4, fontFamily:FONT_BODY, background:'transparent', cursor:'pointer' }}>
                 Suggest one →
@@ -1658,7 +1664,7 @@ export default function Home({ initialResources }) {
                     <div style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', marginBottom:4 }}>Suggest a resource</div>
                     <div style={{ fontSize:13, color:'#888' }}>Paste a URL and our AI will do the rest.</div>
                   </div>
-                  <button onClick={() => setSubmitOpen(false)} style={{ background:'none', border:'none', fontSize:20, color:'#aaa', cursor:'pointer', padding:0, lineHeight:1 }}>×</button>
+                  <button onClick={() => setSubmitOpen(false)} style={{ background:'none', border:'none', fontSize:20, color:MUTED, cursor:'pointer', padding:0, lineHeight:1 }}>×</button>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -1696,11 +1702,6 @@ export default function Home({ initialResources }) {
 
     </div>
 
-    {/* The Index — a plain-link list of the top-ranked resources, rendered in the
-        page HTML itself. Every other home section loads client-side (and the
-        ranked list only appears after a search/tab), so without this Google
-        saw a home page linking to no resources at all. */}
-    {!anyFilterActive && resources.length > 0 && <HomeIndex resources={homeResources} />}
 
     {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
     {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
