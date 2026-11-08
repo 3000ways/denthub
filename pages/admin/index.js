@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AUDIENCES, BLOCK_META, blockAvailableFor, isRenamable, DISCOVER_DEFAULT_COUNTS, DISCOVER_KINDS, PERSONAL_DEFAULT_COUNTS, PERSONAL_KINDS } from '../../lib/home-layout';
 import { VOICE_TYPES, VOICE_STATUSES } from '../../lib/voice';
+import { defaultIntroText } from '../../lib/briefing-script';
+import { CLUSTERS as BRIEFING_CLUSTERS } from '../../lib/journals';
 
 const GREEN = '#0F6E56';
 const BORDER = '#e8e8e8';
@@ -3414,6 +3416,17 @@ function BriefingsTab() {
   const [pron, setPron] = useState([]);
   const [newTerm, setNewTerm] = useState({ term: '', spoken_as: '' });
   const [editing, setEditing] = useState({}); // journal id → spoken name draft
+  const [introDraft, setIntroDraft] = useState({}); // cluster → intro text being edited
+  const [introOpen, setIntroOpen] = useState({});   // cluster → editor open
+  function introDefault(c, js) {
+    const names = js.map(j => j.name.replace(/^The /, 'the ')).map(n => (/^(the|JADA|CRANIO)/i.test(n) ? n : `the ${n}`));
+    return defaultIntroText({ show: c.show, label: c.label.toLowerCase(), journalNames: names });
+  }
+  async function saveIntro(cluster) {
+    const text = introDraft[cluster];
+    if (typeof text !== 'string') return;
+    await patchJournal({ cluster, intro_script: text });
+  }
 
   async function load() {
     setError('');
@@ -3576,6 +3589,36 @@ function BriefingsTab() {
               {on && <button onClick={() => patchJournal({ cluster: c.key, paused: !paused })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${paused ? GREEN : '#e0b4b4'}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: paused ? GREEN : '#c0392b' }}>{paused ? 'Resume show' : 'Pause show'}</button>}
               <button onClick={() => patchJournal({ cluster: c.key, active: !on })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{on ? 'Switch off' : 'Switch on'}</button>
             </div>
+            {/* Launch gate: introduction episode first, then Launch */}
+            {on && (() => {
+              const sh = status?.shows?.[c.key] || {};
+              const launched = !!sh.launched;
+              const open = !!introOpen[c.key];
+              const current = introDraft[c.key] ?? sh.intro_script ?? introDefault(c, js);
+              const dirty = (introDraft[c.key] ?? null) !== null && introDraft[c.key] !== (sh.intro_script || '');
+              return (
+                <div style={{ background: launched ? '#f3faf7' : '#fffaf0', border: `1px solid ${launched ? '#bfe3d3' : '#f0d9a8'}`, borderRadius: 6, padding: '10px 12px', marginBottom: 10, fontSize: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <strong style={{ color: launched ? GREEN : '#8a5a00' }}>{launched ? `Launched ${sh.launched_at ? new Date(sh.launched_at).toLocaleDateString() : ''}` : 'Not launched — nothing publishes yet'}</strong>
+                    <span style={{ color: '#666' }}>{sh.intro_script ? `Introduction saved${sh.intro_updated_at ? ` ${new Date(sh.intro_updated_at).toLocaleDateString()}` : ''}.` : 'Write the introduction episode first.'}</span>
+                    <button onClick={() => setIntroOpen(x => ({ ...x, [c.key]: !open }))} style={{ marginLeft: 'auto', fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{open ? 'Close editor' : (sh.intro_script ? 'Edit introduction' : 'Write introduction')}</button>
+                    {!launched && <button onClick={() => patchJournal({ cluster: c.key, launched: true })} disabled={!sh.intro_script} title={sh.intro_script ? 'The next render run will publish the introduction, then weekly episodes' : 'Save an introduction first'} style={{ fontSize: 11, padding: '4px 12px', border: 'none', borderRadius: 4, background: sh.intro_script ? GREEN : '#ccc', color: '#fff', cursor: sh.intro_script ? 'pointer' : 'default', fontFamily: FONT, fontWeight: 700 }}>Launch show</button>}
+                    {launched && <button onClick={() => patchJournal({ cluster: c.key, launched: false })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: '#c0392b' }}>Un-launch</button>}
+                  </div>
+                  {open && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ color: '#666', marginBottom: 6 }}>Grace reads this as episode 0, one paragraph per breath. Plain words only: no links, no reference numbers. Journal names as you want them spoken.</div>
+                      <textarea value={current} onChange={e => setIntroDraft(x => ({ ...x, [c.key]: e.target.value }))} rows={10} style={{ ...inp(), width: '100%', fontFamily: FONT, fontSize: 13, lineHeight: 1.5, resize: 'vertical' }} />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+                        <button onClick={() => saveIntro(c.key)} disabled={!dirty} style={{ fontSize: 12, padding: '6px 14px', border: 'none', borderRadius: 4, background: dirty ? GREEN : '#ccc', color: '#fff', cursor: dirty ? 'pointer' : 'default', fontFamily: FONT, fontWeight: 600 }}>Save introduction</button>
+                        <button onClick={() => setIntroDraft(x => ({ ...x, [c.key]: introDefault(c, js) }))} style={{ fontSize: 12, padding: '6px 12px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>Reset to template</button>
+                        <span style={{ color: '#888' }}>{Math.round(current.replace(/\s+/g, ' ').length / 11.3)} s spoken, roughly</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: papers.length ? 10 : 0 }}>
               <thead><tr style={{ color: '#999', textAlign: 'left' }}>
                 <th style={{ padding: '4px 6px 4px 0', fontWeight: 600 }}>Journal</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Spoken as</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Last 7 days</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Total</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Last harvest</th>
