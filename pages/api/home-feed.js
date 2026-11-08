@@ -16,7 +16,11 @@ function parseCuration(query) {
       if (Number.isFinite(n)) counts[k] = Math.max(0, Math.min(12, n));
     }
   });
-  return { hidden, counts };
+  // The visitor's "I'm a…" pick (lib/specialties.js) pins one row to the top.
+  const pin = typeof query.pin === 'string' && query.pin.trim()
+    ? { tag: query.pin.trim().slice(0, 60), kind: query.pinKind === 'career' ? 'career' : 'interest' }
+    : null;
+  return { hidden, counts, pin };
 }
 
 export default async function handler(req, res) {

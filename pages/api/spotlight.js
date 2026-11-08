@@ -10,6 +10,7 @@
 import { supabase } from '../../lib/supabase';
 import { listPublishedResources } from '../../lib/resources-db';
 import { setCdnCache } from '../../lib/cdn-cache';
+import { formatMinutes } from '../../lib/specialties';
 
 const DISPLAY_COUNT = 12; // how many of each type to feed the "What's New" carousels
 
@@ -101,7 +102,7 @@ async function latestPodcastEpisodes(podcastMeta) {
   const byId = new Map(podcastMeta.map(m => [m.id, m]));
   const { data, error } = await supabase
     .from('episodes')
-    .select('id, show_resource_id, show_name, title, description, published_at, audio_url, image, guid')
+    .select('id, show_resource_id, show_name, title, description, published_at, audio_url, image, guid, duration_seconds')
     .not('audio_url', 'is', null)
     .lte('published_at', new Date().toISOString()) // ignore future-dated feed items
     // nullsFirst:false matches episodes_published_at_idx (DESC NULLS LAST); plain
@@ -128,6 +129,8 @@ async function latestPodcastEpisodes(podcastMeta) {
       date:        d ? d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : null,
       sortDate:    d ? d.getTime() : 0,
       description: stripHtml(e.description || '').slice(0, 200),
+      duration:    formatMinutes(e.duration_seconds),
+      durationSeconds: e.duration_seconds || null,
       score:       meta.score,
     });
   }

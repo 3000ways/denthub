@@ -25,17 +25,22 @@ function formatDuration(secs) {
 }
 
 export default async function handler(req, res) {
-  const { q, max = '20' } = req.query;
+  const { q, max = '20', tag } = req.query;
   if (!q || q.trim().length < 2) {
     return res.status(400).json({ error: 'Query too short' });
   }
   const maxN = Math.min(parseInt(max, 10) || 20, 50);
+  // Optional scope: a quiz tag (clinical interest / career stage) from the
+  // home-page specialty picker — narrows results to episodes carrying that tag.
+  const scopeTag = typeof tag === 'string' && tag.trim().length ? tag.trim().slice(0, 60) : null;
 
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('episodes')
       .select('id, show_resource_id, show_name, title, description, published_at, link, audio_url, image, duration_seconds')
-      .textSearch('fts', q.trim(), { type: 'websearch', config: 'english' })
+      .textSearch('fts', q.trim(), { type: 'websearch', config: 'english' });
+    if (scopeTag) query = query.overlaps('quiz_tags', [scopeTag]);
+    const { data, error } = await query
       .order('published_at', { ascending: false, nullsFirst: false })
       .limit(maxN);
 
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
     }));
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
-    return res.status(200).json({ episodes, count: episodes.length, query: q, source: 'archive' });
+    return res.status(200).json({ episodes, count: episodes.length, query: q, tag: scopeTag, source: 'archive' });
   } catch (err) {
     console.error('[episode-search] error:', err.message);
     return res.status(500).json({ error: String(err.message || err) });

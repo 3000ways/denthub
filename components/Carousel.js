@@ -33,7 +33,7 @@ export function Carousel({ eyebrow, title, seeAllHref, items = [], isMobile, ren
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
           <div style={{ minWidth: 0 }}>
             {eyebrow && (
-              <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#bbb', fontWeight: 600, marginBottom: 4 }}>{eyebrow}</div>
+              <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6f6f6a', fontWeight: 600, marginBottom: 4 }}>{eyebrow}</div>
             )}
             {title && <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 700, color: '#111', fontFamily: FONT_DISPLAY, letterSpacing: -0.4, lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>}
           </div>
