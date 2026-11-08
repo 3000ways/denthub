@@ -51,8 +51,8 @@ export default async function handler(req, res) {
       if (!needsWork(a)) continue;
       if (processed && Date.now() - started > BUDGET_MS) break;
       const patch = { updated_at: new Date().toISOString() };
-      // 1. licence
-      if (!a.oa_checked_at && a.doi) {
+      // 1. licence (also re-check papers checked before migration 0028, which stored no host type)
+      if (a.doi && (!a.oa_checked_at || (a.oa_license && !a.oa_host_type))) {
         const oa = await lookupOpenAccess(a.doi);
         if (oa.checked) {
           Object.assign(patch, { oa_status: oa.oa_status, oa_url: oa.oa_url, oa_license: oa.license, oa_host_type: oa.host_type, oa_checked_at: new Date().toISOString() });
