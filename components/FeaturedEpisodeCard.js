@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePlayer } from '../lib/player-context';
 import { EpisodeBookmarkButton } from './EpisodeBookmarkButton';
+import { track } from '../lib/analytics';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -13,7 +14,7 @@ const MUTED  = '#6f6f6a';
 // button and the headline's "Start listening" button drive the same thing.
 // `episode` is the /api/featured-episode shape (already archive-backed, so it
 // carries an id and needs no upsert before playing).
-export function useFeaturedPlayback(episode) {
+export function useFeaturedPlayback(episode, pickKey = null) {
   const { play, pause, resume, isPlaying, currentEpisode } = usePlayer();
   const isActive = !!(episode && currentEpisode && (
     (currentEpisode.id && episode.id && currentEpisode.id === episode.id) ||
@@ -23,6 +24,7 @@ export function useFeaturedPlayback(episode) {
     if (e && e.preventDefault) e.preventDefault();
     if (!episode) return;
     if (isActive) { isPlaying ? pause() : resume(); return; }
+    track('featured_play', { episode_id: episode.id, show: episode.show_name, show_id: episode.show_resource_id, specialty: pickKey || undefined });
     play({
       id:               episode.id,
       audio_url:        episode.audio_url,
