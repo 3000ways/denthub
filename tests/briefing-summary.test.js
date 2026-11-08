@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkSummary, sharedRun, numbersIn, spelledNumbers, summaryCostCents, NGRAM } from '../lib/briefing-summary.js';
+import { checkSummary, sharedRun, numbersIn, spelledNumbers, summaryCostCents, NGRAM, bannedIn, MAX_NUMBERS } from '../lib/briefing-summary.js';
 
 const abstract = [
   { label: 'INTRODUCTION', text: 'Root resection is performed for endodontic or periodontal reasons.' },
@@ -8,8 +8,8 @@ const abstract = [
   { label: 'RESULTS', text: 'Fourteen studies were included (n = 1,236). Pooled survival was 92.5% at 5 years and 87% at 10 years (95% CI 81–91).' },
   { label: 'CONCLUSIONS', text: 'Available evidence does not demonstrate a difference between indications.' },
 ];
-const good = 'The authors ran a systematic review covering randomized and cohort work from 2000 through 2024, pulling together 14 studies and 1236 resected roots. '
-  + 'They looked at how resected teeth fared when the reason was endodontic versus periodontal. Survival came out at 92.5% at the 5 year mark and 87% by 10 years, with the confidence interval running 81 to 91 at the later point. '
+const good = 'The authors ran a systematic review of randomized and cohort work published over the past two decades, pulling together 14 studies and 1236 resected roots. '
+  + 'They looked at how resected teeth fared when the reason was endodontic versus periodontal. Survival came out at 92.5% at the 5 year mark and 87% by 10 years, with the confidence interval running from 81 to 91 at the later point. '
   + 'The team found nothing to separate the two indications on these numbers, and they frame the finding as reassuring for clinicians weighing a resection either way, while noting the evidence base remains modest in size.';
 
 test('a faithful own-words summary passes', () => {
@@ -45,4 +45,15 @@ test('length, links and citation markers are rejected', () => {
 test('summary cost uses the published sonar-pro prices plus a request fee', () => {
   // 1,000 input + 300 output tokens: $0.003 + $0.0045 + $0.005 request = 1.25 cents
   assert.ok(Math.abs(summaryCostCents({ prompt_tokens: 1000, completion_tokens: 300 }) - 1.25) < 0.001);
+});
+
+test('machine-sounding words and number overload are rejected', () => {
+  assert.deepEqual(new Set(bannedIn('This study underscores a robust, comprehensive landscape. Notably, it delves deep.')), new Set(['delves', 'underscores', 'robust', 'notably', 'landscape', 'comprehensive', 'this study']));
+  assert.deepEqual(bannedIn('The authors followed 50 teeth and found the overall rate was 82%.'), []);
+  const r = checkSummary(good.replace('The authors ran a systematic review', 'Notably, the authors ran a robust systematic review'), abstract);
+  assert.ok(r.problems.some(p => p.startsWith('sounds machine-written')), r.problems.join(' | '));
+  const many = good + ' ' + Array.from({ length: MAX_NUMBERS + 2 }, (_, i) => `${2000 + i}`).join(', ') + '.';
+  const abs2 = [...abstract, { label: 'EXTRA', text: Array.from({ length: MAX_NUMBERS + 2 }, (_, i) => `${2000 + i}`).join(' ') }];
+  assert.ok(checkSummary(many, abs2).problems.some(p => p.startsWith('too many numbers')));
+  assert.ok(checkSummary(good.replace('They looked at', 'They looked at -- yes --'), abstract).problems.includes('contains dashes; use commas or full stops'));
 });

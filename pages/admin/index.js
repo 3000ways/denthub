@@ -3427,8 +3427,12 @@ function BriefingsTab() {
   async function previewIntro(cluster) {
     setPreviewing(x => ({ ...x, [cluster]: true })); setError('');
     try {
-      const r = await fetch('/api/admin/briefing-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cluster }) });
-      const d = await r.json(); if (d.error) setError(d.error); else await load();
+      let d;
+      do {
+        const r = await fetch('/api/admin/briefing-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cluster }) });
+        d = await r.json(); if (d.error) throw new Error(d.error);
+      } while (!d.done);
+      await load();
     } catch (e) { setError(e.message); }
     finally { setPreviewing(x => { const y = { ...x }; delete y[cluster]; return y; }); }
   }
@@ -3476,6 +3480,30 @@ function BriefingsTab() {
       await load(); await showScript(id);
     } catch (e) { setError(e.message); }
     finally { setPreparing(x => { const y = { ...x }; delete y[id]; return y; }); }
+  }
+  // Hear a drafted weekly before anything is published: prepare if needed, then
+  // render through the shared cache in rounds (each call ~40 s of work).
+  const [listening, setListening] = useState({});   // briefing id → progress text
+  async function listenBriefing(b) {
+    setListening(x => ({ ...x, [b.id]: 'Starting…' })); setError('');
+    try {
+      if (b.kind === 'weekly' && !b.checks?.prepared) {
+        let r;
+        do {
+          const res = await fetch('/api/briefings/prepare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ briefing_id: b.id }) });
+          r = await res.json(); if (r.error) throw new Error(r.error);
+          setListening(x => ({ ...x, [b.id]: r.done ? 'Prepared. Rendering…' : `Preparing: ${r.remaining} paper${r.remaining === 1 ? '' : 's'} to go…` }));
+        } while (!r.done);
+      }
+      let d, doneSoFar = 0;
+      do {
+        const res = await fetch('/api/admin/briefing-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ briefing_id: b.id }) });
+        d = await res.json(); if (d.error) throw new Error(d.error);
+        if (!d.done) { doneSoFar += d.rendered || 0; setListening(x => ({ ...x, [b.id]: `Rendering: ${d.remaining} of ${d.total} pieces to go…` })); }
+      } while (!d.done);
+      await load();
+    } catch (e) { setError(e.message); }
+    finally { setListening(x => { const y = { ...x }; delete y[b.id]; return y; }); }
   }
   async function showScript(id) {
     if (scriptOpen[id]) { setScriptOpen(x => { const y = { ...x }; delete y[id]; return y; }); return; }
@@ -3535,7 +3563,7 @@ function BriefingsTab() {
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>TDC Podcast — journal briefings</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
         A weekly AI-narrated podcast per specialty (<strong>Endodontics This Week</strong>, <strong>Orthodontics This Week</strong>, …) that briefs you on the week&rsquo;s new papers from the top three journals.
-        Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Monday morning the script is drafted, each paper is prepared (licence check; an own-words summary for all-rights-reserved papers, checked against the abstract; open-access abstracts read as published), then rendered and published, automatically.
+        Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Monday morning the script is drafted, each paper is prepared (licence check; an own-words summary for all-rights-reserved papers, checked against the abstract; open-access abstracts read as published), then rendered. With &ldquo;Review before publishing&rdquo; on (the default), the episode waits here for you to listen and press Publish; off, Monday publishes on its own. You can also Listen to any drafted episode before Monday.
         <strong> Nothing here needs approval</strong> — this tab is for watching it run, switching shows on, fixing a spoken name, and seeing what it costs.
       </p>
 
@@ -3595,13 +3623,17 @@ function BriefingsTab() {
                   <tr style={{ borderTop: `1px solid ${BORDER}` }}>
                     <td style={{ padding: '6px 6px 6px 0', whiteSpace: 'nowrap' }}>{b.week_of}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{show}{b.kind === 'trailer' ? ' · trailer' : ''}</td>
-                    <td style={{ padding: '6px', color: '#111' }}>{b.episode_id ? <a href={`/episode/${b.episode_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#111' }}>{b.title}</a> : (b.title || '—')}{b.error && <div style={{ fontSize: 11, color: '#c0392b' }}>{b.error}</div>}{b.checks?.modes && <div style={{ fontSize: 11, color: '#777' }} title={b.checks.quote_only?.length ? b.checks.quote_only.map(q => `#${q.id}: ${q.why}`).join('\n') : ''}>{Object.entries(b.checks.modes).map(([k, v]) => `${v} ${({ hybrid: 'summarised', verbatim: 'abstract in full', verbatim_nd: 'abstract in full (ND)', quote_only: 'title + conclusion only' })[k] || k}`).join(' · ')}{b.checks.llm_cents ? ` · summaries ${money(b.checks.llm_cents)}` : ''}</div>}</td>
-                    <td style={{ padding: '6px', color: col, fontWeight: 600 }}>{b.status}</td>
+                    <td style={{ padding: '6px', color: '#111' }}>{b.episode_id ? <a href={`/episode/${b.episode_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#111' }}>{b.title}</a> : (b.title || '—')}{b.error && <div style={{ fontSize: 11, color: '#c0392b' }}>{b.error}</div>}{b.status === 'rendered' && b.audio_url && <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><audio controls preload="none" src={b.audio_url} style={{ height: 30, maxWidth: 320 }} /><span style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>Rendered, waiting for your review. Nothing is public yet.</span></div>}
+                    {['draft', 'failed'].includes(b.status) && b.preview_url && <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><audio controls preload="none" src={b.preview_url} style={{ height: 30, maxWidth: 320 }} /><span style={{ fontSize: 11, color: '#777' }}>Preview {b.preview_at ? new Date(b.preview_at).toLocaleString() : ''}{b.preview_meta?.seconds ? ` · ${Math.round(b.preview_meta.seconds / 60)} min` : ''}{b.preview_meta ? ` · ${money(b.preview_meta.cents)} new audio` : ''}</span></div>}
+                    {b.checks?.modes && <div style={{ fontSize: 11, color: '#777' }} title={b.checks.quote_only?.length ? b.checks.quote_only.map(q => `#${q.id}: ${q.why}`).join('\n') : ''}>{Object.entries(b.checks.modes).map(([k, v]) => `${v} ${({ hybrid: 'summarised', verbatim: 'abstract in full', verbatim_nd: 'abstract in full (ND)', quote_only: 'title + conclusion only' })[k] || k}`).join(' · ')}{b.checks.llm_cents ? ` · summaries ${money(b.checks.llm_cents)}` : ''}</div>}</td>
+                    <td style={{ padding: '6px', color: col, fontWeight: 600 }}>{b.status === 'rendered' ? 'ready for review' : b.status}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{b.duration_seconds ? `${Math.round(b.duration_seconds / 60)} min` : '—'}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }} title={b.cost_breakdown ? JSON.stringify(b.cost_breakdown) : ''}>{b.status === 'published' || b.status === 'rendered' ? money(b.cost_cents) : '—'}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                       {b.status === 'published' && <button onClick={() => briefingAction(b.id, 'unpublish')} style={{ fontSize: 11, padding: '3px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: '#c0392b' }}>Unpublish</button>}
-                      {['draft', 'failed', 'skipped', 'unpublished'].includes(b.status) && <button onClick={() => briefingAction(b.id, 'redraft')} style={{ fontSize: 11, padding: '3px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>Re-draft</button>}
+                      {b.status === 'rendered' && <button onClick={() => briefingAction(b.id, 'publish')} style={{ fontSize: 11, padding: '3px 10px', border: 'none', borderRadius: 4, background: GREEN, color: '#fff', cursor: 'pointer', fontFamily: FONT, fontWeight: 700 }}>Publish</button>}
+                      {['draft', 'failed'].includes(b.status) && <button onClick={() => listenBriefing(b)} disabled={!!listening[b.id]} title="Render this episode through the audio cache so you can hear it. Nothing is published; Monday's render reuses every clip." style={{ fontSize: 11, padding: '3px 8px', marginLeft: 4, border: `1px solid ${GREEN}`, color: GREEN, borderRadius: 4, background: '#fff', cursor: listening[b.id] ? 'default' : 'pointer', fontFamily: FONT, fontWeight: 600 }}>{listening[b.id] || (b.preview_url ? '🔊 Re-render' : '🔊 Listen')}</button>}
+                      {['draft', 'failed', 'skipped', 'unpublished', 'rendered'].includes(b.status) && <button onClick={() => briefingAction(b.id, 'redraft')} style={{ fontSize: 11, padding: '3px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>Re-draft</button>}
                       {b.kind === 'weekly' && ['draft', 'failed'].includes(b.status) && <button onClick={() => prepareBriefing(b.id)} disabled={!!preparing[b.id]} title="Check each paper's licence, write the own-words summaries and build the final script — without rendering anything" style={{ fontSize: 11, padding: '3px 8px', marginLeft: 4, border: `1px solid ${GREEN}`, color: GREEN, borderRadius: 4, background: '#fff', cursor: preparing[b.id] ? 'default' : 'pointer', fontFamily: FONT, fontWeight: 600 }}>{preparing[b.id] || (b.checks?.prepared ? 'Re-prepare' : 'Prepare')}</button>}
                       {b.status !== 'skipped' && <button onClick={() => showScript(b.id)} style={{ fontSize: 11, padding: '3px 8px', marginLeft: 4, border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{scriptOpen[b.id] ? 'Hide script' : 'Script'}</button>}
                     </td>
@@ -3640,6 +3672,7 @@ function BriefingsTab() {
               <span style={{ fontSize: 11, color: '#888' }}>{c.label}</span>
               <span style={{ marginLeft: 'auto', fontSize: 11, color: paused ? '#c0392b' : on ? GREEN : '#999', fontWeight: 600 }}>{paused ? 'PAUSED — no new episodes' : on ? 'ON — weekly' : 'OFF'}</span>
               {on && <button onClick={() => patchJournal({ cluster: c.key, paused: !paused })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${paused ? GREEN : '#e0b4b4'}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: paused ? GREEN : '#c0392b' }}>{paused ? 'Resume show' : 'Pause show'}</button>}
+              {on && (() => { const rv = status?.shows?.[c.key]?.review_required ?? true; return <button onClick={() => patchJournal({ cluster: c.key, review_required: !rv })} title={rv ? 'Monday renders the episode and waits for you to listen and press Publish' : 'Monday publishes on its own'} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${rv ? GREEN : BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: rv ? GREEN : '#666' }}>{rv ? 'Review before publishing: on' : 'Review before publishing: off'}</button>; })()}
               <button onClick={() => patchJournal({ cluster: c.key, active: !on })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{on ? 'Switch off' : 'Switch on'}</button>
             </div>
             {/* Launch gate: introduction episode first, then Launch */}

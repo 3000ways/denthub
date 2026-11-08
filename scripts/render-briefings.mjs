@@ -17,14 +17,13 @@
 // Optional: SITE_URL (default production), SUPABASE_URL, MAX_BRIEFINGS.
 
 import { createClient } from '@supabase/supabase-js';
-import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { cleanForSpeech, sectionHeading } from '../lib/speech-clean.js';
 import { chaptersFrom, sonioxCostCents } from '../lib/briefing-script.js';
+import { buildPieces, pieceHash } from '../lib/briefing-pieces.js';
 
 const exec = promisify(execFile);
 const SITE = process.env.SITE_URL || 'https://thedentalcommute.com';
@@ -34,7 +33,6 @@ const SUPA_URL = process.env.SUPABASE_URL || 'https://zbwwzlvmtjftqpjkqpfz.supab
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const MAX = Number(process.env.MAX_BRIEFINGS || 20);
 const BUCKET = 'briefings';
-const PIECE_MAX = 1100;        // chars per Soniox request (~100 s of audio; the API caps at 2 min)
 const CONCURRENCY = 3;         // Soniox REST limit
 const MIN_SEC = 45, MAX_SEC = 3900;
 
@@ -49,18 +47,6 @@ async function site(path, init = {}) {
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.error) throw new Error(`${path}: ${json.error || res.status}`);
   return json;
-}
-
-// Split long text at sentence boundaries so each request stays under the cap.
-function splitPieces(text, max = PIECE_MAX) {
-  const sentences = text.split(/(?<=[.!?])\s+/);
-  const out = []; let cur = '';
-  for (const s of sentences) {
-    if ((cur + ' ' + s).trim().length > max && cur) { out.push(cur.trim()); cur = s; }
-    else cur = (cur + ' ' + s).trim();
-  }
-  if (cur) out.push(cur.trim());
-  return out.length ? out : [text];
 }
 
 async function ffprobeDuration(file) {
@@ -91,7 +77,7 @@ async function soniox({ text, voice, model, speed }) {
 // Render one piece of text in one voice, through the cache. Returns
 // { file, seconds, chars, cached, cents }.
 async function renderPiece(dir, { text, voice, model, speed }, idx) {
-  const hash = createHash('sha256').update(`${voice}|${speed}|${model}|${text}`).digest('hex');
+  const hash = pieceHash({ voice, speed, model, text });
   const file = join(dir, `${idx}.mp3`);
   const { data: hit } = await db.from('audio_cache').select('audio_url, duration_seconds, chars, cost_cents').eq('text_hash', hash).maybeSingle();
   if (hit) {
@@ -117,18 +103,9 @@ async function renderBriefing(b, ctx) {
   const dir = await mkdtemp(join(tmpdir(), `briefing-${b.id}-`));
   const started = Date.now();
   try {
-    // 1. Clean and split every segment into pieces; remember which segment each piece belongs to.
-    const pieces = [];
-    const removedLog = [];
-    b.script.forEach((seg, si) => {
-      let text = seg.text || '';
-      if (seg.kind === 'abstract' && seg.label) text = `${sectionHeading(seg.label)} ${text}`;
-      // ND-licensed abstracts: strip-only cleaning (no rewording of statistics).
-      const cleaned = cleanForSpeech(text, { pronunciations: ctx.pronunciations, minimal: !!seg.nd });
-      if (cleaned.removed.length) removedLog.push({ segment: si, removed: cleaned.removed.map(r => r.rule) });
-      if (/https?:\/\/|www\./i.test(cleaned.text)) throw new Error(`segment ${si} still contains a link after cleaning`);
-      for (const p of splitPieces(cleaned.text)) if (p.trim()) pieces.push({ si, text: p, voice: ctx.voices[seg.speaker] || ctx.voices.host });
-    });
+    // 1. Clean and split every segment into pieces (lib/briefing-pieces.js — the
+    //    admin preview uses the same function, so its clips are cache hits here).
+    const { pieces, removed: removedLog } = buildPieces(b.script, { pronunciations: ctx.pronunciations, voices: ctx.voices });
     if (!pieces.length) throw new Error('script produced no speech');
 
     // 2. Render with bounded concurrency.

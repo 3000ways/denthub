@@ -26,6 +26,12 @@ export default async function handler(req, res) {
       if (error) throw new Error(error.message);
       return res.status(200).json({ ok: true });
     }
+    if (req.method === 'PATCH' && req.body && typeof req.body.review_required === 'boolean' && req.body.cluster) {
+      // Review before publishing: the Monday job stops at "rendered" and Andrei publishes from the admin.
+      const { error } = await db.from('briefing_shows').upsert({ cluster: req.body.cluster, review_required: req.body.review_required, updated_at: new Date().toISOString() }, { onConflict: 'cluster' });
+      if (error) throw new Error(error.message);
+      return res.status(200).json({ ok: true });
+    }
     if (req.method === 'PATCH' && req.body && typeof req.body.paused === 'boolean' && req.body.cluster) {
       // Kill switch for a show: no new episodes publish while paused (drafting and rendering skip it).
       const { error } = await db.from('briefing_shows').upsert({ cluster: req.body.cluster, paused: req.body.paused, updated_at: new Date().toISOString() }, { onConflict: 'cluster' });
