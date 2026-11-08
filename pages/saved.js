@@ -12,6 +12,8 @@ import { BookmarkButton } from '../components/BookmarkButton';
 import { EpisodeCard } from '../components/EpisodeCard';
 import { mapEpisodeRow } from '../lib/resource-episodes';
 import { SignInModal } from '../components/AuthModal';
+import { resourceImages } from '../lib/image-ladder';
+import { useImageLadder } from '../lib/use-image-ladder';
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -34,20 +36,16 @@ const TYPE_LABELS = {
 const TYPE_ORDER = Object.keys(TYPE_LABELS);
 const labelForType = (t) => TYPE_LABELS[t] || `Saved ${t || 'Other'}`;
 
-function getDomain(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return null; } }
-
-function Logo({ url, name, imageUrl, size = 40 }) {
-  const [err, setErr] = useState(false);
-  const domain = url ? getDomain(url) : null;
-  const src = imageUrl || (domain ? `/api/airtable?logo=${domain}` : null);
-  if (!src || err) {
+function Logo({ name, images, size = 40 }) {
+  const { src, imgProps } = useImageLadder(images);
+  if (!src) {
     return (
       <div style={{ width: size, height: size, borderRadius: 6, background: GREEN_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.4, fontWeight: 600, color: GREEN, flexShrink: 0, fontFamily: FONT_BODY }}>
         {(name || '?')[0].toUpperCase()}
       </div>
     );
   }
-  return <img loading="lazy" src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
+  return <img loading="lazy" {...imgProps} alt={name} style={{ width: size, height: size, borderRadius: 6, border: `0.5px solid ${BORDER}`, objectFit: 'contain', background: '#fafafa', flexShrink: 0 }} />;
 }
 
 export default function SavedPage() {
@@ -156,7 +154,7 @@ export default function SavedPage() {
                   onMouseEnter={e => e.currentTarget.style.background = '#faf9f6'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <Logo url={f.URL} name={f.Name} imageUrl={f['Image URL']} size={40} />
+                  <Logo name={f.Name} images={resourceImages(f)} size={40} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.Name}</div>
                     <div style={{ fontSize: 11, color: '#bbb' }}>

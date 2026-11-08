@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { bookCoverImages } from '../lib/image-ladder';
+import { useImageLadder } from '../lib/use-image-ladder';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -8,11 +10,8 @@ const BORDER = '#e8e8e8';
 
 function BookCard({ record, isMobile }) {
   const f = record.fields;
-  const [imgErr, setImgErr] = useState(false);
+  const { src, imgProps } = useImageLadder(bookCoverImages(f));
   const score = f['Final Score'] || f.Score;
-  // Use Airtable Image URL if set, otherwise Open Library covers by title (free, no API key)
-  const coverSrc = f['Image URL'] ||
-    `https://covers.openlibrary.org/b/title/${encodeURIComponent(f.Name || '')}-M.jpg`;
 
   return (
     <Link href={`/resource/${record.id}`} style={{ textDecoration:'none', color:'inherit', display:'block' }}>
@@ -23,11 +22,10 @@ function BookCard({ record, isMobile }) {
 
         {/* Cover image area — 2:3 (book-shaped) so portrait covers aren't cropped top/bottom */}
         <div style={{ position:'relative', width:'100%', aspectRatio:'2 / 3', background:'#f5f2eb', overflow:'hidden' }}>
-          {!imgErr ? (
+          {src ? (
             <img loading="lazy"
-              src={coverSrc}
+              {...imgProps}
               alt={f.Name}
-              onError={() => setImgErr(true)}
               style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}
             />
           ) : (

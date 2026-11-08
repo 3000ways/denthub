@@ -6,6 +6,8 @@ import { ShareButton } from './ShareButton';
 import { SignInModal } from './AuthModal';
 import { aiVoiceBadge } from '../lib/voice';
 import { useAiVoiceExclusion } from '../lib/use-ai-voice-pref';
+import { resourceImages, isFaviconSrc } from '../lib/image-ladder';
+import { useImageLadder } from '../lib/use-image-ladder';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -22,27 +24,14 @@ const SECTION_CONFIG = {
 
 function ResourceCard({ record, artworkUrl, onSignInRequired }) {
   const f = record.fields;
-  const [imgErr, setImgErr] = useState(false);
+  const { src, imgProps } = useImageLadder(resourceImages(f, { after: [artworkUrl] }));
+  const isFavicon = !src || isFaviconSrc(src);
 
   const typeName = f.Type || '';
   const config = SECTION_CONFIG[typeName] || { accent: GREEN, badge: typeName, icon: '⭐' };
 
-  const imageUrl = f['Image URL'] || artworkUrl || null;
-  const domain = (() => {
-    try { return new URL(f.URL || '').hostname.replace('www.', ''); }
-    catch { return null; }
-  })();
   const score  = f['Final Score'] || f.Score;
-  const isYouTube = domain && domain.includes('youtube.com') && f.URL;
   const voiceBadge = aiVoiceBadge(f);
-
-  // Pick the best image source. YouTube channels/videos expose a real thumbnail
-  // via our og:image proxy; everything else uses its logo (favicon) fallback.
-  let src, isFavicon;
-  if (imageUrl)        { src = imageUrl; isFavicon = false; }
-  else if (isYouTube)  { src = `/api/youtube-thumb?url=${encodeURIComponent(f.URL)}`; isFavicon = false; }
-  else if (domain)     { src = `/api/airtable?logo=${domain}`; isFavicon = true; }
-  else                 { src = null; isFavicon = true; }
 
   return (
     <Link href={`/resource/${record.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
@@ -58,8 +47,8 @@ function ResourceCard({ record, artworkUrl, onSignInRequired }) {
         <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', flexShrink: 0,
           background: isFavicon ? '#fff' : '#f5f2eb', overflow: 'hidden',
           borderBottom: `1px solid ${BORDER}` }}>
-          {src && !imgErr ? (
-            <img loading="lazy" src={src} alt={f.Name} onError={() => setImgErr(true)}
+          {src ? (
+            <img loading="lazy" {...imgProps} alt={f.Name}
               style={{ width: '100%', height: '100%',
                 objectFit: isFavicon ? 'contain' : 'cover',
                 padding: isFavicon ? 16 : 0 }} />

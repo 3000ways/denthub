@@ -16,6 +16,8 @@ import { AllEpisodes } from '../../components/AllEpisodes';
 import { supabase } from '../../lib/supabase';
 import { fetchResourceEpisodes, mapEpisodeRow, EPISODES_PAGE_SIZE } from '../../lib/resource-episodes';
 import { aiVoiceBadge } from '../../lib/voice';
+import { resourceImages } from '../../lib/image-ladder';
+import { useImageLadder } from '../../lib/use-image-ladder';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -237,20 +239,8 @@ function ScoreInfoTooltip() {
   );
 }
 
-function Logo({ url, name, imageUrl, size = 64 }) {
-  const domain = (() => { try { return new URL(url).hostname; } catch { return null; } })();
-  const favicon = domain ? `/api/airtable?logo=${domain}` : null;
-  // Start with the best image we have (owner/Image URL/auto), else the favicon.
-  const [src, setSrc] = useState(imageUrl || favicon || null);
-
-  // React to a higher-priority image arriving after mount — e.g. the owner's
-  // logo loads client-side and should replace whatever we started with. (The old
-  // version initialised state once and ignored prop changes, so the show art /
-  // owner logo never actually took over from the favicon.)
-  useEffect(() => {
-    if (imageUrl) setSrc(imageUrl);
-  }, [imageUrl]);
-
+function Logo({ name, images, size = 64 }) {
+  const { src, imgProps } = useImageLadder(images);
   if (!src) {
     return (
       <div style={{ width: size, height: size, borderRadius: 12, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.4, fontWeight: 700, color: GREEN, fontFamily: FONT, flexShrink: 0 }}>
@@ -259,24 +249,21 @@ function Logo({ url, name, imageUrl, size = 64 }) {
     );
   }
   return (
-    <img src={src} alt={name}
-      onError={() => { if (src !== favicon && favicon) setSrc(favicon); else setSrc(null); }}
+    <img {...imgProps} alt={name}
       style={{ width: size, height: size, borderRadius: 12, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />
   );
 }
 
-function SmallLogo({ url, name, imageUrl, size = 40 }) {
-  const [err, setErr] = useState(false);
-  const domain = (() => { try { return new URL(url).hostname; } catch { return null; } })();
-  const src = imageUrl || (domain ? `/api/airtable?logo=${domain}` : null);
-  if (!src || err) {
+function SmallLogo({ name, images, size = 40 }) {
+  const { src, imgProps } = useImageLadder(images);
+  if (!src) {
     return (
       <div style={{ width: size, height: size, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.4, fontWeight: 700, color: GREEN, fontFamily: FONT, flexShrink: 0 }}>
         {name?.[0] || '?'}
       </div>
     );
   }
-  return <img src={src} alt={name} onError={() => setErr(true)} style={{ width: size, height: size, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />;
+  return <img {...imgProps} alt={name} style={{ width: size, height: size, borderRadius: 8, objectFit: 'contain', border: `1px solid ${BORDER}`, background: '#fafafa', flexShrink: 0 }} />;
 }
 
 // Structured data for Google: describe the listing as what it IS (a podcast
@@ -308,10 +295,9 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
   const { user, profile } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false); // false | true | 'claim'
   const [showOnboarding, setShowOnboarding] = useState(false);
-  // Resource icon, resolved through the ladder: owner logo (loads client-side,
-  // wins) → human "Image URL" → machine "auto box" (RSS show art / AI guess) →
-  // favicon → letter (the last two handled inside <Logo>).
-  const [logoSrc, setLogoSrc] = useState(f['Image URL'] || autoImage || null);
+  // Owner logo loads client-side and goes on top of the icon ladder (the rest of
+  // the ladder comes from resourceImages, walked inside <Logo>).
+  const [ownerLogo, setOwnerLogo] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -335,7 +321,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
     // mounted component across same-route navigations). Without this, the logo,
     // "From the creator" bio/vision, and featured episodes of resource A would
     // persist onto resource B until (or unless) B's own fetch overwrote them.
-    setLogoSrc(f['Image URL'] || autoImage || null);
+    setOwnerLogo(null);
     setOwnerContent(null);
     setFeaturedEpisodes([]);
     setIsClaimed(false);
@@ -347,7 +333,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
         if (!data) return;
         setOwnerContent(data);
         // Owner logo is top of the icon ladder — it wins over Image URL / auto.
-        if (data.logo_url) setLogoSrc(data.logo_url);
+        if (data.logo_url) setOwnerLogo(data.logo_url);
         if (data.featured_episode_ids?.length) {
           // Fetch the featured episodes with the full card shape and preserve the
           // owner's chosen order. They're rendered — badged — at the top of the
@@ -407,7 +393,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
           {/* Hero */}
           <div style={{ background: 'rgba(255,255,255,0.55)', borderRadius: 14, padding: '32px', border: `1px solid ${BORDER}`, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', marginBottom: 24 }}>
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-              <Logo url={f.URL} name={f.Name} imageUrl={logoSrc} size={80} />
+              <Logo name={f.Name} images={resourceImages({ ...f, 'Auto Image URL': autoImage }, { before: [ownerLogo], after: [bookData?.cover] })} size={80} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: '#e8f5f0', padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.Type}</span>
@@ -623,7 +609,7 @@ export default function ResourcePage({ record, related, ytData, bookData, ogImag
                     <Link key={r.id} href={`/resource/${r.id}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < related.length - 1 ? `1px solid ${BORDER}` : 'none', textDecoration: 'none', color: 'inherit' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#fafaf8'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <SmallLogo url={rf.URL} name={rf.Name} imageUrl={rf['Image URL'] || rf['Auto Image URL']} size={40} />
+                      <SmallLogo name={rf.Name} images={resourceImages(rf)} size={40} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 2 }}>{rf.Name}</div>
                         {rf['Host or Author'] && <div style={{ fontSize: 12, color: '#aaa' }}>{rf['Host or Author']}</div>}

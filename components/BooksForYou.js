@@ -1,6 +1,7 @@
-import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../lib/auth-context';
+import { bookCoverImages } from '../lib/image-ladder';
+import { useImageLadder } from '../lib/use-image-ladder';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -15,9 +16,8 @@ function specialtyList(f) {
 
 function BookMini({ record }) {
   const f = record.fields;
-  const [imgErr, setImgErr] = useState(false);
+  const { src, imgProps } = useImageLadder(bookCoverImages(f));
   const score = f['Final Score'] || f.Score;
-  const coverSrc = f['Image URL'] || `https://covers.openlibrary.org/b/title/${encodeURIComponent(f.Name || '')}-M.jpg`;
   return (
     <Link href={`/resource/${record.id}`} style={{ textDecoration:'none', color:'inherit', display:'block' }}>
       <div style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:8, overflow:'hidden', height:'100%',
@@ -25,8 +25,8 @@ function BookMini({ record }) {
         onMouseEnter={e => { e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.09)'; e.currentTarget.style.transform='translateY(-2px)'; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}>
         <div style={{ position:'relative', width:'100%', aspectRatio:'2 / 3', background:'#f5f2eb', overflow:'hidden' }}>
-          {!imgErr
-            ? <img loading="lazy" src={coverSrc} alt={f.Name} onError={() => setImgErr(true)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+          {src
+            ? <img loading="lazy" {...imgProps} alt={f.Name} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
             : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ fontSize:32, color:'#ccc' }}>📚</span></div>
           }
           <div style={{ position:'absolute', top:8, left:8, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'#fff', background:'#6B48C2', padding:'3px 7px', borderRadius:3 }}>Book</div>
