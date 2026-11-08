@@ -1079,7 +1079,7 @@ export default function Home({ initialResources }) {
     <style dangerouslySetInnerHTML={{ __html: HOME_ABOVE_FOLD_CSS }} />
     <Head>
       <title>The Dental Commute — Dentistry, Ranked & Curated</title>
-      <meta name="description" content="The best dental podcasts, books, CE courses, YouTube channels, and software — ranked by dentists." />
+      <meta name="description" content="Dental podcasts, YouTube channels, and books, scored, ranked, and curated for dental professionals." />
       <meta name="robots" content="index, follow" />
       <link rel="canonical" href="https://thedentalcommute.com" />
 
@@ -1087,14 +1087,14 @@ export default function Home({ initialResources }) {
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://thedentalcommute.com" />
       <meta property="og:title" content="The Dental Commute — Dentistry, Ranked & Curated" />
-      <meta property="og:description" content="The best dental podcasts, books, CE courses, YouTube channels, and software — ranked by dentists." />
+      <meta property="og:description" content="Dental podcasts, YouTube channels, and books, scored, ranked, and curated for dental professionals." />
       <meta property="og:image" content="https://thedentalcommute.com/og-image.jpg" />
       <meta property="og:site_name" content="The Dental Commute" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content="The Dental Commute — Dentistry, Ranked & Curated" />
-      <meta name="twitter:description" content="The best dental podcasts, books, CE courses, YouTube channels, and software — ranked by dentists." />
+      <meta name="twitter:description" content="Dental podcasts, YouTube channels, and books, scored, ranked, and curated for dental professionals." />
       <meta name="twitter:image" content="https://thedentalcommute.com/og-image.jpg" />
 
       <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -1106,7 +1106,7 @@ export default function Home({ initialResources }) {
         "@type": "WebSite",
         "name": "The Dental Commute",
         "url": "https://thedentalcommute.com",
-        "description": "The best dental podcasts, books, CE courses, YouTube channels, software, and communities — scored and ranked by dental professionals.",
+        "description": "Dental podcasts, YouTube channels, and books, scored, ranked, and curated for dental professionals.",
         "publisher": {
           "@type": "Organization",
           "name": "The Dental Commute",
@@ -1231,7 +1231,7 @@ export default function Home({ initialResources }) {
                 </h1>
                 <p className="tdc-proof" style={{ color:'#4F4F4A', lineHeight:1.55, margin:'0 0 16px', fontWeight:400, maxWidth:520 }}>
                   <strong style={{ color:'#111', fontWeight:600 }}>{episodeCount ? episodeCount.toLocaleString() : '37,000+'} episodes</strong>
-                  {podcastCount ? ` from ${podcastCount} podcasts, ${ytCount} YouTube channels and ${bookCount} books` : ' from dental podcasts, YouTube channels and books'}, ranked and curated for dentists. Free, with CE tracking built in.
+                  {podcastCount ? ` from ${podcastCount} podcasts, ${ytCount} YouTube channels and ${bookCount} books` : ' from dental podcasts, YouTube channels and books'}, ranked and curated for dentists. Free, with a built-in CE log.
                 </p>
                 {renderSearchField({ inHero: true })}
                 <span className="tdc-desk">

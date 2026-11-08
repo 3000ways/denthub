@@ -5,8 +5,26 @@ import SiteNav from '../components/SiteNav';
 import { CONTACT_EMAIL } from '../lib/contact';
 
 const GREEN = '#0F6E56';
-const BORDER = '#e8e8e8';
 const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
+
+const textStyle = { fontSize: 15, lineHeight: 1.7, color: '#444' };
+
+function Section({ title, children }) {
+  return (
+    <section style={{ marginBottom: 36 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function P({ children }) {
+  return <p style={{ ...textStyle, margin: '0 0 12px' }}>{children}</p>;
+}
+
+function List({ children }) {
+  return <ul style={{ ...textStyle, paddingLeft: 22, margin: '0 0 12px' }}>{children}</ul>;
+}
 
 export default function PrivacyPolicy() {
   return (
@@ -24,103 +42,135 @@ export default function PrivacyPolicy() {
         </div>
 
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Privacy Policy</h1>
-        <p style={{ fontSize: 14, color: '#888', marginBottom: 48 }}>Last updated: June 14, 2026</p>
+        <p style={{ fontSize: 14, color: '#888', marginBottom: 48 }}>Last updated: November 8, 2026</p>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Overview</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
-            The Dental Commute ("we," "us," or "our") is a dental resource directory for dental professionals.
-            This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.
-            We take your privacy seriously and do not sell your personal information to anyone.
-          </p>
-        </section>
+        <Section title="Overview">
+          <P>
+            The Dental Commute ("we," "us," or "our") is a directory of learning resources for dental professionals.
+            This policy explains what information we collect, how we use it, who helps us handle it, and the choices you have.
+            We do not sell your personal information.
+          </P>
+        </Section>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Information We Collect</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444', marginBottom: 12 }}>
-            When you sign in with Google, we receive your:
-          </p>
-          <ul style={{ fontSize: 15, lineHeight: 2, color: '#444', paddingLeft: 24 }}>
-            <li>Name</li>
-            <li>Email address</li>
-            <li>Google profile picture (used only for display purposes)</li>
-          </ul>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444', marginTop: 12 }}>
-            We also collect information you voluntarily provide during onboarding:
-          </p>
-          <ul style={{ fontSize: 15, lineHeight: 2, color: '#444', paddingLeft: 24 }}>
-            <li>Your role (e.g. Dentist, Dental Student, Dental Staff)</li>
-            <li>Your specialty (e.g. Endodontics, Orthodontics)</li>
-            <li>NPI number, if you choose to provide it for verified badge display</li>
-          </ul>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444', marginTop: 12 }}>
-            We also collect content you create on the platform:
-          </p>
-          <ul style={{ fontSize: 15, lineHeight: 2, color: '#444', paddingLeft: 24 }}>
-            <li>Votes on resources</li>
-            <li>Comments and comment upvotes</li>
-          </ul>
-        </section>
+        <Section title="Information You Give Us">
+          <P>When you sign in with Google, we receive your name, email address, and Google profile picture.</P>
+          <P>In your profile or the welcome questions, you can choose to add:</P>
+          <List>
+            <li>Your role and specialty</li>
+            <li>Your province or state</li>
+            <li>Your career stage, clinical interests, and what you are working on</li>
+            <li>Your NPI number, if you want a verified badge</li>
+          </List>
+          <P>If you claim a listing as its owner, we also keep your claim and the details and edits you submit for that listing.</P>
+        </Section>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>How We Use Your Information</h2>
-          <ul style={{ fontSize: 15, lineHeight: 2, color: '#444', paddingLeft: 24 }}>
-            <li>To authenticate you and maintain your account</li>
-            <li>To display your name and role alongside your comments and votes</li>
-            <li>To show a "Verified" badge next to your comments if your NPI is confirmed</li>
-            <li>To personalize your experience on the platform</li>
-            <li>To improve the quality and relevance of our resource rankings</li>
-          </ul>
-        </section>
+        <Section title="Information Created As You Use the Site">
+          <P>When you are signed in, we keep:</P>
+          <List>
+            <li>Votes, comments, and comment upvotes</li>
+            <li>Saved and followed resources, saved episodes, and pins</li>
+            <li>Your listening history: which episodes you played, how far you got, and when you finished them, which also powers your CE activity log</li>
+          </List>
+          <P>
+            Anyone, signed in or not, can suggest a resource, report a problem, or vote on whether a show uses an AI voice.
+            To limit abuse, we store a scrambled (salted and hashed) version of your IP address with reports and AI-voice votes, not the address itself.
+          </P>
+        </Section>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>What We Do Not Do</h2>
-          <ul style={{ fontSize: 15, lineHeight: 2, color: '#444', paddingLeft: 24 }}>
+        <Section title="What Other People Can See">
+          <List>
+            <li>Comments show your name, your role or specialty, your province or state, and your verified badge if you have one.</li>
+            <li>Pins on the Community Pinboard are public and show your specialty and province or state (for example, "Pinned by a periodontist in Ohio"), but not your name. In a small specialty or region, that description could still point to you.</li>
+          </List>
+          <P>Your saved items and listening history are private to your account.</P>
+        </Section>
+
+        <Section title="How We Use Your Information">
+          <List>
+            <li>To sign you in and run your account</li>
+            <li>To show your comments, pins, and verified badge</li>
+            <li>To personalize recommendations and remember your listening progress</li>
+            <li>To calculate Community scores from votes, comments, bookmarks, and pins</li>
+            <li>To understand how the site is used and to improve it</li>
+            <li>To prevent spam and abuse</li>
+            <li>To contact you about a listing you have claimed</li>
+          </List>
+        </Section>
+
+        <Section title="Cookies, Analytics, and Browser Storage">
+          <P>
+            We use Google Analytics, which sets cookies to measure visits. It records things like the pages you view, your device and browser,
+            your approximate location, and actions on the site, such as what you type into search, the specialty you pick, and the episode length you filter by.
+            We do not send Google your name or email through Analytics. Please avoid typing personal or patient information into search.
+          </P>
+          <P>
+            We have turned off Google's advertising features for Analytics. You can opt out of Google Analytics with{' '}
+            <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" style={{ color: GREEN }}>Google's browser add-on</a>.
+          </P>
+          <P>
+            We also use Vercel Speed Insights and Cloudflare to measure site performance and traffic, and Cloudflare Turnstile to block bots, which may set a security cookie.
+            Your browser stores your sign-in session and small preferences, such as playback speed and whether to hide AI-narrated podcasts.
+          </P>
+        </Section>
+
+        <Section title="Who Helps Us Run the Site">
+          <P>We share information with these service providers only as needed for them to do their work:</P>
+          <List>
+            <li><strong>Supabase</strong>: database and sign-in</li>
+            <li><strong>Vercel</strong>: website hosting and speed measurement</li>
+            <li><strong>Google</strong>: sign-in, analytics, and web fonts</li>
+            <li><strong>Cloudflare</strong>: network security, bot protection, traffic measurement, and email forwarding</li>
+            <li><strong>Resend</strong>: sending email, including messages about listing claims and notices to us about reports and claims</li>
+            <li><strong>Perplexity</strong>: AI analysis of public content and of web addresses people suggest, not your account information</li>
+          </List>
+          <P>
+            Podcast audio plays directly from each show's own hosting provider, which can see your IP address, and links to other sites are governed by those sites' policies.
+            These providers may process information outside your province or country, including in the United States.
+          </P>
+        </Section>
+
+        <Section title="What We Do Not Do">
+          <List>
             <li>We do not sell your personal information</li>
-            <li>We do not share your data with third-party advertisers</li>
-            <li>We do not use your information for marketing without your consent</li>
-            <li>We do not store your Google password — authentication is handled entirely by Google</li>
-          </ul>
-        </section>
+            <li>We do not share your data with advertisers or show ads based on it</li>
+            <li>We do not send you marketing email without your consent</li>
+            <li>We never see or store your Google password</li>
+          </List>
+        </Section>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Data Storage</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
-            Your account data is stored securely using Supabase, a trusted cloud database provider.
-            Resource and category data is managed in Airtable. Both services employ industry-standard
-            security practices including encryption at rest and in transit.
-          </p>
-        </section>
+        <Section title="How Long We Keep It">
+          <P>
+            We keep your account information and activity until you remove it or delete your account.
+            Abuse-prevention records may be kept for as long as they are needed for that purpose, and analytics data is kept according to our Google Analytics retention settings.
+          </P>
+        </Section>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Your Rights</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
-            You may request deletion of your account and associated data at any time by emailing us.
-            You may also revoke The Dental Commute's access to your Google account at any time through
-            your Google account settings at myaccount.google.com.
-          </p>
-        </section>
+        <Section title="Your Choices and Rights">
+          <P>
+            You can edit your profile at any time, and permanently delete your account and its data from{' '}
+            <Link href="/profile" style={{ color: GREEN }}>Profile settings</Link>.
+            You can also revoke our access to your Google account at myaccount.google.com.
+          </P>
+          <P>
+            To ask for a copy of your information, request a correction, or raise a privacy concern, email us at the address below.
+            Depending on where you live, you may have further rights under local privacy law, including the right to complain to your privacy regulator.
+          </P>
+        </Section>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Cookies</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
-            We use a session cookie solely to keep you signed in between visits. We do not use tracking
-            or advertising cookies.
-          </p>
-        </section>
+        <Section title="Age Limit">
+          <P>The Dental Commute is intended for adults. You must be at least 18 to create an account.</P>
+        </Section>
 
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Changes to This Policy</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
-            We may update this Privacy Policy from time to time. We will post the updated version on
-            this page with a revised date. Continued use of the platform after changes constitutes
-            acceptance of the updated policy.
-          </p>
-        </section>
+        <Section title="Changes to This Policy">
+          <P>
+            We may update this policy from time to time and will post the new version here with a revised date.
+            Continued use of the site after a change means you accept the updated policy.
+          </P>
+        </Section>
 
         <section>
           <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Contact</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#444' }}>
+          <p style={textStyle}>
             If you have questions about this Privacy Policy or your data, please contact us at{' '}
             <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: GREEN }}>{CONTACT_EMAIL}</a>.
           </p>

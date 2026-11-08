@@ -32,8 +32,8 @@ export function CEHoursBadge({ isMobile }) {
 
   const hours = secs / 3600;
   const label = hours >= 1
-    ? `${hours.toFixed(hours < 10 ? 1 : 0)} CE hours logged`
-    : `${Math.round(hours * 60)} min of CE logged`;
+    ? `${hours.toFixed(hours < 10 ? 1 : 0)} listening hours logged`
+    : `${Math.round(hours * 60)} min of listening logged`;
 
   return (
     <Link href="/ce-report" style={{ display:'inline-flex', alignItems:'center', gap:8, textDecoration:'none',
