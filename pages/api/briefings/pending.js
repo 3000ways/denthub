@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const statuses = retryFailed ? ['draft', 'failed'] : ['draft'];
     const { data: briefings, error } = await db.from('briefings')
       .select('id, cluster, kind, week_of, status, title, script, article_ids, headline_ids, checks')
-      .in('status', statuses).order('kind', { ascending: false }).order('week_of');  // trailers first
+      .in('status', statuses).order('kind', { ascending: true }).order('week_of');  // 'trailer' sorts before 'weekly': the introduction renders first
     if (error) throw new Error(error.message);
 
     const ids = [...new Set((briefings || []).flatMap(b => [...(b.article_ids || []), ...(b.headline_ids || [])]))];
