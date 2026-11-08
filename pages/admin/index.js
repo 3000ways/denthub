@@ -3422,6 +3422,16 @@ function BriefingsTab() {
     const names = js.map(j => j.name.replace(/^The /, 'the ')).map(n => (/^(the|JADA|CRANIO)/i.test(n) ? n : `the ${n}`));
     return defaultIntroText({ show: c.show, label: c.label.toLowerCase(), journalNames: names });
   }
+  // Listen before you launch: render the saved introduction to audio (no publish).
+  const [previewing, setPreviewing] = useState({});   // cluster → true while rendering
+  async function previewIntro(cluster) {
+    setPreviewing(x => ({ ...x, [cluster]: true })); setError('');
+    try {
+      const r = await fetch('/api/admin/briefing-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cluster }) });
+      const d = await r.json(); if (d.error) setError(d.error); else await load();
+    } catch (e) { setError(e.message); }
+    finally { setPreviewing(x => { const y = { ...x }; delete y[cluster]; return y; }); }
+  }
   async function saveIntro(cluster) {
     const text = introDraft[cluster];
     if (typeof text !== 'string') return;
@@ -3522,7 +3532,7 @@ function BriefingsTab() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>Journal Briefings</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>TDC Podcast — journal briefings</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
         A weekly AI-narrated podcast per specialty (<strong>Endodontics This Week</strong>, <strong>Orthodontics This Week</strong>, …) that reads the week&rsquo;s new papers from the top three journals.
         Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Monday morning the script is drafted, each paper is prepared (licence check; an own-words summary for all-rights-reserved papers, checked against the abstract; open-access abstracts read as published), then rendered and published, automatically.
@@ -3645,9 +3655,17 @@ function BriefingsTab() {
                     <strong style={{ color: launched ? GREEN : '#8a5a00' }}>{launched ? `Launched ${sh.launched_at ? new Date(sh.launched_at).toLocaleDateString() : ''}` : 'Not launched — nothing publishes yet'}</strong>
                     <span style={{ color: '#666' }}>{sh.intro_script ? `Introduction saved${sh.intro_updated_at ? ` ${new Date(sh.intro_updated_at).toLocaleDateString()}` : ''}.` : 'Write the introduction episode first.'}</span>
                     <button onClick={() => setIntroOpen(x => ({ ...x, [c.key]: !open }))} style={{ marginLeft: 'auto', fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{open ? 'Close editor' : (sh.intro_script ? 'Edit introduction' : 'Write introduction')}</button>
+                    {sh.intro_script && <button onClick={() => previewIntro(c.key)} disabled={!!previewing[c.key]} title="Render the saved introduction to audio so you can hear it. Nothing is published; the audio is reused by the real render." style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${GREEN}`, color: GREEN, borderRadius: 4, background: '#fff', cursor: previewing[c.key] ? 'default' : 'pointer', fontFamily: FONT, fontWeight: 600 }}>{previewing[c.key] ? 'Rendering… (about a minute)' : (sh.intro_preview_url ? '🔊 Re-render preview' : '🔊 Listen to the introduction')}</button>}
                     {!launched && <button onClick={() => patchJournal({ cluster: c.key, launched: true })} disabled={!sh.intro_script} title={sh.intro_script ? 'The next render run will publish the introduction, then weekly episodes' : 'Save an introduction first'} style={{ fontSize: 11, padding: '4px 12px', border: 'none', borderRadius: 4, background: sh.intro_script ? GREEN : '#ccc', color: '#fff', cursor: sh.intro_script ? 'pointer' : 'default', fontFamily: FONT, fontWeight: 700 }}>Launch show</button>}
                     {launched && <button onClick={() => patchJournal({ cluster: c.key, launched: false })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: '#c0392b' }}>Un-launch</button>}
                   </div>
+                  {sh.intro_preview_url && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '6px 0 8px', fontSize: 11, color: '#666' }}>
+                      <audio controls preload="none" src={sh.intro_preview_url} style={{ height: 32, maxWidth: 360 }} />
+                      <span>Preview rendered {sh.intro_preview_at ? new Date(sh.intro_preview_at).toLocaleString() : ''}{sh.intro_preview_meta?.seconds ? ` · ${Math.round(sh.intro_preview_meta.seconds / 60)} min ${sh.intro_preview_meta.seconds % 60} s` : ''}{sh.intro_preview_meta ? ` · ${money(sh.intro_preview_meta.cents)}${sh.intro_preview_meta.cached_pieces ? ` (${sh.intro_preview_meta.cached_pieces} of ${sh.intro_preview_meta.pieces} pieces already cached)` : ''}` : ''}</span>
+                      {sh.intro_preview_stale && <span style={{ color: '#b45309', fontWeight: 600 }}>The introduction text changed after this preview — re-render to hear the current version.</span>}
+                    </div>
+                  )}
                   {open && (
                     <div style={{ marginTop: 10 }}>
                       <div style={{ color: '#666', marginBottom: 6 }}>Grace reads this as episode 0, one paragraph per breath. Plain words only: no links, no reference numbers. Journal names as you want them spoken.</div>
@@ -3749,7 +3767,7 @@ const TAB_GROUPS = [
       { label: 'Score Resources',  Component: ScoringTab },
       { label: 'Harvest Episodes', Component: EpisodeArchive },
       { label: 'Tag Episodes',     Component: EpisodeTaggingTab },
-      { label: 'Briefings',        Component: BriefingsTab },
+      { label: 'TDC Podcast',      Component: BriefingsTab },
     ],
   },
   {
