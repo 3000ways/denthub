@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth-context';
 import { attributionLine } from '../lib/pins';
+import { resourceImages } from '../lib/image-ladder';
+import { useImageLadder } from '../lib/use-image-ladder';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -10,7 +12,6 @@ const GREEN = '#0F6E56';
 
 const SLOTS = 4; // how many pins the board holds at once
 
-function getDomain(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return null; } }
 
 // A stable, per-pin tilt so a card sits crooked but doesn't jump angles on
 // re-render. Derived from the pin id: alternating direction, ~2–5° on desktop.
@@ -39,14 +40,14 @@ function Thumbtack() {
   );
 }
 
-// `item` is a normalized card: { href, name, typeLabel, image, initial } —
+// `item` is a normalized card: { href, name, typeLabel, images, initial } —
 // built from either an Airtable resource or an archived episode.
 // When `isOwn`, a small ✕ lets the pinner remove their own pin (which also
 // frees their pin for the day).
 function PinCard({ pin, item, isMobile, isOwn, onUnpin }) {
   const tilt = tiltFor(pin.id, isMobile);
   const [hover, setHover] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
+  const { src, imgProps } = useImageLadder(item.images);
 
   return (
     <Link
@@ -87,8 +88,8 @@ function PinCard({ pin, item, isMobile, isOwn, onUnpin }) {
         </button>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
-        {item.image && !imageFailed
-          ? <img src={item.image} alt={item.name} onError={() => setImageFailed(true)}
+        {src
+          ? <img {...imgProps} alt={item.name}
               style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'contain', background: '#fff', border: '1px solid #eee' }} />
           : <div style={{ width: 52, height: 52, borderRadius: 8, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: GREEN }}>{item.initial}</div>
         }
@@ -159,13 +160,12 @@ export function Pinboard({ resources = [], isMobile = false }) {
       if (p.episode_id) {
         const ep = episodesById[p.episode_id];
         if (!ep) return null;
-        return { pin: p, item: { href: `/episode/${ep.id}`, name: ep.title, typeLabel: 'Episode', image: ep.image || null, initial: (ep.title || '?')[0] } };
+        return { pin: p, item: { href: `/episode/${ep.id}`, name: ep.title, typeLabel: 'Episode', images: [ep.image], initial: (ep.title || '?')[0] } };
       }
       const r = byId.get(p.resource_id);
       if (!r) return null;
       const f = r.fields;
-      const domain = getDomain(f.URL);
-      return { pin: p, item: { href: `/resource/${r.id}`, name: f.Name, typeLabel: f.Type, image: f['Image URL'] || (domain ? `/api/airtable?logo=${domain}` : null), initial: (f.Name || '?')[0] } };
+      return { pin: p, item: { href: `/resource/${r.id}`, name: f.Name, typeLabel: f.Type, images: resourceImages(f), initial: (f.Name || '?')[0] } };
     })
     .filter(Boolean)
     .slice(0, SLOTS);

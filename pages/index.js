@@ -31,6 +31,8 @@ import { useSpecialtyPick } from '../lib/use-specialty-pick';
 import { findPick } from '../lib/specialties';
 import { CommuteFilter } from '../components/CommuteFilter';
 import { track } from '../lib/analytics';
+import { resourceImages, isFaviconSrc } from '../lib/image-ladder';
+import { useImageLadder } from '../lib/use-image-ladder';
 
 const CATEGORIES = [
   { label:'Podcasts',    types:['Podcast'] },
@@ -86,7 +88,6 @@ const DEMO_RESOURCES = [
   { id:'d6', fields:{ Name:'Dentrix Ascend', Type:'Software', URL:'https://dentrixascend.com', Description:'Cloud-based practice management software built for modern multi-location dental groups. Real-time dashboards and integrated billing.', 'Host or Author':'Henry Schein', 'Final Score':86, 'Expert Score':84, 'Community Score':85, 'Popularity Score':90, 'Recency Score':88, 'Clinical Depth Score':82, createdAt:'2025-05-30' }},
 ];
 
-function getDomain(url) { try { return new URL(url).hostname.replace('www.',''); } catch { return null; } }
 
 // Badge shown on non-dental resources recommended by the dental community
 function CommunityPickBadge() {
@@ -114,11 +115,10 @@ function Highlight({ text, terms }) {
   );
 }
 
-function Logo({ url, name, size, imageUrl }) {
-  const [err, setErr] = useState(false);
+function Logo({ name, size, images }) {
+  const { src, imgProps } = useImageLadder(images);
   const sz = size || 32;
   const initial = (name || '?')[0].toUpperCase();
-  const domain = url ? getDomain(url) : null;
   const radius = sz <= 32 ? 6 : 8;
 
   const fallback = (
@@ -127,12 +127,11 @@ function Logo({ url, name, size, imageUrl }) {
     </div>
   );
 
-  if (err) return fallback;
-  if (imageUrl) {
-    return <img src={imageUrl} alt={name} onError={() => setErr(true)} style={{ width:sz*0.72, height:sz, borderRadius:4, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />;
+  if (!src) return fallback;
+  if (!isFaviconSrc(src)) {
+    return <img {...imgProps} alt={name} style={{ width:sz*0.72, height:sz, borderRadius:4, objectFit:'cover', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }} />;
   }
-  if (!domain) return fallback;
-  return <img src={`/api/airtable?logo=${domain}`} alt={name} onError={() => setErr(true)} style={{ width:sz, height:sz, borderRadius:radius, border:`0.5px solid ${BORDER}`, objectFit:'contain', background:'#fafafa', flexShrink:0 }} />;
+  return <img {...imgProps} alt={name} style={{ width:sz, height:sz, borderRadius:radius, border:`0.5px solid ${BORDER}`, objectFit:'contain', background:'#fafafa', flexShrink:0 }} />;
 }
 
 function VoteButtons({ resourceId }) {
@@ -236,7 +235,7 @@ function TrendingCard({ r, rank }) {
       onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)'; }}
     >
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
-        <Logo url={f.URL} name={f.Name} size={36} imageUrl={f['Image URL']} />
+        <Logo name={f.Name} size={36} images={resourceImages(f)} />
         <span style={{ fontSize:10, color:'#ccc', fontWeight:500 }}>#{rank}</span>
       </div>
       <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600, marginBottom:5 }}>{f.Type}</div>
@@ -264,7 +263,7 @@ function EditorsPickRow({ r, onOpen, onSignInRequired }) {
       onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
       onMouseLeave={e => e.currentTarget.style.background='transparent'}
     >
-      <Logo url={f.URL} name={f.Name} size={36} imageUrl={f['Image URL']} />
+      <Logo name={f.Name} size={36} images={resourceImages(f)} />
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
           <span style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:GREEN, fontWeight:600 }}>{f.Type}</span>
@@ -322,7 +321,7 @@ function EssentialsSection({ items, isMobile, onOpen, onSignInRequired, heading 
               <div style={{ fontSize:13, fontWeight:600, color:'#ddd', fontFamily:FONT_DISPLAY, width:24, flexShrink:0, textAlign:'right' }}>
                 {String(i + 1).padStart(2, '0')}
               </div>
-              <Logo url={f.URL} name={f.Name} size={40} imageUrl={f['Image URL']} />
+              <Logo name={f.Name} size={40} images={resourceImages(f)} />
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:600, color:'#111', marginBottom:3, fontFamily:FONT_DISPLAY, letterSpacing:-0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{f.Name}</div>
                 <div style={{ fontSize:11, color:MUTED, display:'flex', alignItems:'center', gap:6 }}>
@@ -1095,7 +1094,7 @@ export default function Home({ initialResources }) {
                   style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:`0.5px solid ${BORDER}`, cursor:'pointer' }}
                   onMouseEnter={e => e.currentTarget.style.background='#faf9f6'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                  <Logo url={r.fields.URL} name={r.fields.Name} size={36} imageUrl={r.fields['Image URL']} />
+                  <Logo name={r.fields.Name} size={36} images={resourceImages(r.fields)} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:14, fontWeight:500, color:'#111', marginBottom:2 }}>{r.fields.Name}<NewBadge /></div>
                     <div style={{ fontSize:11, color:MUTED }}>
@@ -1432,7 +1431,7 @@ export default function Home({ initialResources }) {
               <div style={{ padding: TOP_ZONE_PAD }}>
               <TopIndex resources={homeResources} categories={VISIBLE_CATEGORIES} isMobile={isMobile}
             onSeeAll={label => { setActiveCategory(label); setExpandedId(null); track('index_see_all', { tab: label }); }}
-            renderLogo={(r, size) => <Logo url={r.fields.URL} name={r.fields.Name} size={size} imageUrl={ytStats[r.id]?.avatar || podStats[r.id]?.showArt || bookStats[r.id]?.cover || r.fields['Image URL'] || r.fields['Auto Image URL']} />} />
+            renderLogo={(r, size) => <Logo name={r.fields.Name} size={size} images={resourceImages(r.fields, { before: [ytStats[r.id]?.avatar, podStats[r.id]?.showArt, bookStats[r.id]?.cover] })} />} />
               </div>
             )}
 
@@ -1469,7 +1468,7 @@ export default function Home({ initialResources }) {
                   const yt   = f.Type === 'YouTube' ? (ytStats[r.id]  || null) : null;
                   const pod  = f.Type === 'Podcast'  ? (podStats[r.id] || null) : null;
                   const book = f.Type === 'Book'     ? (bookStats[r.id]|| null) : null;
-                  const logoImage = yt?.avatar || pod?.showArt || book?.cover || f['Image URL'];
+                  const logoImages = resourceImages(f, { before: [yt?.avatar, pod?.showArt, book?.cover] });
                   return (
                     <div key={r.id} style={{ borderBottom:`0.5px solid ${BORDER}` }}>
                       <div onClick={() => setExpandedId(isOpen ? null : r.id)}
@@ -1478,7 +1477,7 @@ export default function Home({ initialResources }) {
                         onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background='transparent'; }}
                       >
                         <div style={{ fontSize:11, color: isMobile ? '#888' : '#ccc', minWidth: isMobile ? 14 : 22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
-                        <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage} />
+                        <Logo name={f.Name} size={40} images={logoImages} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
                             <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
@@ -1635,7 +1634,7 @@ export default function Home({ initialResources }) {
                   const yt   = f.Type === 'YouTube' ? (ytStats[r.id]  || null) : null;
                   const pod  = f.Type === 'Podcast'  ? (podStats[r.id] || null) : null;
                   const book = f.Type === 'Book'     ? (bookStats[r.id]|| null) : null;
-                  const logoImage2 = yt?.avatar || pod?.showArt || book?.cover || f['Image URL'];
+                  const logoImages2 = resourceImages(f, { before: [yt?.avatar, pod?.showArt, book?.cover] });
                   return (
                     <div key={r.id}
                       onClick={() => router.push(`/resource/${r.id}`)}
@@ -1644,7 +1643,7 @@ export default function Home({ initialResources }) {
                       onMouseLeave={e => e.currentTarget.style.background='transparent'}
                     >
                       <div style={{ fontSize:11, color: isMobile ? '#888' : '#ccc', minWidth: isMobile ? 14 : 22, textAlign:'right', flexShrink:0, fontWeight:500 }}>{i+1}</div>
-                      <Logo url={f.URL} name={f.Name} size={40} imageUrl={logoImage2} />
+                      <Logo name={f.Name} size={40} images={logoImages2} />
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, minWidth:0 }}>
                           <div style={{ fontSize: isMobile ? 15 : 14, fontWeight:500, color:'#111', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
