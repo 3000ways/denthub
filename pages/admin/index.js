@@ -3425,6 +3425,17 @@ function BriefingsTab() {
   }
   useEffect(() => { load(); }, []);
 
+  const [drafting, setDrafting] = useState(false);
+  const [draftResult, setDraftResult] = useState(null);
+  async function draftNow() {
+    setDrafting(true); setDraftResult(null); setError('');
+    try { const r = await fetch('/api/briefings/draft'); const d = await r.json(); if (d.error) setError(d.error); else setDraftResult(d); await load(); }
+    catch (e) { setError(e.message); } finally { setDrafting(false); }
+  }
+  async function briefingAction(id, action) {
+    const r = await fetch('/api/admin/briefings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action }) });
+    const d = await r.json(); if (d.error) setError(d.error); else load();
+  }
   async function harvestNow() {
     setBusy(true); setRunResult(null); setError('');
     try { const r = await fetch('/api/cron/journals-harvest?run=1'); const d = await r.json(); if (d.error) setError(d.error); else setRunResult(d); await load(); }
@@ -3512,17 +3523,57 @@ function BriefingsTab() {
         {runResult && <span style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>Done: {runResult.journals} journals · {runResult.inserted} new papers · {runResult.excluded} non-papers skipped · {runResult.oaChecked} open-access checks{runResult.errors?.length ? ` · ${runResult.errors.length} errors` : ''}</span>}
       </div>
 
+      {/* Episodes: what has run, what is drafted, what failed */}
+      <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 14px', marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>Episodes</div>
+          <span style={{ fontSize: 11, color: '#888' }}>Scripts are drafted and rendered automatically every Monday morning (GitHub Actions → &ldquo;Render briefings&rdquo;). Draft now only prepares scripts; rendering still happens in that job.</span>
+          <button onClick={draftNow} disabled={drafting} style={{ marginLeft: 'auto', fontSize: 11, padding: '5px 10px', border: `1px solid ${GREEN}`, color: GREEN, borderRadius: 4, background: '#fff', cursor: drafting ? 'default' : 'pointer', fontFamily: FONT, fontWeight: 600 }}>{drafting ? 'Drafting…' : 'Draft this week now'}</button>
+          <a href="https://github.com/3000ways/denthub/actions/workflows/render-briefings.yml" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#555', textDecoration: 'none', border: `1px solid ${BORDER}`, borderRadius: 4, padding: '5px 10px', background: '#fff' }}>Open render job ↗</a>
+        </div>
+        {draftResult && <div style={{ fontSize: 12, color: GREEN, marginBottom: 8 }}>Week of {draftResult.weekOf}: {draftResult.drafted.length} drafted, {draftResult.trailers.length} trailers, {draftResult.skipped.length} skipped{draftResult.errors.length ? `, ${draftResult.errors.length} errors` : ''}</div>}
+        {(status?.briefings || []).length === 0 ? <div style={{ fontSize: 12, color: '#bbb' }}>Nothing yet. The first scripts are drafted the Sunday before the first Monday run.</div> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead><tr style={{ color: '#999', textAlign: 'left' }}>
+              <th style={{ padding: '4px 6px 4px 0', fontWeight: 600 }}>Week</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Show</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Episode</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Status</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Length</th><th style={{ padding: '4px 6px', fontWeight: 600 }}>Cost</th><th style={{ padding: '4px 6px', fontWeight: 600 }}></th>
+            </tr></thead>
+            <tbody>
+              {(status?.briefings || []).map(b => {
+                const show = clusters.find(c => c.key === b.cluster)?.show || b.cluster;
+                const col = { published: GREEN, failed: '#c0392b', draft: '#b45309', rendered: '#b45309', skipped: '#999', unpublished: '#999' }[b.status] || '#555';
+                return (
+                  <tr key={b.id} style={{ borderTop: `1px solid ${BORDER}` }}>
+                    <td style={{ padding: '6px 6px 6px 0', whiteSpace: 'nowrap' }}>{b.week_of}</td>
+                    <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{show}{b.kind === 'trailer' ? ' · trailer' : ''}</td>
+                    <td style={{ padding: '6px', color: '#111' }}>{b.episode_id ? <a href={`/episode/${b.episode_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#111' }}>{b.title}</a> : (b.title || '—')}{b.error && <div style={{ fontSize: 11, color: '#c0392b' }}>{b.error}</div>}</td>
+                    <td style={{ padding: '6px', color: col, fontWeight: 600 }}>{b.status}</td>
+                    <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{b.duration_seconds ? `${Math.round(b.duration_seconds / 60)} min` : '—'}</td>
+                    <td style={{ padding: '6px', whiteSpace: 'nowrap' }} title={b.cost_breakdown ? JSON.stringify(b.cost_breakdown) : ''}>{b.status === 'published' || b.status === 'rendered' ? money(b.cost_cents) : '—'}</td>
+                    <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
+                      {b.status === 'published' && <button onClick={() => briefingAction(b.id, 'unpublish')} style={{ fontSize: 11, padding: '3px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: '#c0392b' }}>Unpublish</button>}
+                      {['draft', 'failed', 'skipped', 'unpublished'].includes(b.status) && <button onClick={() => briefingAction(b.id, 'redraft')} style={{ fontSize: 11, padding: '3px 8px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>Re-draft</button>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       {/* Per show */}
       {clusters.map(c => {
         const js = journalsBy[c.key] || [];
         const on = js.some(j => j.active);
+        const paused = !!status?.shows?.[c.key]?.paused;
         const papers = (recentBy[c.key] || []).slice().sort((a, b) => a.rank_tier - b.rank_tier || (b.received_at || '').localeCompare(a.received_at || ''));
         return (
           <div key={c.key} style={{ border: `1px solid ${on ? GREEN : BORDER}`, borderRadius: 8, padding: '12px 14px', marginBottom: 12, opacity: on ? 1 : 0.75 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{c.show}</div>
               <span style={{ fontSize: 11, color: '#888' }}>{c.label}</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: on ? GREEN : '#999', fontWeight: 600 }}>{on ? 'ON — harvesting weekly' : 'OFF'}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: paused ? '#c0392b' : on ? GREEN : '#999', fontWeight: 600 }}>{paused ? 'PAUSED — no new episodes' : on ? 'ON — weekly' : 'OFF'}</span>
+              {on && <button onClick={() => patchJournal({ cluster: c.key, paused: !paused })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${paused ? GREEN : '#e0b4b4'}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT, color: paused ? GREEN : '#c0392b' }}>{paused ? 'Resume show' : 'Pause show'}</button>}
               <button onClick={() => patchJournal({ cluster: c.key, active: !on })} style={{ fontSize: 11, padding: '4px 10px', border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{on ? 'Switch off' : 'Switch on'}</button>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: papers.length ? 10 : 0 }}>

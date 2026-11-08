@@ -9,6 +9,12 @@ export default async function handler(req, res) {
   if (!isAdminAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
   const db = getSupabaseAdmin();
   try {
+    if (req.method === 'PATCH' && req.body && typeof req.body.paused === 'boolean' && req.body.cluster) {
+      // Kill switch for a show: no new episodes publish while paused (drafting and rendering skip it).
+      const { error } = await db.from('briefing_shows').upsert({ cluster: req.body.cluster, paused: req.body.paused, updated_at: new Date().toISOString() }, { onConflict: 'cluster' });
+      if (error) throw new Error(error.message);
+      return res.status(200).json({ ok: true });
+    }
     if (req.method === 'PATCH') {
       const { id, spoken_name, active, cluster } = req.body || {};
       const patch = { updated_at: new Date().toISOString() };

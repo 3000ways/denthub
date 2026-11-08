@@ -1,6 +1,6 @@
 # Journal Briefings — build plan
 
-**Status:** building. Week 1 shipped 2026-11-08 (PR #101); all 14 clusters harvesting nightly. First shows: *Endodontics This Week* and *Orthodontics This Week*.
+**Status:** building. Week 1 shipped 2026-11-08 (PR #101); week 2 (drafting, render job, publish, admin controls) in PR; all 14 clusters harvesting nightly. Scripts are template-built with no language model (short versions come from each paper's Conclusions), so `ANTHROPIC_API_KEY` is not needed for the weekly show. First shows: *Endodontics This Week* and *Orthodontics This Week*.
 
 **What it is, in one paragraph.** Every Monday, The Dental Commute publishes a short podcast per specialty that reads the week's new papers from that specialty's top three journals. A host voice (Grace) welcomes, lists the headlines, hands off to a reader voice (Adrian) for each abstract, gives a one-line "short version" from the paper's own conclusions, and closes. Everything Adrian reads is the published abstract, verbatim. The episode plays on the site with a *Next paper* button and on Apple, Spotify and every podcast app through our own RSS feed. The narration is synthetic and says so.
 
