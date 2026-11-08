@@ -3534,7 +3534,7 @@ function BriefingsTab() {
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>TDC Podcast — journal briefings</h2>
       <p style={{ fontSize: 13, color: '#888', marginBottom: 14, lineHeight: 1.6 }}>
-        A weekly AI-narrated podcast per specialty (<strong>Endodontics This Week</strong>, <strong>Orthodontics This Week</strong>, …) that reads the week&rsquo;s new papers from the top three journals.
+        A weekly AI-narrated podcast per specialty (<strong>Endodontics This Week</strong>, <strong>Orthodontics This Week</strong>, …) that briefs you on the week&rsquo;s new papers from the top three journals.
         Every night the harvester pulls new papers from PubMed and checks for a legal open-access copy. Monday morning the script is drafted, each paper is prepared (licence check; an own-words summary for all-rights-reserved papers, checked against the abstract; open-access abstracts read as published), then rendered and published, automatically.
         <strong> Nothing here needs approval</strong> — this tab is for watching it run, switching shows on, fixing a spoken name, and seeing what it costs.
       </p>
@@ -3592,19 +3592,6 @@ function BriefingsTab() {
                 const kindNote = { summary: 'our summary', quote: "authors' words", abstract: 'abstract, as published', short_version: "authors' words", headline_slot: 'in brief' };
                 return (
                   <React.Fragment key={b.id}>
-                  {full && (
-                    <tr style={{ borderTop: `1px solid ${BORDER}`, background: '#fafaf7' }}>
-                      <td colSpan={7} style={{ padding: '10px 12px' }}>
-                        <div style={{ fontSize: 11, color: '#777', marginBottom: 6 }}>Script — {Array.isArray(full.script) ? full.script.length : 0} segments{full.checks?.prepared ? '' : ' (not prepared yet: summaries are written when you press Prepare or when the Monday job runs)'}. Read-only here; Re-draft to start over.</div>
-                        {(Array.isArray(full.script) ? full.script : []).map((sg, i) => (
-                          <div key={i} style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 8, padding: '4px 0', borderTop: i ? '1px solid #eee' : 'none', fontSize: 12, lineHeight: 1.45 }}>
-                            <div style={{ color: sg.speaker === 'reader' ? '#1d4ed8' : '#111', fontWeight: 600 }}>{speakerName(sg.speaker)}<div style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>{kindNote[sg.kind] || sg.kind}</div></div>
-                            <div style={{ color: '#222' }}>{sg.text}</div>
-                          </div>
-                        ))}
-                      </td>
-                    </tr>
-                  )}
                   <tr style={{ borderTop: `1px solid ${BORDER}` }}>
                     <td style={{ padding: '6px 6px 6px 0', whiteSpace: 'nowrap' }}>{b.week_of}</td>
                     <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>{show}{b.kind === 'trailer' ? ' · trailer' : ''}</td>
@@ -3619,6 +3606,19 @@ function BriefingsTab() {
                       {b.status !== 'skipped' && <button onClick={() => showScript(b.id)} style={{ fontSize: 11, padding: '3px 8px', marginLeft: 4, border: `1px solid ${BORDER}`, borderRadius: 4, background: '#fff', cursor: 'pointer', fontFamily: FONT }}>{scriptOpen[b.id] ? 'Hide script' : 'Script'}</button>}
                     </td>
                   </tr>
+                  {full && (
+                    <tr style={{ borderTop: `1px solid ${BORDER}`, background: '#fafaf7' }}>
+                      <td colSpan={7} style={{ padding: '10px 12px' }}>
+                        <div style={{ fontSize: 11, color: '#777', marginBottom: 6 }}>Script — {Array.isArray(full.script) ? full.script.length : 0} segments{full.checks?.prepared ? '' : ' (not prepared yet: summaries are written when you press Prepare or when the Monday job runs)'}. Read-only here; Re-draft to start over.</div>
+                        {(Array.isArray(full.script) ? full.script : []).map((sg, i) => (
+                          <div key={i} style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 8, padding: '4px 0', borderTop: i ? '1px solid #eee' : 'none', fontSize: 12, lineHeight: 1.45 }}>
+                            <div style={{ color: sg.speaker === 'reader' ? '#1d4ed8' : '#111', fontWeight: 600 }}>{speakerName(sg.speaker)}<div style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>{kindNote[sg.kind] || sg.kind}</div></div>
+                            <div style={{ color: '#222' }}>{sg.text}</div>
+                          </div>
+                        ))}
+                      </td>
+                    </tr>
+                  )}
                   </React.Fragment>
                 );
               })}
