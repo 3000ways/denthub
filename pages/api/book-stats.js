@@ -1,51 +1,23 @@
-// Fetches book metadata from Google Books API for all Book resources in Airtable.
+// Fetches book metadata from Google Books API for all Book resources.
 // For each book, retrieves: cover image, description, page count, published year, publisher.
-// Cached for 24 hours (books don't change often).
+// Cached for 24 hours (books don't change often). An incomplete sweep (Google
+// refused or timed out) is only held for 5 minutes, so a bad moment can't blank
+// the covers for a whole day.
 
 import { listPublishedResources } from '../../lib/resources-db';
 import { setCdnCache } from '../../lib/cdn-cache';
+import { booksApiKey, lookupBook, sweepBooks } from '../../lib/google-books';
 
-let cache     = null;
-let cacheTime = 0;
+let cache         = null;
+let cacheTime     = 0;
+let cacheComplete = false;
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
-
-async function lookupBook(title, author) {
-  // Build query — title + author gives the most precise match
-  const q = encodeURIComponent(`intitle:${title}${author ? ` inauthor:${author}` : ''}`);
-  const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&printType=books`;
-
-  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  if (!res.ok) return null;
-  const data = await res.json();
-
-  const item = data.items?.[0];
-  if (!item) return null;
-
-  const info = item.volumeInfo || {};
-
-  // Google Books provides covers at different zoom levels — zoom=1 is a decent size
-  const rawThumb = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || null;
-  // Strip the http:// to https:// and remove the edge=curl param that distorts the image
-  const cover = rawThumb
-    ? rawThumb.replace('http://', 'https://').replace('&edge=curl', '').replace('?edge=curl', '')
-    : null;
-
-  return {
-    cover,
-    description: info.description ? info.description.slice(0, 300) : null,
-    pages:       info.pageCount   || null,
-    year:        info.publishedDate ? info.publishedDate.slice(0, 4) : null,
-    publisher:   info.publisher   || null,
-    isbn:        info.industryIdentifiers?.find(i => i.type === 'ISBN_13')?.identifier || null,
-    // Popularity signals for the scoring engine (often sparse on Google Books).
-    ratingsCount:  info.ratingsCount  || 0,
-    averageRating: info.averageRating || null,
-  };
-}
+const RETRY_TTL = 5 * 60 * 1000;       // 5 minutes after an incomplete sweep
 
 export default async function handler(req, res) {
-  if (cache && Date.now() - cacheTime < CACHE_TTL) {
-    setCdnCache(res, 86400, { ageMs: Date.now() - cacheTime });
+  const ttl = cacheComplete ? CACHE_TTL : RETRY_TTL;
+  if (cache && Date.now() - cacheTime < ttl) {
+    setCdnCache(res, ttl / 1000, { ageMs: Date.now() - cacheTime, ...(cacheComplete ? {} : { staleSec: 300 }) });
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(cache);
   }
@@ -58,22 +30,17 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 
-  // 2. Look up each book on Google Books in parallel
-  const results = await Promise.allSettled(
-    records.map(r => lookupBook(r.fields['Name'], r.fields['Host or Author']))
-  );
+  // 2. Look up each book on Google Books, a few at a time
+  const key = booksApiKey();
+  const { result, complete } = await sweepBooks(records, r => lookupBook(r.fields['Name'], r.fields['Host or Author'], key));
 
-  // 3. Build result map keyed by Airtable record ID
-  const result = {};
-  records.forEach((r, i) => {
-    const data = results[i].status === 'fulfilled' ? results[i].value : null;
-    if (data) result[r.id] = data;
-  });
+  // 3. An incomplete sweep keeps whatever this instance already knew
+  cache         = complete ? result : { ...(cache || {}), ...result };
+  cacheTime     = Date.now();
+  cacheComplete = complete;
 
-  cache     = result;
-  cacheTime = Date.now();
-
-  setCdnCache(res, 86400);
+  if (complete) setCdnCache(res, 86400);
+  else setCdnCache(res, 300, { staleSec: 300 });
   res.setHeader('X-Cache', 'MISS');
-  return res.status(200).json(result);
+  return res.status(200).json(cache);
 }
