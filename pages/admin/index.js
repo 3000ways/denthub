@@ -3631,9 +3631,6 @@ function BriefingsTab() {
         </div>}
         {(status?.briefings || []).length === 0 ? <div style={{ fontSize: 12, color: '#bbb' }}>Nothing yet. The first scripts are drafted the Sunday before the first Monday run.</div> : (
           <div style={{ fontSize: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '88px 150px minmax(0, 1fr) 96px 56px 60px 200px', gap: 8, color: '#999', fontWeight: 600, padding: '4px 0' }}>
-              <div>Week</div><div>Show</div><div>Episode</div><div>Status</div><div>Length</div><div>Cost</div><div></div>
-            </div>
             <div>
               {(status?.briefings || []).map(b => {
                 const show = clusters.find(c => c.key === b.cluster)?.show || b.cluster;
@@ -3666,7 +3663,7 @@ function BriefingsTab() {
                   </div>
                   {full && (
                     <div style={{ borderTop: `1px solid ${BORDER}`, background: '#fafaf7', padding: '10px 12px' }}>
-                        <div style={{ fontSize: 11, color: '#777', marginBottom: 6 }}>Script — {Array.isArray(full.script) ? full.script.length : 0} segments{full.checks?.prepared ? '' : ' (not prepared yet: summaries are written when you press Prepare or when the Monday job runs)'}. Read-only here; Re-draft to start over.</div>
+                        <div style={{ fontSize: 11, color: '#777', marginBottom: 6 }}>Script — {Array.isArray(full.script) ? full.script.length : 0} segments{full.checks?.prepared ? '' : ' (not prepared yet: summaries are written when you press Prepare or when the Monday job runs)'}. Read-only here; use Start over to rebuild it.</div>
                         {(Array.isArray(full.script) ? full.script : []).map((sg, i) => (
                           <div key={i} style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 8, padding: '4px 0', borderTop: i ? '1px solid #eee' : 'none', fontSize: 12, lineHeight: 1.45 }}>
                             <div style={{ color: sg.speaker === 'reader' ? '#1d4ed8' : '#111', fontWeight: 600 }}>{speakerName(sg.speaker)}<div style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>{kindNote[sg.kind] || sg.kind}</div></div>
