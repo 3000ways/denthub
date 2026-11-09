@@ -48,7 +48,7 @@ test('ffmpeg arguments: one concat of pieces and silences, one amix of speech + 
   assert.equal(concatN, pieces.length + silences, 'every piece and every silence is concatenated');
   assert.match(fc, new RegExp(`amix=inputs=${plan.overlays.length + 1}:normalize=0`));
   assert.ok(args.includes('/m/sting.mp3') && args.includes('/m/turn.mp3') && args.includes('/m/outro.mp3') && args.includes('/m/bed.mp3'));
-  assert.ok(fc.includes('volume=-23dB') && fc.includes('afade=t=out'), 'bed is quiet and fades');
+  assert.ok(fc.includes(`volume=${MUSIC.gainDb.bed}dB`) && fc.includes('afade=t=out'), 'bed is quiet and fades');
   assert.equal(args[args.length - 1], '/t/out.mp3');
   assert.ok(args.includes('alimiter=limit=0.95:level=false') || fc.includes('alimiter'), 'limited');
 });

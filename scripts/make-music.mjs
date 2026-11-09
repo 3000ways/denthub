@@ -4,12 +4,13 @@
 // into public/podcast/music/ with ffmpeg. Re-run to regenerate; the files are
 // committed so the render job and the preview can fetch them.
 //
-//   sting.mp3   ~6.5 s  opening signature: marimba-like motif over a warm pad
+//   sting.mp3   ~6.2 s  opening signature ("big brass", owner's pick 2026-11-09):
+//                       punchy horn-style riff over drums, climbing to a hit
 //   bed.mp3     ~24 s   soft pad in the same key, for under the welcome (ducked)
-//   outro.mp3   ~5.5 s  closing figure, the motif resolving downward
+//   outro.mp3   ~4.8 s  the riff resolving onto the home chord
 //   turn.mp3    ~0.6 s  a single soft "page turn" before each new paper
 //
-// Key: E minor 9, unhurried. Everything is additive synthesis + a small
+// Key: E-flat major, 120 bpm. Everything is additive synthesis + a small
 // Schroeder reverb, normalised to -1 dBFS peak.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -54,6 +55,34 @@ function pad(buf, t0, notes, dur, gain = 0.09, attack = 1.2, release = 1.8) {
     buf[start + i] += v * env * gain / notes.length;
   }
 }
+// Brass-ish stab: sawtooth chord, quick attack, medium decay, dulling over time.
+const saw = (f, t, h = 8) => { let v = 0; for (let k = 1; k <= h; k++) v += Math.sin(2 * Math.PI * f * k * t) / k; return v * 0.6; };
+function stab(buf, t0, notes, dur = 0.55, gain = 0.28) {
+  const start = Math.floor(t0 * SR), n = Math.min(buf.length - start, Math.floor(dur * SR));
+  for (let i = 0; i < n; i++) { const t = i / SR; const env = Math.min(1, t / 0.01) * Math.exp(-t * 4.5) * Math.min(1, (dur - t) / 0.08); let v = 0;
+    for (const note of notes) { const f = midi(note); v += saw(f, t, t < 0.15 ? 10 : 5) + saw(f * 1.003, t, 5) * 0.5; }
+    buf[start + i] += v * env * gain / notes.length; }
+}
+function lead(buf, t0, note, dur = 0.3, gain = 0.3) {
+  const f = midi(note), start = Math.floor(t0 * SR), n = Math.min(buf.length - start, Math.floor(dur * SR));
+  for (let i = 0; i < n; i++) { const t = i / SR; const env = Math.min(1, t / 0.006) * Math.min(1, (dur - t) / 0.05) * (0.7 + 0.3 * Math.exp(-t * 6)); buf[start + i] += (saw(f * 0.997, t, 7) + saw(f * 1.003, t, 7) + Math.sin(2 * Math.PI * f * t) * 0.6) * env * gain * 0.5; }
+}
+function bass(buf, t0, note, dur = 0.22, gain = 0.3) {
+  const f = midi(note), start = Math.floor(t0 * SR), n = Math.min(buf.length - start, Math.floor(dur * SR));
+  for (let i = 0; i < n; i++) { const t = i / SR; const env = Math.min(1, t / 0.004) * Math.min(1, (dur - t) / 0.03); buf[start + i] += (Math.sin(2 * Math.PI * f * t) * 0.8 + saw(f, t, 4) * 0.25) * env * gain; }
+}
+function kick(buf, t0, gain = 0.35) {
+  const start = Math.floor(t0 * SR), n = Math.floor(0.3 * SR);
+  for (let i = 0; i < n && start + i < buf.length; i++) { const t = i / SR; const f = 42 + 110 * Math.exp(-t * 28); buf[start + i] += Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 11) * gain; }
+}
+function hat(buf, t0, gain = 0.05) {
+  const start = Math.floor(t0 * SR), n = Math.floor(0.05 * SR); let s = 12345;
+  for (let i = 0; i < n && start + i < buf.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; buf[start + i] += ((s / 0x7fffffff) * 2 - 1) * Math.exp(-(i / SR) * 90) * gain; }
+}
+function clap(buf, t0, gain = 0.12) {
+  const start = Math.floor(t0 * SR), n = Math.floor(0.12 * SR); let s = 777;
+  for (let i = 0; i < n && start + i < buf.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; const t = i / SR; buf[start + i] += ((s / 0x7fffffff) * 2 - 1) * Math.exp(-t * 38) * (t < 0.01 ? t / 0.01 : 1) * gain; }
+}
 // Small Schroeder reverb (4 combs + 2 allpass), mixed in at `wet`.
 function reverb(dry, wet = 0.22, decay = 0.78) {
   const combs = [1557, 1617, 1491, 1422].map(d => ({ d, buf: new Float64Array(d), i: 0 }));
@@ -82,35 +111,39 @@ function toMp3(name, mono) {
   console.log('wrote', name, (mono.length / SR).toFixed(2), 's');
 }
 
-// ── sting: pad swells, motif E4 G4 B4 D5 → E5 with a lift, tail rings out ──
+const K = { Eb3: 51, F3: 53, G3: 55, Ab3: 56, Bb3: 58, C4: 60, D4: 62, Eb4: 63, F4: 65, G4: 67, Ab4: 68, Bb4: 70, C5: 72, D5: 74, Eb5: 75, F5: 77, G5: 79, Ab5: 80, Bb5: 82, Eb6: 87 };
+const bt = 60 / 120, s8 = bt / 2;
+
+// ── sting: horn riff over drums, climbing to the home chord with a high lead ─
 {
-  const b = buffer(6.5);
-  pad(b, 0, [N.E3, N.B3, N.Fs4, N.G4], 6.2, 0.11, 0.9, 2.4);
-  const motif = [[0.55, N.E4], [0.85, N.G4], [1.15, N.B4], [1.5, N.D5], [2.05, N.E5]];
-  motif.forEach(([t, n], i) => pluck(b, t, n, 2.2, i === motif.length - 1 ? 0.55 : 0.42));
-  pluck(b, 2.05, N.B4, 2.4, 0.22); pluck(b, 2.05, N.G4, 2.4, 0.16);   // chord under the top note
-  toMp3('sting', normalize(reverb(b, 0.26)));
+  const b = buffer(6.2);
+  for (let k = 0; k < 10; k++) { kick(b, k * bt, 0.4); clap(b, k * bt + s8, 0.07); }
+  for (let k = 0; k < 20; k++) hat(b, k * s8, k % 2 ? 0.03 : 0.045);
+  const riff = [[0, [K.Eb4, K.G4, K.Bb4]], [0.5, [K.Eb4, K.G4, K.Bb4]], [1, [K.F4, K.Ab4, K.C5]], [1.75, [K.G4, K.Bb4, K.Eb5]], [2.5, [K.Ab4, K.C5, K.Eb5]], [3, [K.Bb4, K.D5, K.F5]], [3.5, [K.Bb4, K.D5, K.F5]]];
+  riff.forEach(([beat, ch]) => { stab(b, beat * bt, ch, 0.42, 0.34); bass(b, beat * bt, ch[0] - 24, 0.3, 0.32); });
+  kick(b, 4 * bt, 0.55); stab(b, 4 * bt, [K.Eb4, K.G4, K.Bb4, K.Eb5], 2.0, 0.42); pad(b, 4 * bt, [K.Eb3, K.Bb3, K.G4, K.Bb4], 4.0, 0.12, 0.05, 2.0);
+  lead(b, 4 * bt, K.G5, 1.6, 0.32); lead(b, 4 * bt + s8, K.Bb5, 1.4, 0.22); lead(b, 4 * bt + bt, K.Eb6, 1.6, 0.34);
+  toMp3('sting', normalize(reverb(b, 0.14)));
 }
-// ── bed: slow pad, gentle movement, seamless enough for a 20–30 s welcome ──
+// ── bed: quiet E-flat pad with a slow lift, for under the welcome ───────────
 {
   const b = buffer(24);
-  pad(b, 0, [N.E3, N.B3, N.Fs4], 12.5, 0.1, 2.0, 2.5);
-  pad(b, 11.5, [N.E3, N.D4, N.G4], 12.5, 0.1, 2.0, 2.5);
-  [[4.2, N.B4], [9.0, N.G4], [14.5, N.Fs4], [19.2, N.E4]].forEach(([t, n]) => pluck(b, t, n, 2.6, 0.12));
+  pad(b, 0, [K.Eb3, K.Bb3, K.G4], 12.5, 0.1, 2.0, 2.5);
+  pad(b, 11.5, [K.Ab3, K.C4, K.Eb4, K.G4], 12.5, 0.1, 2.0, 2.5);
+  [[4.2, K.Bb4], [9.0, K.G4], [14.5, K.Ab4], [19.2, K.Eb4]].forEach(([t, n]) => pluck(b, t, n, 2.6, 0.12));
   const r = normalize(reverb(b, 0.3), 0.6); fadeOut(r, 1.5);
   toMp3('bed', r);
 }
-// ── outro: the motif resolving downward, E5 D5 B4 G4 → E4, pad settles ────
+// ── outro: three stabs stepping down, then the home chord ───────────────────
 {
-  const b = buffer(5.5);
-  pad(b, 0, [N.E3, N.B3, N.G4], 5.3, 0.1, 0.4, 2.2);
-  [[0.1, N.E5], [0.45, N.D5], [0.8, N.B4], [1.15, N.G4], [1.7, N.E4]].forEach(([t, n], i) => pluck(b, t, n, 2.6, i === 4 ? 0.55 : 0.4));
-  pluck(b, 1.7, N.B3, 3.0, 0.2);
-  toMp3('outro', normalize(reverb(b, 0.28)));
+  const o = buffer(4.8);
+  [[0, [K.Bb4, K.D5, K.F5]], [0.5, [K.Ab4, K.C5, K.Eb5]], [1, [K.F4, K.Ab4, K.C5]]].forEach(([beat, ch]) => { stab(o, beat * bt, ch, 0.42, 0.34); kick(o, beat * bt, 0.4); bass(o, beat * bt, ch[0] - 24, 0.3, 0.32); });
+  kick(o, 2 * bt, 0.55); stab(o, 2 * bt, [K.Eb4, K.G4, K.Bb4, K.Eb5], 2.2, 0.42); pad(o, 2 * bt, [K.Eb3, K.Bb3, K.G4], 3.6, 0.12, 0.05, 1.8); lead(o, 2 * bt, K.Eb6, 1.8, 0.34);
+  toMp3('outro', normalize(reverb(o, 0.14)));
 }
-// ── turn: one soft high note, very short ───────────────────────────────────
+// ── turn: one short brass tap in the key, very quiet in the mix ─────────────
 {
   const b = buffer(0.7);
-  pluck(b, 0.02, N.G5, 0.6, 0.5); pluck(b, 0.02, N.B4, 0.5, 0.15);
-  toMp3('turn', normalize(reverb(b, 0.18), 0.6));
+  stab(b, 0.02, [K.Bb4, K.Eb5], 0.4, 0.3); pluck(b, 0.02, K.Bb5, 0.5, 0.25, 6);
+  toMp3('turn', normalize(reverb(b, 0.16), 0.6));
 }
