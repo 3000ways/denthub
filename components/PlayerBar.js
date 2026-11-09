@@ -24,7 +24,10 @@ const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
 const fmtRate = (r) => `${r}×`;
 
 export default function PlayerBar() {
-  const { currentEpisode, isPlaying, position, duration, percent, rate, pause, resume, seek, setRate, markListened, completedIds } = usePlayer();
+  const { currentEpisode, isPlaying, position, duration, percent, rate, pause, resume, seek, setRate, markListened, completedIds, chapters, chapterIndex, nextChapter, prevChapter } = usePlayer();
+  const hasChapters = Array.isArray(chapters) && chapters.length > 1;
+  const chapterTitle = hasChapters && chapterIndex >= 0 ? chapters[chapterIndex].title : null;
+  const paperBtn = { background: 'none', border: 'none', cursor: 'pointer', color: GREEN, fontSize: 15, fontWeight: 700, padding: '4px 6px', lineHeight: 1 };
   const cycleRate = () => {
     const i = SPEEDS.indexOf(rate);
     setRate(SPEEDS[(i + 1) % SPEEDS.length]);
@@ -134,6 +137,7 @@ export default function PlayerBar() {
                   {currentEpisode.title}
                 </div>
             }
+            {chapterTitle && <div style={{ fontSize: 10, color: '#6f6f6a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>Paper {chapterIndex}/{chapters.length - 1}: {chapterTitle}</div>}
           </div>
 
           {/* Timestamps */}
@@ -149,6 +153,7 @@ export default function PlayerBar() {
 
         {/* Bottom row: transport + rate/share + mark as listened */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '4px 10px 10px' }}>
+          {hasChapters && <button onClick={prevChapter} title="Previous paper" aria-label="Previous paper" style={paperBtn}>⏮</button>}
           <button
             onClick={() => seek(Math.max(0, position - 15))}
             title="Back 15 seconds"
@@ -175,6 +180,7 @@ export default function PlayerBar() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 13, fontWeight: 600, padding: '4px 6px' }}>
             15↻
           </button>
+          {hasChapters && <button onClick={nextChapter} title="Next paper" aria-label="Next paper" style={paperBtn}>⏭</button>}
 
           <button
             onClick={cycleRate}
@@ -274,10 +280,12 @@ export default function PlayerBar() {
               {currentEpisode.title}
             </div>
         }
+        {chapterTitle && <div style={{ fontSize: 11, color: '#6f6f6a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>Paper {chapterIndex}/{chapters.length - 1}: {chapterTitle}</div>}
       </div>
 
       {/* Transport controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        {hasChapters && <button onClick={prevChapter} title="Previous paper" aria-label="Previous paper" style={paperBtn}>⏮</button>}
         <button
           onClick={() => seek(Math.max(0, position - 15))}
           title="Back 15 seconds"
@@ -306,6 +314,7 @@ export default function PlayerBar() {
             fontSize: 13, fontWeight: 600, padding: '4px 6px', lineHeight: 1 }}>
           15↻
         </button>
+        {hasChapters && <button onClick={nextChapter} title="Next paper" aria-label="Next paper" style={paperBtn}>⏭</button>}
 
         <button
           onClick={cycleRate}

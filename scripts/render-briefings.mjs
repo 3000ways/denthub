@@ -143,11 +143,12 @@ async function renderBriefing(b, ctx) {
 
     // 6. Upload episode + chapters JSON.
     const key = `episodes/${b.cluster}/${b.kind}-${b.week_of}-${b.id}.mp3`;
-    const audio_url = await upload(key, await readFile(out), 'audio/mpeg');
+    const mp3 = await readFile(out);
+    const audio_url = await upload(key, mp3, 'audio/mpeg');
     await upload(key.replace(/\.mp3$/, '.chapters.json'), Buffer.from(JSON.stringify({ version: '1.2.0', chapters: chapters.map(c => ({ startTime: c.start, title: c.title })) })), 'application/json');
 
     const checks = { ok: true, pieces: results.length, cached: cached.length, duration_seconds: duration, removed: removedLog.length, elapsed_ms: Date.now() - started };
-    const pub = await site('/api/briefings/publish', { method: 'POST', body: JSON.stringify({ briefing_id: b.id, audio_url, duration_seconds: duration, chapters, cost_cents: Number(cost_cents.toFixed(4)), cost_breakdown, checks, rendered_at: new Date().toISOString() }) });
+    const pub = await site('/api/briefings/publish', { method: 'POST', body: JSON.stringify({ briefing_id: b.id, audio_url, audio_bytes: mp3.length, duration_seconds: duration, chapters, cost_cents: Number(cost_cents.toFixed(4)), cost_breakdown, checks, rendered_at: new Date().toISOString() }) });
     console.log(`✓ ${b.show} (${b.kind}, ${b.week_of}): ${Math.round(duration / 60)} min, $${(cost_cents / 100).toFixed(2)} (${cached.length} cached) → ${pub.link}`);
   } catch (e) {
     console.error(`✗ ${b.show} (${b.kind}, ${b.week_of}): ${e.message}`);

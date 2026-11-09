@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         // A reviewed episode (status rendered) goes live: same path as an automatic publish.
         if (b.status !== 'rendered' || !b.audio_url) return res.status(400).json({ error: 'Only a rendered episode can be published' });
         const c = findCluster(b.cluster) || { show: b.cluster, label: b.cluster, pick: null };
-        const out = await finalizePublish(db, b, c, { audio_url: b.audio_url, duration_seconds: b.duration_seconds, chapters: b.chapters, cost_cents: b.cost_cents, cost_breakdown: b.cost_breakdown, checks: b.checks, rendered_at: b.rendered_at });
+        const out = await finalizePublish(db, b, c, { audio_url: b.audio_url, duration_seconds: b.duration_seconds, audio_bytes: b.audio_bytes, chapters: b.chapters, cost_cents: b.cost_cents, cost_breakdown: b.cost_breakdown, checks: b.checks, rendered_at: b.rendered_at });
         return res.status(200).json({ ok: true, ...out });
       }
       if (action === 'unpublish') {

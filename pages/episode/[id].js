@@ -57,11 +57,13 @@ export async function getStaticProps({ params }) {
   try {
     const { data: ep } = await supabase
       .from('episodes')
-      .select('id, show_resource_id, show_name, title, description, published_at, link, audio_url, image, duration_seconds')
+      .select('id, show_resource_id, show_name, title, description, published_at, link, audio_url, image, duration_seconds, guid')
       .eq('id', params.id)
       .single();
 
     if (!ep || !ep.audio_url) return { notFound: true, revalidate: 60 };
+    // Journal Briefings episodes have their own richer page (papers, chapters, subscribe).
+    if (String(ep.guid || '').startsWith('tdc:briefing:')) return { redirect: { destination: `/briefing/${ep.guid.split(':')[2]}`, permanent: false }, revalidate: 3600 };
 
     // A few more episodes from the same show, for internal links + discovery —
     // and confirm the show itself is live. The public client only sees
@@ -107,6 +109,7 @@ function PlayButton({ ep }) {
       audio_url: ep.audio_url,
       image: ep.image,
       duration_seconds: ep.duration_seconds,
+      guid: ep.guid,
     });
   }
 

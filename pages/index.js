@@ -30,6 +30,7 @@ import { TopIndex } from '../components/TopIndex';
 import { useSpecialtyPick } from '../lib/use-specialty-pick';
 import { findPick } from '../lib/specialties';
 import { CommuteFilter } from '../components/CommuteFilter';
+import { JournalBriefingsRow } from '../components/JournalBriefingsRow';
 import { track } from '../lib/analytics';
 import { resourceImages, isFaviconSrc } from '../lib/image-ladder';
 import { useImageLadder } from '../lib/use-image-ladder';
@@ -1315,6 +1316,8 @@ export default function Home({ initialResources }) {
         {!anyFilterActive && !isDemo && resources.length > 0 && (
           <CommuteFilter isMobile={isMobile} pick={pick} />
         )}
+        {/* Journal Briefings — our own weekly shows; hidden until one has published. */}
+        {!anyFilterActive && !isDemo && <JournalBriefingsRow isMobile={isMobile} />}
 
         {/* ── Filter / results mode ───────────────────────────────────────
             Reached from a search, a type tab or a chip. Shows the type tabs,

@@ -10,6 +10,7 @@ import { sendOwnerAlert, ADMIN_URL } from '../../../lib/notify';
 import { CLUSTERS, findCluster } from '../../../lib/journals';
 import { findPick } from '../../../lib/specialties';
 import { showNotes } from '../../../lib/briefing-script';
+import { artworkUrl, briefingUrl } from '../../../lib/briefings-urls';
 import { authorized } from './draft';
 
 const SITE = 'https://thedentalcommute.com';
@@ -29,6 +30,7 @@ export async function ensureShowResource(db, cluster) {
     URL: `${SITE}/journals/${c.key}`,
     'RSS Feed URL': `${SITE}/api/podcast/${c.key}.xml`,
     'Host or Author': 'The Dental Commute',
+    'Image URL': artworkUrl(c.key),
     Source: 'tdc_original',
     'Voice Type': 'AI-generated',
     'Voice Status': 'Confirmed',
@@ -57,16 +59,16 @@ export async function finalizePublish(db, b, c, r) {
   const guid = `tdc:briefing:${b.id}`;
   const { data: ep, error: epErr } = await db.from('episodes').upsert({
     guid, show_resource_id: resourceId, show_name: c.show, title,
-    description: notes.slice(0, 4000), audio_url: r.audio_url, image: null,
+    description: notes.slice(0, 4000), audio_url: r.audio_url, image: artworkUrl(b.cluster),
     published_at: new Date().toISOString(), duration_seconds: duration,
     quiz_tags: pick ? [pick.tag] : null, quiz_tagged_at: pick ? new Date().toISOString() : null,
   }, { onConflict: 'show_resource_id,guid' }).select('id').single();
   if (epErr) throw new Error(`episode upsert: ${epErr.message}`);
-  await db.from('episodes').update({ link: `${SITE}/episode/${ep.id}` }).eq('id', ep.id);
+  await db.from('episodes').update({ link: briefingUrl(b.id) }).eq('id', ep.id);   // the rich episode page (papers, chapters, subscribe)
 
   const now = new Date().toISOString();
   await db.from('briefings').update({
-    status: 'published', audio_url: r.audio_url, duration_seconds: duration,
+    status: 'published', audio_url: r.audio_url, duration_seconds: duration, audio_bytes: r.audio_bytes || b.audio_bytes || null,
     chapters: Array.isArray(r.chapters) ? r.chapters : [],
     cost_cents: Number(r.cost_cents || 0), cost_breakdown: r.cost_breakdown || {},
     checks: r.checks || b.checks, episode_id: ep.id, error: null,
@@ -88,10 +90,10 @@ export async function finalizePublish(db, b, c, r) {
     text: [
       `${title}`, '',
       `${fullReads.length} paper${fullReads.length === 1 ? '' : 's'} in depth${modesLine}${headlines.length ? `, ${headlines.length} in brief` : ''} · ${Math.round(duration / 60)} min · cost $${(cents / 100).toFixed(2)}${llm ? ` (summaries $${(llm / 100).toFixed(2)})` : ''}${cached ? ` (${cached} cached segments saved $${((r.cost_breakdown.saved_cents || 0) / 100).toFixed(2)})` : ''}`,
-      '', `Listen: ${SITE}/episode/${ep.id}`, `Admin: ${ADMIN_URL}`,
+      '', `Listen: ${briefingUrl(b.id)}`, `Admin: ${ADMIN_URL}`,
     ].join('\n'),
   });
-  return { episode_id: ep.id, resource_id: resourceId, link: `${SITE}/episode/${ep.id}` };
+  return { episode_id: ep.id, resource_id: resourceId, link: briefingUrl(b.id) };
 }
 
 export default async function handler(req, res) {
@@ -121,7 +123,7 @@ export default async function handler(req, res) {
     const duration = Math.round(Number(body.duration_seconds || 0));
     if (!audioUrl.startsWith('https://') || !duration) return res.status(400).json({ error: 'audio_url and duration_seconds required' });
     const rendered = {
-      audio_url: audioUrl, duration_seconds: duration,
+      audio_url: audioUrl, duration_seconds: duration, audio_bytes: Number(body.audio_bytes) || null,
       chapters: Array.isArray(body.chapters) ? body.chapters : [],
       cost_cents: Number(body.cost_cents || 0), cost_breakdown: body.cost_breakdown || {},
       checks: body.checks || b.checks, rendered_at: body.rendered_at || new Date().toISOString(),
