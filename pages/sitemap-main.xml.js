@@ -1,6 +1,6 @@
 // Child sitemap: the site's static public pages, one entry per Published
 // resource (each podcast/show/channel/etc. has its own page at /resource/[id]),
-// and the public "See all" topic pages at /browse?tag=…&kind=…
+// and the public "See all" topic pages at /browse?tag=…
 // Referenced by the top-level sitemap index at /sitemap.xml. Episode pages live
 // in a separate child sitemap (/sitemap-episodes.xml) because they come from a
 // different data source (Supabase) and can be far more numerous.
@@ -88,7 +88,8 @@ function buildSitemap(records, browsePages) {
   }
 
   for (const b of browsePages) {
-    const loc = xmlEscape(`${SITE}/browse?tag=${encodeURIComponent(b.tag)}&kind=${b.kind}`);
+    // Tag only — the `kind` param was dropped from /browse URLs (one canonical per tag).
+    const loc = xmlEscape(`${SITE}/browse?tag=${encodeURIComponent(b.tag)}`);
     urls.push(
       `  <url>\n    <loc>${loc}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>`
     );
