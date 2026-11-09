@@ -7,6 +7,7 @@ import { SpotlightCard } from '../components/SpotlightCard';
 import { AiVoiceToggle } from '../components/AiVoiceToggle';
 import { fetchEpisodesByTag, BROWSE_PAGE_SIZE } from '../lib/home-feed';
 import { useAiVoiceExclusion } from '../lib/use-ai-voice-pref';
+import { supabase } from '../lib/supabase';
 
 const FONT_BODY    = "'Inter', system-ui, -apple-system, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -18,15 +19,42 @@ const EYEBROW = { goal: 'Listen by goal', interest: 'By clinical area', career: 
 // "See all" page for one tag (goal / clinical area / career stage). Reached from
 // the home-page Discover carousels' "See all →" link. Server-renders the first
 // page for SEO, then Load More / search fetch client-side from /api/browse-episodes.
+// A tag belongs to exactly one quiz question (goal / interest / career), so the
+// page's "kind" is looked up from the tag — it is not part of the URL any more.
+// Why: the old `/browse?tag=X&kind=Y` links and the bare `/browse?tag=X` served
+// the same page with two different self-declared canonicals, and Google flagged
+// one of them as "Duplicate, Google chose different canonical than user"
+// (Search Console, 2026-11). One URL per tag now; the old `kind` form 301s here.
+const KIND_BY_QUESTION = { working_on: 'goal', interest: 'interest', career_stage: 'career' };
+async function kindForTag(tag) {
+  try {
+    const { data } = await supabase
+      .from('quiz_options')
+      .select('question_key')
+      .eq('label', tag)
+      .limit(1)
+      .maybeSingle();
+    return KIND_BY_QUESTION[data?.question_key] || '';
+  } catch { return ''; }
+}
+
 export async function getServerSideProps({ query, res }) {
   const tag  = typeof query.tag  === 'string' ? query.tag  : '';
-  const kind = typeof query.kind === 'string' ? query.kind : '';
   if (!tag) return { notFound: true };
-  let initialItems = [], total = 0;
+  // Legacy `&kind=` URLs (home-page "See all" links until 2026-11, old sitemap):
+  // permanently redirect to the one canonical URL so Google consolidates them.
+  if (typeof query.kind !== 'undefined') {
+    return { redirect: { destination: `/browse?tag=${encodeURIComponent(tag)}`, permanent: true } };
+  }
+  let initialItems = [], total = 0, kind = '';
   try {
-    const r = await fetchEpisodesByTag({ tag, offset: 0, limit: BROWSE_PAGE_SIZE, withCount: true });
+    const [r, k] = await Promise.all([
+      fetchEpisodesByTag({ tag, offset: 0, limit: BROWSE_PAGE_SIZE, withCount: true }),
+      kindForTag(tag),
+    ]);
     initialItems = r.items;
     total = r.total ?? 0;
+    kind = k;
   } catch {}
   if (!total) return { notFound: true }; // unknown / empty tag → 404, never an empty page
   // Same HTML for every visitor (the AI-voice filter runs client-side), so let the
@@ -106,7 +134,7 @@ export default function BrowsePage({ tag, kind, initialItems, total }) {
         {/* One string, not {tag} + text: JSX interpolation put a literal "<!-- -->" in the title Google saw. */}
         <title>{`${tag} — Dental podcast episodes | The Dental Commute`}</title>
         <meta name="description" content={`${total.toLocaleString('en-US')} dental podcast episodes on ${tag}, newest first — curated for dentists on The Dental Commute.`} />
-        <link rel="canonical" href={`https://thedentalcommute.com/browse?tag=${encodeURIComponent(tag)}${kind ? `&kind=${encodeURIComponent(kind)}` : ''}`} />
+        <link rel="canonical" href={`https://thedentalcommute.com/browse?tag=${encodeURIComponent(tag)}`} />
         <meta property="og:title" content={`${tag} — The Dental Commute`} />
         <meta property="og:description" content={`Dental podcast episodes on ${tag}, curated for dentists.`} />
         <meta property="og:image" content="https://thedentalcommute.com/og-image.jpg" />

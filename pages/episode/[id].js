@@ -53,6 +53,35 @@ export async function getStaticPaths() {
   return { paths: [], fallback: 'blocking' };
 }
 
+// Some shows carry the same episode twice in the archive (a feed migration that
+// re-issued every GUID, a rerun, a stray second enclosure). Each copy got its own
+// /episode/<id> page with a self-pointing canonical, so Google saw two identical
+// pages disagreeing about which one counts and reported "Duplicate, Google chose
+// different canonical than user". Resolve it ourselves: among the copies of one
+// episode within a show (same audio file, or same title), the lowest id is the
+// canonical one and every other copy declares it. Reads only; nothing is merged
+// or deleted, so bookmarks/pins on either copy keep working.
+async function canonicalTwinId(ep) {
+  try {
+    const base = () => supabase
+      .from('episodes')
+      .select('id')
+      .eq('show_resource_id', ep.show_resource_id)
+      .not('audio_url', 'is', null)
+      .lt('id', ep.id)
+      .order('id', { ascending: true })
+      .limit(1);
+    const [byAudio, byTitle] = await Promise.all([
+      ep.audio_url ? base().eq('audio_url', ep.audio_url).maybeSingle() : { data: null },
+      ep.title ? base().eq('title', ep.title).maybeSingle() : { data: null },
+    ]);
+    const ids = [byAudio?.data?.id, byTitle?.data?.id].filter(n => Number.isInteger(n));
+    return ids.length ? Math.min(...ids) : ep.id;
+  } catch {
+    return ep.id;
+  }
+}
+
 export async function getStaticProps({ params }) {
   try {
     const { data: ep } = await supabase
@@ -69,7 +98,7 @@ export async function getStaticProps({ params }) {
     // and confirm the show itself is live. The public client only sees
     // Published resources, so an archived/missing show reads as null: its
     // episodes 404 rather than leaving a page whose "back to show" link is dead.
-    const [{ data: show }, { data: more }] = await Promise.all([
+    const [{ data: show }, { data: more }, canonicalId] = await Promise.all([
       supabase.from('resources').select('id').eq('id', ep.show_resource_id).maybeSingle(),
       supabase
         .from('episodes')
@@ -78,6 +107,7 @@ export async function getStaticProps({ params }) {
         .neq('id', ep.id)
         .order('published_at', { ascending: false, nullsFirst: false })
         .limit(6),
+      canonicalTwinId(ep),
     ]);
     if (!show) return { notFound: true, revalidate: 3600 };
 
@@ -85,6 +115,7 @@ export async function getStaticProps({ params }) {
       props: {
         ep: { ...ep, descriptionText: stripHtml(ep.description) },
         more: more || [],
+        canonicalId,
       },
       revalidate: 3600,
     };
@@ -123,7 +154,7 @@ function PlayButton({ ep }) {
   );
 }
 
-export default function EpisodePage({ ep, more }) {
+export default function EpisodePage({ ep, more, canonicalId }) {
   const date = fmtDate(ep.published_at);
   const dur = fmtDur(ep.duration_seconds);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -142,6 +173,8 @@ export default function EpisodePage({ ep, more }) {
     : `Listen to ${ep.title}${ep.show_name ? ` from ${ep.show_name}` : ''} on The Dental Commute.`;
   const ogImage = ep.image || 'https://thedentalcommute.com/og-image.jpg';
   const url = `https://thedentalcommute.com/episode/${ep.id}`;
+  // A duplicate copy points its canonical at the original (see canonicalTwinId).
+  const canonicalUrl = `https://thedentalcommute.com/episode/${canonicalId || ep.id}`;
 
   return (
     <>
@@ -150,14 +183,14 @@ export default function EpisodePage({ ep, more }) {
         <meta name="description" content={description} />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
-        <meta property="og:url" content={url} />
+        <meta property="og:url" content={canonicalUrl} />
         <meta property="og:image" content={ogImage} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={ogImage} />
-        <link rel="canonical" href={url} />
+        <link rel="canonical" href={canonicalUrl} />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         {/* RSS text is untrusted: escape "<" so a title can't close the script tag. */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -165,7 +198,7 @@ export default function EpisodePage({ ep, more }) {
           '@type': 'PodcastEpisode',
           name: ep.title,
           description,
-          url,
+          url: canonicalUrl,
           ...(ep.image ? { image: ep.image } : {}),
           ...(ep.published_at ? { datePublished: new Date(ep.published_at).toISOString() } : {}),
           ...(ep.duration_seconds ? { timeRequired: `PT${Math.round(ep.duration_seconds / 60)}M` } : {}),

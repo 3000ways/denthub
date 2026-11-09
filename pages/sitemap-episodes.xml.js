@@ -38,7 +38,7 @@ async function fetchEpisodeShard(pageIndex) {
     const to = Math.min(from + BATCH, end) - 1;
     const { data, error } = await supabase
       .from('episodes')
-      .select('id, published_at, show_resource_id')
+      .select('id, published_at, show_resource_id, title')
       .not('audio_url', 'is', null)
       .order('id', { ascending: true })
       .range(from, to);
@@ -47,6 +47,22 @@ async function fetchEpisodeShard(pageIndex) {
     from += data.length;
   }
   return rows;
+}
+
+// A show sometimes carries the same episode twice (re-issued GUIDs, reruns). The
+// episode page marks the lowest-id copy as canonical and the others point at it,
+// so advertise only that one here — listing both told Google to index two URLs
+// that then disagreed about which counts. Rows arrive ordered by id, so the first
+// copy seen per (show, title) is the canonical one.
+function dropDuplicateCopies(rows) {
+  const seen = new Set();
+  return rows.filter(r => {
+    if (!r.title) return true;
+    const key = `${r.show_resource_id}\u0000${r.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function buildSitemap(rows) {
@@ -70,7 +86,7 @@ export async function getServerSideProps({ res, query }) {
       listPublishedResources({ select: 'id' }),
     ]);
     const liveIds = new Set(live.map(r => r.id));
-    rows = shard.filter(r => liveIds.has(r.show_resource_id));
+    rows = dropDuplicateCopies(shard.filter(r => liveIds.has(r.show_resource_id)));
   } catch (err) {
     rows = [];
   }
