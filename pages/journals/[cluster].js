@@ -58,9 +58,8 @@ export default function ShowPage({ show, episodes }) {
             </div>
           </div>
 
-          <div style={{ background: 'rgba(255,255,255,0.7)', border: `1px solid ${BORDER}`, borderRadius: 14, padding: isMobile ? '18px 16px' : '24px 28px', marginBottom: 24 }}>
+          {episodes.length > 0 && <div style={{ background: 'rgba(255,255,255,0.7)', border: `1px solid ${BORDER}`, borderRadius: 14, padding: isMobile ? '18px 16px' : '24px 28px', marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 12 }}>Episodes</div>
-            {episodes.length === 0 && <div style={{ fontSize: 14, color: MUTED }}>The first episode is on its way. Subscribe now and it will arrive in your app the moment it publishes.</div>}
             {episodes.map((b, i) => {
               const ep = briefingEpisode(b, show);
               return (
@@ -73,15 +72,15 @@ export default function ShowPage({ show, episodes }) {
                 </div>
               );
             })}
-          </div>
+          </div>}
 
           <div style={{ background: 'rgba(255,255,255,0.7)', border: `1px solid ${BORDER}`, borderRadius: 14, padding: isMobile ? '18px 16px' : '24px 28px', marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 12 }}>The journals</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
               {show.journals.map(j => (
                 <div key={j.pubmed_abbr} style={{ fontSize: 14, color: '#222' }}>
-                  <div style={{ fontWeight: 600 }}>{j.name}</div>
-                  <div style={{ fontSize: 12, color: MUTED }}>{j.society ? `${j.society} · ` : ''}on air as “{j.spoken_name}”</div>
+                  <a href={j.homepage || `https://pubmed.ncbi.nlm.nih.gov/?term=%22${encodeURIComponent(j.pubmed_abbr)}%22%5Bjour%5D`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: '#111', textDecoration: 'none', borderBottom: `1px solid ${BORDER}` }}>{j.name} ↗</a>
+                  {j.society && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{j.society}</div>}
                 </div>
               ))}
             </div>

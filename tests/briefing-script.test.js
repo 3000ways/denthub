@@ -57,7 +57,7 @@ test('weekly script, hybrid format: all-rights-reserved papers get our summary +
   assert.equal(quotes[1].text, 'The authors conclude: Performance depends on task type.');   // quote_only fallback
   const slots = seg.filter(s => s.kind === 'headline_slot');
   assert.equal(slots.length, 2);
-  assert.match(slots[1].text, /A Third Paper, from the European Endo Journal\. (The authors conclude|In their words|Their conclusion): Heating improved dissolution\./);
+  assert.match(slots[1].text, /A Third Paper, from the European Endo Journal, by Sabeti and colleagues\. (The authors conclude|In their words|Their conclusion): Heating improved dissolution\./);
   assert.equal(seg[seg.length - 1].kind, 'close');
   assert.match(seg[seg.length - 1].text, /Safe drive\.$/);
   assert.ok(seg.every(s => !/https?:/.test(s.text)), 'no links in any spoken line');
@@ -150,4 +150,14 @@ test('phrasing rotates: consecutive papers never share a quote lead, and the sam
   assert.deepEqual(build(), build(), 'deterministic for the same week');
   assert.notDeepEqual(build().map(s => s.text), buildWeeklyScript({ show: 'S', label: 'endodontics', weekOf: '2026-11-23', fullReads: papers, headlines: [], spokenName: () => 'the J-O-E' }).map(s => s.text), 'varies between weeks');
   assert.ok(build().every(s => !/—/.test(s.text)), 'no em-dashes spoken');
+});
+
+test('rule: every paper covered, in depth or in brief, is credited to its authors', () => {
+  const papers = Array.from({ length: 10 }, (_, i) => ({ ...article(i + 1, `Paper ${i + 1}`, 'J Endod', `Conclusion ${i + 1}.`), read_mode: i % 2 ? 'hybrid' : 'verbatim', summary: `Summary ${i + 1}.` }));
+  const seg = buildWeeklyScript({ show: 'S', label: 'endodontics', weekOf: '2026-11-16', fullReads: papers.slice(0, 8), headlines: papers.slice(8), spokenName: () => 'the J-O-E' });
+  for (const p of papers) {
+    const intro = seg.find(s => s.article_id === p.id && (s.kind === 'handoff' || s.kind === 'headline_slot'));
+    assert.ok(intro, `paper ${p.id} is introduced`);
+    assert.match(intro.text, /Sabeti and colleagues/, `paper ${p.id} credits its authors: ${intro.text}`);
+  }
 });

@@ -18,13 +18,13 @@ test('a faithful own-words summary passes', () => {
   assert.ok(r.ok);
 });
 
-test('a run of eight shared words is caught', () => {
+test('a run of ten shared words is caught', () => {
   const lifted = good.replace('The authors ran a systematic review', 'A systematic review was conducted of randomized and cohort studies published between');
   const r = checkSummary(lifted, abstract);
   assert.ok(r.problems.some(p => p.startsWith('copies the abstract')), r.problems.join(' | '));
-  assert.equal(sharedRun('a b c d e f g h', 'x a b c d e f g h y'), 'a b c d e f g h');
-  assert.equal(sharedRun('a b c d e f g', 'a b c d e f g'), null, 'seven words is below the threshold');
-  assert.equal(NGRAM, 8);
+  assert.equal(sharedRun('a b c d e f g h i j', 'x a b c d e f g h i j y'), 'a b c d e f g h i j');
+  assert.equal(sharedRun('a b c d e f g h i', 'a b c d e f g h i'), null, 'nine words is below the threshold');
+  assert.equal(NGRAM, 10);
 });
 
 test('a number the abstract never states is caught; formatting differences are tolerated', () => {
