@@ -9,6 +9,7 @@ import Footer from '../../components/Footer';
 import { ShareButton } from '../../components/ShareButton';
 import { EpisodeBookmarkButton } from '../../components/EpisodeBookmarkButton';
 import { PinButton } from '../../components/PinButton';
+import { ReportButton } from '../../components/ReportButton';
 import { SignInModal } from '../../components/AuthModal';
 import { SubscribeLinks } from '../../components/SubscribeLinks';
 import { briefingEpisode, useBriefingPlayback, PlayPill, fmtDur, fmtDate, fmtClock } from '../../components/BriefingPlayer';
@@ -55,7 +56,7 @@ function Chapters({ chapters, ep }) {
   );
 }
 
-function Paper({ p, n }) {
+function Paper({ p, n, episodeId }) {
   const mode = MODE[p.readMode] || MODE.hybrid;
   return (
     <div style={{ padding: '18px 0', borderTop: `1px solid ${BORDER}` }}>
@@ -76,9 +77,10 @@ function Paper({ p, n }) {
               “{p.conclusion}”
             </blockquote>
           )}
-          <div style={{ display: 'flex', gap: 14, fontSize: 12 }}>
+          <div style={{ display: 'flex', gap: 14, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             {p.url && <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: GREEN, fontWeight: 600, textDecoration: 'none' }}>Read the paper ↗</a>}
             {p.licence && licenceUrl(p.licence) && p.readMode !== 'hybrid' && <a href={licenceUrl(p.licence)} target="_blank" rel="noopener noreferrer" style={{ color: MUTED, textDecoration: 'none' }}>Licence: {licenceLabel(p.licence)}</a>}
+            {episodeId && <span style={{ marginLeft: 'auto' }}><ReportButton episodeId={episodeId} name={p.title} label="Spot a mistake?" defaultReason="inaccurate" notePrefix={`Paper ${n}: ${p.title.slice(0, 80)} — `} /></span>}
           </div>
         </div>
       </div>
@@ -155,7 +157,7 @@ export default function BriefingPage({ data }) {
             <div style={{ background: 'rgba(255,255,255,0.7)', borderRadius: 14, padding: isMobile ? '18px 16px' : '24px 32px', border: `1px solid ${BORDER}`, marginBottom: 24 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 4 }}>The papers</div>
               <div style={{ fontSize: 12, color: MUTED, marginBottom: 6 }}>Summaries are ours, written from the published abstract and checked against it. Quoted conclusions are the authors'. Open-access abstracts are read as published.</div>
-              {fullReads.map((p, i) => <Paper key={p.id} p={p} n={i + 1} />)}
+              {fullReads.map((p, i) => <Paper key={p.id} p={p} n={i + 1} episodeId={ep.id} />)}
               {headlines.length > 0 && (
                 <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 16, marginTop: 4 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', marginBottom: 10 }}>In brief</div>
@@ -172,7 +174,7 @@ export default function BriefingPage({ data }) {
           )}
 
           <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.7, padding: '0 4px', marginBottom: 24 }}>
-            Independently produced by The Dental Commute. Not affiliated with or endorsed by any journal or publisher. Narration is synthetic (Grace and Adrian are AI voices). Bibliographic data courtesy of the U.S. National Library of Medicine (PubMed). Rightsholder questions: <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: GREEN }}>{CONTACT_EMAIL}</a>; we act within 48 hours.
+            Independently produced by The Dental Commute. Not affiliated with or endorsed by any journal or publisher. Narration is synthetic (Grace and Adrian are AI voices). Bibliographic data courtesy of the U.S. National Library of Medicine (PubMed). Spotted a mistake, or a rightsholder question? <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: GREEN }}>{CONTACT_EMAIL}</a>; we act within 48 hours. <Link href="/journals/policy" style={{ color: GREEN }}>Editorial and corrections policy</Link>.
           </div>
 
           {(newer || older) && (

@@ -11,6 +11,7 @@ const TURNSTILE_SITEKEY = '0x4AAAAAADknPTUZKfiTfeQc';
 const REASONS = [
   { value: 'broken',        label: 'Broken link or feed' },
   { value: 'ai_voice',      label: 'Sounds AI-generated' },
+  { value: 'inaccurate',    label: 'A summary, number or attribution is wrong' },
   { value: 'inappropriate', label: 'Inappropriate' },
   { value: 'irrelevant',    label: 'Not relevant to dentistry' },
   { value: 'offensive',     label: 'Offensive' },
@@ -41,10 +42,13 @@ function loadTurnstile() {
 // irrelevant, offensive, or other. Anonymous is fine: the write goes through
 // /api/report, which verifies a Turnstile token and throttles by IP. Pass either
 // resourceId (a whole podcast/channel/book) or episodeId (one episode).
-export function ReportButton({ resourceId, episodeId, name }) {
+// Optional: `label` replaces the trigger text ("Spot a mistake?"), `defaultReason`
+// preselects a reason, `notePrefix` starts the note ("Paper 3: … — ") so a
+// correction request arrives with the paper named.
+export function ReportButton({ resourceId, episodeId, name, label = '⚑ Report', defaultReason = '', notePrefix = '' }) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState('');
-  const [note, setNote] = useState('');
+  const [reason, setReason] = useState(defaultReason);
+  const [note, setNote] = useState(notePrefix);
   const [state, setState] = useState('idle'); // idle | submitting | done | error
   const [errorMsg, setErrorMsg] = useState('');
   const widgetRef = useRef(null);
@@ -115,7 +119,7 @@ export function ReportButton({ resourceId, episodeId, name }) {
           cursor: 'pointer', fontFamily: FONT, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 6px' }}
         onMouseEnter={e => e.currentTarget.style.color = '#8a8478'}
         onMouseLeave={e => e.currentTarget.style.color = '#b0a99a'}>
-        ⚑ Report
+        {label}
       </button>
 
       {open && (

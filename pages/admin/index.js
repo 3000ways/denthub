@@ -3127,7 +3127,7 @@ function PersonalRowEditor({ block, index, onSetCount }) {
 // ══════════════════════════════════════════
 const REPORT_REASON_LABEL = {
   broken: 'Broken', inappropriate: 'Inappropriate', irrelevant: 'Irrelevant',
-  offensive: 'Offensive', ai_voice: '🤖 Sounds AI', other: 'Other',
+  offensive: 'Offensive', ai_voice: '🤖 Sounds AI', inaccurate: '✎ Summary error (48 h)', other: 'Other',
 };
 
 function ReportsTab() {
