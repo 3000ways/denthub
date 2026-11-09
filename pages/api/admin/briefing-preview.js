@@ -23,7 +23,7 @@ import { findCluster } from '../../../lib/journals';
 export const config = { maxDuration: 60 };
 const BUCKET = 'briefings';
 const BITRATE = 128000;
-const BUDGET_MS = 24000;   // stop starting new pieces after this; a piece takes up to ~25 s, so a round stays under Vercel's 60 s
+const BUDGET_MS = 15000;   // stop starting new pieces after this; a piece is allowed up to 40 s, so a round stays under Vercel's 60 s
 const CONCURRENCY = 3;
 
 async function soniox({ text, voice }) {
@@ -31,7 +31,7 @@ async function soniox({ text, voice }) {
     const res = await fetch('https://tts-rt.soniox.com/tts', {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.SONIOX_API_KEY}` },
       body: JSON.stringify({ model: TTS_MODEL, language: 'en', voice, audio_format: 'mp3', sample_rate: 44100, bitrate: BITRATE, speed: TTS_SPEED, text }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(40000),
     });
     if (res.ok) return Buffer.from(await res.arrayBuffer());
     const body = await res.text().catch(() => '');
@@ -86,10 +86,13 @@ export default async function handler(req, res) {
     // ── render what is missing, within budget ────────────────────────────
     const missing = pieces.map((p, i) => ({ ...p, hash: hashes[i] })).filter(p => !cache[p.hash]);
     let next = 0, renderedNow = 0;
+    const failures = [];   // a slow or failed piece is retried next round; it never aborts the round
     await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
       while (next < missing.length && Date.now() - started < BUDGET_MS) {
         const p = missing[next++];
-        const buf = await soniox({ text: p.text, voice: p.voice });
+        let buf;
+        try { buf = await soniox({ text: p.text, voice: p.voice }); }
+        catch (e) { failures.push(String(e.message || e)); continue; }
         const dur = Number((buf.length * 8 / BITRATE).toFixed(3));   // CBR estimate; the render job re-measures with ffprobe
         const cents = sonioxCostCents({ chars: p.text.length, audioSeconds: dur });
         const { error: upErr } = await db.storage.from(BUCKET).upload(`cache/${p.hash}.mp3`, buf, { contentType: 'audio/mpeg', upsert: true });
@@ -101,11 +104,16 @@ export default async function handler(req, res) {
       }
     }));
     const remaining = hashes.filter(h => !cache[h]).length;
+    // A round where every attempted piece failed is a real problem; surface it.
+    if (renderedNow === 0 && failures.length && remaining > 0) {
+      const why = /abort|timeout/i.test(failures[0]) ? 'The voice service is slow right now (a piece took over 40 s).' : failures[0];
+      return res.status(502).json({ error: `${why} ${remaining} piece${remaining === 1 ? '' : 's'} left; press the button again to continue.` });
+    }
     // Rendering and joining never share a round: joining downloads every piece
     // and uploads the result, which must start with a fresh time budget.
     if (remaining > 0 || (renderedNow > 0 && Date.now() - started > 8000)) {
       await db.from(target.table).update({ [target.cols.meta]: { ...target.meta, progress }, updated_at: new Date().toISOString() }).match(target.match);
-      return res.status(200).json({ done: false, remaining, rendered: renderedNow, total: pieces.length, joining: remaining === 0 });
+      return res.status(200).json({ done: false, remaining, rendered: renderedNow, failed: failures.length, total: pieces.length, joining: remaining === 0 });
     }
 
     // ── join and store ───────────────────────────────────────────────────

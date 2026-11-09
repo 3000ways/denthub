@@ -3477,7 +3477,7 @@ function BriefingsTab() {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const text = await res.text();
     let d; try { d = JSON.parse(text); } catch { throw Object.assign(new Error(res.status === 504 || res.status === 502 ? 'That round took longer than the server allows. Progress is kept; continuing…' : `Server error ${res.status}`), { retryable: res.status >= 500 }); }
-    if (d.error) throw new Error(d.error);
+    if (d.error) throw Object.assign(new Error(d.error), { retryable: res.status >= 500 || /slow right now|timeout|aborted/i.test(d.error) });
     return d;
   }
   // Loop a round-based endpoint until done, retrying timeouts (progress is server-side).
@@ -3485,7 +3485,7 @@ function BriefingsTab() {
     let r, strikes = 0;
     do {
       try { r = await callJson(url, body); strikes = 0; }
-      catch (e) { if (e.retryable && strikes++ < 3) { onRound({ retrying: true, message: e.message }); continue; } throw e; }
+      catch (e) { if (e.retryable && strikes++ < 6) { onRound({ retrying: true, message: `${e.message} Retrying…` }); await new Promise(r => setTimeout(r, 2000)); continue; } throw e; }
       onRound(r);
       body = { ...body, force: false };   // a forced retry applies to the first round only
     } while (!r.done);
@@ -3518,7 +3518,7 @@ function BriefingsTab() {
       await loopRounds('/api/admin/briefing-preview', { briefing_id: b.id }, d => {
         if (d.retrying) return note(d.message);
         if (d.done) return note(`Done: ${Math.round((d.seconds || 0) / 60)} min of audio, ${money(d.cents)} new.`);
-        note(d.joining ? 'Step 2 of 2: joining the pieces into one file…' : `Step 2 of 2: making the audio, ${d.remaining} of ${d.total} pieces to go…`);
+        note(d.joining ? 'Step 2 of 2: joining the pieces into one file…' : `Step 2 of 2: making the audio, ${d.remaining} of ${d.total} pieces to go…${d.failed ? ` (${d.failed} slow piece${d.failed === 1 ? '' : 's'} will be retried)` : ''}`);
       });
       await load();
     } catch (e) { note(`${e.message} Press the button again to continue; finished pieces are kept.`, true); }
