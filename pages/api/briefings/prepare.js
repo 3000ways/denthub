@@ -23,12 +23,13 @@ import { authorized } from './draft';
 export const config = { maxDuration: 60 };
 const BUDGET_MS = 38000;   // stop starting papers after this; the job calls again
 
-const needsWork = a => !a.read_mode || (a.read_mode === 'hybrid' && !a.summary);
+const needsWork = (a, force) => !a.read_mode || (a.read_mode === 'hybrid' && !a.summary) || (force && a.read_mode === 'quote_only');
 
 export default async function handler(req, res) {
   if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const id = Number((req.body || {}).briefing_id);
+  const force = !!(req.body || {}).force;   // retry papers whose summary failed last time
   if (!id) return res.status(400).json({ error: 'briefing_id required' });
   const started = Date.now();
   const db = getSupabaseAdmin();
@@ -48,7 +49,8 @@ export default async function handler(req, res) {
 
     let processed = 0;
     for (const a of fullReads) {
-      if (!needsWork(a)) continue;
+      if (!needsWork(a, force)) continue;
+      if (force && a.read_mode === 'quote_only') { a.read_mode = null; a.summary = null; }
       if (processed && Date.now() - started > BUDGET_MS) break;
       const patch = { updated_at: new Date().toISOString() };
       // 1. licence (also re-check papers checked before migration 0028, which stored no host type)
@@ -75,7 +77,7 @@ export default async function handler(req, res) {
       processed++;
     }
 
-    const remaining = fullReads.filter(needsWork).length;
+    const remaining = fullReads.filter(a => needsWork(a, false)).length;
     if (remaining > 0) return res.status(200).json({ done: false, remaining, processed });
 
     // Everything settled: rebuild the script with modes and summaries.

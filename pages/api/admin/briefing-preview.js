@@ -23,7 +23,7 @@ import { findCluster } from '../../../lib/journals';
 export const config = { maxDuration: 60 };
 const BUCKET = 'briefings';
 const BITRATE = 128000;
-const BUDGET_MS = 38000;
+const BUDGET_MS = 24000;   // stop starting new pieces after this; a piece takes up to ~25 s, so a round stays under Vercel's 60 s
 const CONCURRENCY = 3;
 
 async function soniox({ text, voice }) {
@@ -31,7 +31,7 @@ async function soniox({ text, voice }) {
     const res = await fetch('https://tts-rt.soniox.com/tts', {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.SONIOX_API_KEY}` },
       body: JSON.stringify({ model: TTS_MODEL, language: 'en', voice, audio_format: 'mp3', sample_rate: 44100, bitrate: BITRATE, speed: TTS_SPEED, text }),
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(30000),
     });
     if (res.ok) return Buffer.from(await res.arrayBuffer());
     const body = await res.text().catch(() => '');
@@ -101,9 +101,11 @@ export default async function handler(req, res) {
       }
     }));
     const remaining = hashes.filter(h => !cache[h]).length;
-    if (remaining > 0) {
+    // Rendering and joining never share a round: joining downloads every piece
+    // and uploads the result, which must start with a fresh time budget.
+    if (remaining > 0 || (renderedNow > 0 && Date.now() - started > 8000)) {
       await db.from(target.table).update({ [target.cols.meta]: { ...target.meta, progress }, updated_at: new Date().toISOString() }).match(target.match);
-      return res.status(200).json({ done: false, remaining, rendered: renderedNow, total: pieces.length });
+      return res.status(200).json({ done: false, remaining, rendered: renderedNow, total: pieces.length, joining: remaining === 0 });
     }
 
     // ── join and store ───────────────────────────────────────────────────

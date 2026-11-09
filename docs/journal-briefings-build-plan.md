@@ -215,6 +215,7 @@ Rounded, the entire programme should run for well under $25 a month. If the comp
 
 ## Rules that protect us
 
+0. **Authors are always credited.** Every paper that is mentioned, in depth or in brief, is introduced with its authors' names ("by Sabeti and Wang", "by Kumar and colleagues") and its journal; the episode page and show notes list the authors in full. Enforced by a unit test on the script builder.
 1. **Expression is theirs, information is everyone's.** For all-rights-reserved papers we speak the facts, numbers, design and conclusions in our own words and quote exactly one attributed sentence from the authors' Conclusions. Abstracts are read verbatim only under a Creative Commons licence on a publisher-hosted copy, with the licence named in the show notes. Every paper is named with journal, authors and a link to the publisher page by DOI. No full text in the podcast feed. Show notes credit the U.S. National Library of Medicine (PubMed) as the bibliographic source and name hello@thedentalcommute.com for rightsholder requests, acted on within 48 hours.
 2. **Nothing invented.** Grace's "short version" is drawn from the paper's Conclusions and checked automatically; the template forbids clinical advice.
 3. **Disclosure in the audio, the feed and the page.** Same badge as every other AI-narrated show on the site; the "Hide AI-narrated podcasts" toggle hides ours too. That consistency is the point.
