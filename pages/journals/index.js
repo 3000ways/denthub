@@ -87,6 +87,7 @@ export default function JournalsHub({ shows }) {
               <div><strong>Their facts, our words.</strong> For each paper we describe the study in our own words, checked number by number against the abstract, then quote the authors' conclusion. Open-access abstracts are read exactly as published.</div>
               <div><strong>Honest about the voices.</strong> Grace and Adrian are AI voices and say so in every episode. The shows are independent of the journals, carry no ads, and link to every paper.</div>
             </div>
+            <div style={{ fontSize: 13, marginTop: 14 }}><Link href="/journals/policy" style={{ color: GREEN, fontWeight: 600, textDecoration: 'none' }}>Read the editorial and corrections policy →</Link></div>
           </div>
 
           {coming.length > 0 && (
