@@ -22,8 +22,13 @@ import { promisify } from 'node:util';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { chaptersFrom, sonioxCostCents } from '../lib/briefing-script.js';
+import { cleanTitle, sonioxCostCents } from '../lib/briefing-script.js';
 import { buildPieces, pieceHash } from '../lib/briefing-pieces.js';
+import { MUSIC, ffmpegMixArgs, chaptersWithMusic } from '../lib/briefing-music.js';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+const MUSIC_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'podcast', 'music');
 
 const exec = promisify(execFile);
 const SITE = process.env.SITE_URL || 'https://thedentalcommute.com';
@@ -118,18 +123,19 @@ async function renderBriefing(b, ctx) {
       }
     }));
 
-    // 3. Stitch.
-    const list = join(dir, 'list.txt');
-    await writeFile(list, results.map(r => `file '${r.file}'`).join('\n'));
+    // 3. Per-segment spoken durations (from the pieces), then stitch WITH the
+    //    musical signature: sting, bed under the opening, a chime before each
+    //    paper, outro under the close (lib/briefing-music.js).
+    const segDur = new Array(b.script.length).fill(0);
+    results.forEach((r, i) => { segDur[pieces[i].si] += r.seconds; });
     const out = join(dir, 'episode.mp3');
-    await exec('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', out]);
+    const { args, plan } = ffmpegMixArgs({ pieces: results.map((r, i) => ({ file: r.file, si: pieces[i].si })), segments: b.script, segDurations: segDur, musicDir: MUSIC_DIR, out, m: MUSIC });
+    await exec('ffmpeg', args);
     const duration = await ffprobeDuration(out);
     if (duration < MIN_SEC || duration > MAX_SEC) throw new Error(`duration ${Math.round(duration)}s outside ${MIN_SEC}–${MAX_SEC}s`);
 
-    // 4. Chapters: per-segment durations summed from their pieces.
-    const segDur = new Array(b.script.length).fill(0);
-    results.forEach((r, i) => { segDur[pieces[i].si] += r.seconds; });
-    const chapters = b.kind === 'trailer' ? [{ title: 'Trailer', start: 0, article_id: null }] : chaptersFrom(b.script, segDur, ctx.articles);
+    // 4. Chapters on the music timeline (a paper's chapter starts on its chime).
+    const chapters = b.kind === 'trailer' ? [{ title: 'Trailer', start: 0, article_id: null }] : chaptersWithMusic(b.script, plan, ctx.articles, cleanTitle);
 
     // 5. Cost.
     const fresh = results.filter(r => !r.cached), cached = results.filter(r => r.cached);
@@ -147,7 +153,7 @@ async function renderBriefing(b, ctx) {
     const audio_url = await upload(key, mp3, 'audio/mpeg');
     await upload(key.replace(/\.mp3$/, '.chapters.json'), Buffer.from(JSON.stringify({ version: '1.2.0', chapters: chapters.map(c => ({ startTime: c.start, title: c.title })) })), 'application/json');
 
-    const checks = { ok: true, pieces: results.length, cached: cached.length, duration_seconds: duration, removed: removedLog.length, elapsed_ms: Date.now() - started };
+    const checks = { ...(b.checks || {}), ok: true, pieces: results.length, cached: cached.length, duration_seconds: duration, speech_seconds: Number(plan.speechEnd.toFixed(1)), music: true, removed: removedLog.length, elapsed_ms: Date.now() - started };
     const pub = await site('/api/briefings/publish', { method: 'POST', body: JSON.stringify({ briefing_id: b.id, audio_url, audio_bytes: mp3.length, duration_seconds: duration, chapters, cost_cents: Number(cost_cents.toFixed(4)), cost_breakdown, checks, rendered_at: new Date().toISOString() }) });
     console.log(`✓ ${b.show} (${b.kind}, ${b.week_of}): ${Math.round(duration / 60)} min, $${(cost_cents / 100).toFixed(2)} (${cached.length} cached) → ${pub.link}`);
   } catch (e) {

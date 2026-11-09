@@ -3517,7 +3517,7 @@ function BriefingsTab() {
       note('Step 2 of 2: making the audio…');
       await loopRounds('/api/admin/briefing-preview', { briefing_id: b.id }, d => {
         if (d.retrying) return note(d.message);
-        if (d.done) return note(`Done: ${Math.round((d.seconds || 0) / 60)} min of audio, ${money(d.cents)} new.`);
+        if (d.done) return note(`Done: ${Math.round((d.seconds || 0) / 60)} min of audio, ${money(d.cents)} new. (Previews are voices only; the published episode adds the music signature.)`);
         note(d.joining ? 'Step 2 of 2: joining the pieces into one file…' : `Step 2 of 2: making the audio, ${d.remaining} of ${d.total} pieces to go…${d.failed ? ` (${d.failed} slow piece${d.failed === 1 ? '' : 's'} will be retried)` : ''}`);
       });
       await load();
