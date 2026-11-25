@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
         </div>
 
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Privacy Policy</h1>
-        <p style={{ fontSize: 14, color: '#888', marginBottom: 48 }}>Last updated: November 8, 2026</p>
+        <p style={{ fontSize: 14, color: '#888', marginBottom: 48 }}>Last updated: November 25, 2026</p>
 
         <Section title="Overview">
           <P>
@@ -122,6 +122,7 @@ export default function PrivacyPolicy() {
             <li><strong>Cloudflare</strong>: network security, bot protection, traffic measurement, and email forwarding</li>
             <li><strong>Resend</strong>: sending email, including messages about listing claims and notices to us about reports and claims</li>
             <li><strong>Perplexity</strong>: AI analysis of public content and of web addresses people suggest, not your account information</li>
+            <li><strong>OP3 (Open Podcast Prefix Project)</strong>: counting downloads of our own podcasts in podcast apps; it stores listener IP addresses only in hashed and encrypted form and uses no cookies</li>
           </List>
           <P>
             Podcast audio plays directly from each show's own hosting provider, which can see your IP address, and links to other sites are governed by those sites' policies.

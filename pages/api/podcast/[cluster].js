@@ -27,7 +27,10 @@ export default async function handler(req, res) {
       if (!bytes) { try { const r = await fetch(b.audio_url, { method: 'HEAD', signal: AbortSignal.timeout(4000) }); bytes = Number(r.headers.get('content-length')) || 0; } catch { bytes = 0; } }
       return { ...b, audio_bytes: bytes, notes: notes[b.episode_id] || '' };
     }));
-    const xml = buildFeedXml({ show: c, row: show?.row || null, items });
+    // Downloads are counted through OP3 unless the kill switch is set in Vercel
+    // (PODCAST_OP3=off, then redeploy) — e.g. if op3.dev were ever down.
+    const trackDownloads = String(process.env.PODCAST_OP3 || '').toLowerCase() !== 'off';
+    const xml = buildFeedXml({ show: c, row: show?.row || null, items, trackDownloads });
     res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
     setCdnCache(res, 600);
     return res.status(200).send(xml);

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildFeedXml, esc, notesHtml } from '../lib/podcast-feed.js';
 import { CLUSTERS } from '../lib/journals.js';
+import { trackedAudioUrl } from '../lib/briefings-urls.js';
 
 const endo = CLUSTERS.find(c => c.key === 'endo');
 const items = [
@@ -25,7 +26,8 @@ test('items carry enclosure length, duration, episode type, chapters and a stabl
   const xml = buildFeedXml({ show: endo, row: null, items });
   assert.match(xml, /<title>Week of Nov 9: Root resection &amp; more<\/title>/, 'ampersand escaped');
   assert.match(xml, /<guid isPermaLink="false">tdc:briefing:12<\/guid>/);
-  assert.match(xml, /<enclosure url="https:\/\/x\.supabase\.co[^"]+weekly-2026-11-09-12\.mp3" length="12345678" type="audio\/mpeg"\/>/);
+  // Downloads are counted through OP3: prefix + storage URL without "https://".
+  assert.match(xml, /<enclosure url="https:\/\/op3\.dev\/e\/x\.supabase\.co\/storage[^"]+weekly-2026-11-09-12\.mp3" length="12345678" type="audio\/mpeg"\/>/);
   assert.match(xml, /<itunes:duration>1750<\/itunes:duration>/);
   assert.match(xml, /<itunes:episodeType>full<\/itunes:episodeType>/);
   assert.match(xml, /<itunes:episodeType>trailer<\/itunes:episodeType>/);
@@ -42,4 +44,24 @@ test('items carry enclosure length, duration, episode type, chapters and a stabl
 test('helpers', () => {
   assert.equal(esc('a < b & "c"'), 'a &lt; b &amp; &quot;c&quot;');
   assert.equal(notesHtml('x\n\ny'), '<p>x</p><p>y</p>');
+});
+
+test('OP3 download counting: prefix format, show guid, kill switch', () => {
+  const mp3 = 'https://x.supabase.co/storage/v1/object/public/briefings/episodes/endo/weekly-2026-11-09-12.mp3';
+  const guid = '123e4567-e89b-12d3-a456-426614174000';
+  assert.equal(trackedAudioUrl(mp3), 'https://op3.dev/e/x.supabase.co/storage/v1/object/public/briefings/episodes/endo/weekly-2026-11-09-12.mp3');
+  assert.equal(trackedAudioUrl(mp3, guid), `https://op3.dev/e,pg=${guid}/x.supabase.co/storage/v1/object/public/briefings/episodes/endo/weekly-2026-11-09-12.mp3`);
+  assert.equal(trackedAudioUrl(mp3, 'not-a-guid'), 'https://op3.dev/e/x.supabase.co/storage/v1/object/public/briefings/episodes/endo/weekly-2026-11-09-12.mp3', 'junk guid ignored');
+  assert.equal(trackedAudioUrl('http://plain.example/a.mp3'), 'https://op3.dev/e/http://plain.example/a.mp3', 'http keeps its scheme');
+  assert.equal(trackedAudioUrl(trackedAudioUrl(mp3, guid), guid), trackedAudioUrl(mp3, guid), 'never double-prefixed');
+  assert.equal(trackedAudioUrl(''), '');
+
+  const withGuid = buildFeedXml({ show: endo, row: { feed_guid: guid }, items });
+  assert.match(withGuid, new RegExp(`<enclosure url="https://op3\\.dev/e,pg=${guid}/x\\.supabase\\.co/`));
+  // Chapters stay a plain link to our file (only audio downloads are counted).
+  assert.match(withGuid, /<podcast:chapters url="https:\/\/x\.supabase\.co[^"]+\.chapters\.json"/);
+
+  const off = buildFeedXml({ show: endo, row: { feed_guid: guid }, items, trackDownloads: false });
+  assert.match(off, /<enclosure url="https:\/\/x\.supabase\.co\/storage[^"]+weekly-2026-11-09-12\.mp3"/);
+  assert.ok(!off.includes('op3.dev'), 'kill switch removes the prefix everywhere');
 });
