@@ -667,7 +667,13 @@ function ResourceCard({ item, onDelete }) {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
               <QueueCardLogo imageUrl={form['Image URL']} siteUrl={form.URL} name={form.Name} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#111', lineHeight: 1.3, marginBottom: 5 }}>{form.Name || '(untitled)'}</div>
+                {/* Title links to the resource's public page (new tab, so the admin list stays put).
+                    Only Published resources have a live page — drafts/archived will show "not found". */}
+                <a href={`/resource/${encodeURIComponent(item.id)}`} target="_blank" rel="noopener noreferrer"
+                  title="Open this resource's page on The Dental Commute"
+                  style={{ display: 'block', fontSize: 15, fontWeight: 700, color: '#111', lineHeight: 1.3, marginBottom: 5, textDecoration: 'underline', textDecorationColor: '#d1d5db', textUnderlineOffset: 3 }}>
+                  {form.Name || '(untitled)'}
+                </a>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <SourceBadge source={f.Source} />
                   {form.Type && <span style={{ fontSize: 11, color: '#fff', background: '#6b7280', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>{form.Type}</span>}
