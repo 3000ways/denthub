@@ -18,6 +18,7 @@ import { fetchResourceEpisodes, mapEpisodeRow, EPISODES_PAGE_SIZE } from '../../
 import { aiVoiceBadge } from '../../lib/voice';
 import { resourceImages } from '../../lib/image-ladder';
 import { useImageLadder } from '../../lib/use-image-ladder';
+import { fetchChannel, fetchRecentVideos, rssUrlFor } from '../../lib/youtube';
 
 const FONT = "'Inter', sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";
@@ -26,30 +27,6 @@ const BORDER = '#e8e8e8';
 
 // "Listen on" / platform pill used in the hero button cluster.
 const CHIP = { fontSize: 13, fontWeight: 500, color: '#333', background: '#fafafa', textDecoration: 'none', padding: '9px 16px', borderRadius: 20, border: `1px solid ${BORDER}`, display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' };
-
-function parseYtRss(xml, limit = 9) {
-  const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
-  const videos = [];
-  let match;
-  while ((match = entryRegex.exec(xml)) !== null && videos.length < limit) {
-    const entry = match[1];
-    const getId = tag => { const m = entry.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i')); return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : null; };
-    const getAt = (tag, attr) => { const m = entry.match(new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']*)["'][^>]*>`, 'i')); return m ? m[1] : null; };
-    const videoId = getId('yt:videoId');
-    const title = getId('title');
-    const published = getId('published');
-    const thumbnail = getAt('media:thumbnail', 'url');
-    if (!videoId) continue;
-    videos.push({
-      videoId,
-      title,
-      url: `https://www.youtube.com/watch?v=${videoId}`,
-      thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
-      date: published ? new Date(published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-    });
-  }
-  return videos;
-}
 
 // No paths are pre-built at deploy time (zero Airtable calls then). With
 // fallback: 'blocking', the first visitor to a resource triggers a one-time
@@ -116,22 +93,17 @@ export async function getStaticProps({ params }) {
           ytData = ytAll[params.id] || null;
         }
       } catch {}
-      // Fall back to direct RSS parsing if API key not set or call failed
-      if (!ytData?.recentVideos?.length) {
-        const rssUrl = record.fields['RSS Feed URL'];
-        if (rssUrl) {
-          try {
-            const feedRes = await fetch(rssUrl, {
-              headers: { 'User-Agent': 'TheDentalCommute/1.0 (+https://thedentalcommute.com)' },
-              signal: AbortSignal.timeout(8000),
-            });
-            if (feedRes.ok) {
-              const xml = await feedRes.text();
-              const recentVideos = parseYtRss(xml, 9);
-              ytData = { ...(ytData || {}), recentVideos };
-            }
-          } catch {}
-        }
+      // Not in that map = the channel was added after the map was cached
+      // (it refreshes every 6 h). Fetch this one channel live so a new
+      // listing shows its videos and numbers at once.
+      if (!ytData) ytData = await fetchChannel(record.fields);
+      // In the map but no videos (feed hiccup): retry the feed only — no
+      // YouTube API call, so a dead channel can't burn the daily API quota.
+      else if (!ytData.recentVideos?.length) {
+        try {
+          const recentVideos = await fetchRecentVideos(record.fields['RSS Feed URL'] || rssUrlFor(ytData.ytId));
+          if (recentVideos.length) ytData = { ...ytData, recentVideos };
+        } catch {}
       }
     }
 
